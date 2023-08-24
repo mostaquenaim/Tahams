@@ -6,6 +6,8 @@ import { AdminEntity } from '../Entities/admin.entity';
 import { CustomerEntity } from 'src/Customer/Entities/customer.entity';
 import { ProductEntity } from 'src/Global/Entities/product.entity';
 import { BannerEntity } from 'src/Global/Entities/banner.entity';
+import * as bcrypt from 'bcrypt';
+import { MailerService } from "@nestjs-modules/mailer/dist";
 
 @Injectable()
 export class AdminService {
@@ -13,6 +15,7 @@ export class AdminService {
   constructor(
     @InjectRepository(AdminEntity)
     private adminRepo: Repository<AdminEntity>,
+    private mailerService: MailerService,
 
     @InjectRepository(CustomerEntity)
     private customerRepo: Repository<CustomerEntity>,
@@ -37,13 +40,23 @@ export class AdminService {
     return 'my name is khan'
   }
 
-  createUser(createUserDto: AdminForm) {
-    console.log(createUserDto)
-    // Logic to create a user using the provided data
-    return createUserDto;
+  async createUser(myDto) {
+    const salt = await bcrypt.genSalt();
+    const hashedPass = await bcrypt.hash(myDto.password, salt);
+    myDto.password = hashedPass;
+    return this.adminRepo.save(myDto);
   }
 
+  // send email 
+  async sendEmail(mydto){
 
+    return   await this.mailerService.sendMail({
+           to: mydto.email,
+           subject: mydto.subject,
+           text: mydto.text, 
+         });
+   }
+   
   // admin login 
   async signIn(myDto) {
 
@@ -91,9 +104,9 @@ export class AdminService {
 
   // view all product 
   async viewAllProduct() {
-        const options: FindManyOptions<ProductEntity> = {};
-        const products = await this.productRepo.find(options);
-        return products;
+    const options: FindManyOptions<ProductEntity> = {};
+    const products = await this.productRepo.find(options);
+    return products;
   }
 
 }

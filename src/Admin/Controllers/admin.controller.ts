@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Param, Post, UseInterceptors, UploadedFile, Res, UnauthorizedException, Session, Put, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator, Delete } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseInterceptors, UploadedFile, Res, UnauthorizedException, Session, Put, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator, Delete, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AdminService } from '../Services/admin.service';
 import { AdminForm } from '../DTOs/adminform.dto';
 import { MulterError, diskStorage } from "multer";
 import { FileInterceptor } from '@nestjs/platform-express';
 import { get } from 'http';
+import { SessionGuard } from 'src/session.guard';
 
 
 
@@ -30,6 +31,12 @@ export class AdminController {
     }
   }
 
+  // send mail 
+  @Post('sendemail')
+  sendEmail(@Body() mydata) {
+    return this.adminService.sendEmail(mydata);
+  }
+
   //logout
   @Get('/logout')
   logout(@Session() session) {
@@ -51,6 +58,16 @@ export class AdminController {
     console.log(createUser)
     return this.adminService.createUser(createUser);
   }
+
+  /* update account 
+  // @Put('/updateadmin/')
+  // @UseGuards(SessionGuard)
+  // @UsePipes(new ValidationPipe())
+  // updateAdmin(@Session() session, @Body('name') name: string): any {
+  //   console.log(session.email);
+  //   return this.adminService.updateUser(name, session.email);
+  // } */
+
 
   // add banner
   @Post('add-banner-images')
@@ -112,14 +129,14 @@ export class AdminController {
     // console.log(file)
   }
 
-  // view product 
+  // view all product 
   @Get('view-all-product')
-  viewAllProduct(){
+  viewAllProduct() {
     return this.adminService.viewAllProduct();
   }
 
   // view product by category
-  
+
 
 
 
