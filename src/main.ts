@@ -10,11 +10,15 @@ async function bootstrap() {
       resave: true,
       saveUninitialized: false,
       cookie: {
-        maxAge: 300000 //session time in ms
+        maxAge: 30000000 //session time in ms
       }
     }),
   );
-  app.enableCors();
+  app.enableCors({
+    origin: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+    });
 
   await app.listen(3000);
 }
