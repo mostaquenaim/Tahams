@@ -7,6 +7,7 @@ import { AdminService } from "../Services/admin.service"
 import { CustomerEntity } from "src/Customer/Entities/customer.entity";
 import { ProductEntity } from "src/Global/Entities/product.entity";
 import { BannerEntity } from "src/Global/Entities/banner.entity";
+import { CategoryEntity } from "src/Global/Entities/category.entity";
 
 
 @Module({
@@ -25,7 +26,7 @@ import { BannerEntity } from "src/Global/Entities/banner.entity";
           }
           
           ),
-        TypeOrmModule.forFeature([AdminEntity, CustomerEntity, ProductEntity, BannerEntity])],
+        TypeOrmModule.forFeature([AdminEntity, CustomerEntity, ProductEntity, BannerEntity, CategoryEntity])],
 controllers: [AdminController],
 providers: [AdminService],
 })

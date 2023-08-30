@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AdminForm } from '../DTOs/adminform.dto';
 import { Repository, FindManyOptions } from 'typeorm';
@@ -8,6 +8,7 @@ import { ProductEntity } from 'src/Global/Entities/product.entity';
 import { BannerEntity } from 'src/Global/Entities/banner.entity';
 import * as bcrypt from 'bcrypt';
 import { MailerService } from "@nestjs-modules/mailer/dist";
+import { CategoryEntity } from 'src/Global/Entities/category.entity';
 
 @Injectable()
 export class AdminService {
@@ -25,6 +26,9 @@ export class AdminService {
 
     @InjectRepository(BannerEntity)
     private bannerRepo: Repository<BannerEntity>,
+
+    @InjectRepository(CategoryEntity)
+    private categoryRepo: Repository<CategoryEntity>,
 
     // @InjectRepository(UserEntity)
     // private userRepo:Repository<UserEntity>,
@@ -109,4 +113,68 @@ export class AdminService {
     return products;
   }
 
+  // view product category 
+  async viewProductCategories(){
+    const options: FindManyOptions<CategoryEntity> = {};
+    const categories = await this.categoryRepo.find(options);
+    return categories;
+  }
+
+  // get category by id 
+  async getCategoryById(id){
+    return await this.categoryRepo.findOneBy({ id });
+  }
+
+  // update category by id 
+  async updateCategory(id: number, category) {
+
+    const user = await this.categoryRepo.findOneBy({id});
+  
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found.`);
+    }
+  
+    await this.categoryRepo.update(id, { ...category });
+  }
+
+  // delete category by id 
+  async deleteCategoryById(id: number) {
+
+    const user = await this.categoryRepo.findOneBy({id});
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found.`); 
+    }
+    await this.categoryRepo.delete(user);
+
+  }
+
+
+  // create new category 
+  async createNewCategory(
+    myDto,
+  ) {
+    // const user = await this.adminRepo.findOneBy({ id });
+    // if (!user)
+    //   throw new HttpException(
+    //     'User not found. Cannot Add Vehicle Information',
+    //     HttpStatus.BAD_REQUEST,
+    //   );
+    const newCategory = this.categoryRepo.create({
+      ...myDto
+    });
+    console.log(newCategory)
+    return this.categoryRepo.save(newCategory);
+  }
+
+  // change category image 
+  async changeCategoryImage(id, myFile) {
+    const user = await this.categoryRepo.findOneBy({ id });
+  
+    if (user) {
+      user.filename = myFile; // Update the filename property with the new file value
+      return await this.categoryRepo.save(user); // Save the updated user entity
+    }
+  
+    return null; // Return null if no user found with the provided email
+  }
 }

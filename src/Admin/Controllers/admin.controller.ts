@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseInterceptors, UploadedFile, Res, UnauthorizedException, Session, Put, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator, Delete, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseInterceptors, UploadedFile, Res, UnauthorizedException, Session, Put, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator, Delete, UseGuards, UsePipes, ValidationPipe, ParseIntPipe } from '@nestjs/common';
 import { AdminService } from '../Services/admin.service';
 import { AdminForm } from '../DTOs/adminform.dto';
 import { MulterError, diskStorage } from "multer";
@@ -135,11 +135,69 @@ export class AdminController {
     return this.adminService.viewAllProduct();
   }
 
-  // view product by category
+  // view category
+  @Get('view-product-categories')
+  viewProductCategories(){
+    return this.adminService.viewProductCategories();
+  }
 
+  // get category by id 
+  @Get('getCategoryById/:id')
+  @UsePipes(ValidationPipe)
+  getCategoryById(
+    @Param('id') id,
+  ){
+    return this.adminService.getCategoryById(id);
+  }
 
+  //update category by id
+  @Put('updateCategory/:id')
+  @UsePipes(ValidationPipe)
+  async updateVehicle
+    (
+      @Param('id', ParseIntPipe) id: number,
+      @Body() myDto,
+    ) {
+    console.log("ashche")
+    await this.adminService.updateCategory(id, myDto);
+  }
 
+  // delete category by id 
+  @Delete('deleteCategory/:id')
+  async deleteCategoryById(@Param('id', ParseIntPipe) id: number) {
+    await this.adminService.deleteCategoryById(id);
+  }
 
+  // add new category 
+  @Post('addCategory')
+  @UsePipes(ValidationPipe)
+  createNewCategory(
+    @Param('id') id,
+    @Session() session,
+    @Body() myDto,
+  ) {
+    return this.adminService.createNewCategory(myDto);
+  }
+
+  // change category image 
+  @Post(('changeCategoryImage/:id'))
+  @UseInterceptors(FileInterceptor('filename',
+    {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: function (req, file, cb) {
+          cb(null, Date.now() + file.originalname)
+        }
+      })
+    }))
+    changeCategoryImage(
+    @Param('id') id,
+    // @Body('file') filename,
+    @UploadedFile() file: Express.Multer.File): object {
+    console.log("filename")
+    console.log(file.filename)
+    return this.adminService.changeCategoryImage(id, file.filename);
+  }
 
   // testing
   @Get('name')

@@ -9,6 +9,9 @@ export class CategoryEntity {
 
     @Column()
     categoryName: string
+    
+    @Column({nullable:true})
+    filename: string
 
     @OneToMany(()=> ProductEntity,(product)=>product.category)
     products:ProductEntity[]
