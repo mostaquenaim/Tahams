@@ -23,8 +23,6 @@ import { AdminService } from '../Services/admin.service';
 import { AdminForm } from '../DTOs/adminform.dto';
 import { MulterError, diskStorage } from "multer";
 import { FileInterceptor } from '@nestjs/platform-express';
-import { get } from 'http';
-import { SessionGuard } from 'src/session.guard';
 
 
 
@@ -164,6 +162,15 @@ export class AdminController {
     @Param('id') id, 
   ){
     return this.adminService.getCategoryById(id);
+  }
+
+  // get product by id 
+  @Get('getProductById/:id')
+  @UsePipes(ValidationPipe)
+  getProductById(
+    @Param('id') id, 
+  ){
+    return this.adminService.getProductById(id);
   }
 
   //update category by id

@@ -145,6 +145,11 @@ export class AdminService {
     return await this.categoryRepo.findOneBy({ id });
   }
 
+  // get Product by id 
+  async getProductById(id) {
+    return await this.productRepo.findOneBy({ id });
+  }
+
   // update category by id 
   async updateCategory(id: number, category) {
 
