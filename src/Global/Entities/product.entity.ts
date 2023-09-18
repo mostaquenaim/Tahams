@@ -1,8 +1,9 @@
-import { Entity, Column, PrimaryGeneratedColumn, BeforeInsert, ManyToOne, ManyToMany, JoinTable } from 'typeorm';
+/* eslint-disable prettier/prettier */
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, ManyToMany, OneToMany } from 'typeorm';
 import { CategoryEntity } from './category.entity';
-import { SizeEntity } from './size.entity';
+import { SizeAndProductEntity } from './sizeAndProduct.entity';
 
-@Entity('products')
+@Entity('product')
 export class ProductEntity {
 
     @PrimaryGeneratedColumn()
@@ -29,8 +30,9 @@ export class ProductEntity {
     @ManyToOne(()=> CategoryEntity,(category)=>category.products)
     category:CategoryEntity
 
-    @ManyToMany(() => SizeEntity)
-    @JoinTable()
-    sizes: SizeEntity[]
+    @OneToMany(()=> SizeAndProductEntity,(sizeAndProduct)=>sizeAndProduct.product)
+    sizeAndProducts:SizeAndProductEntity[]
+
+
 
 }

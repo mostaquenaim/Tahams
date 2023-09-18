@@ -1,4 +1,24 @@
-import { Body, Controller, Get, Param, Post, UseInterceptors, UploadedFile, Res, UnauthorizedException, Session, Put, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator, Delete, UseGuards, UsePipes, ValidationPipe, ParseIntPipe } from '@nestjs/common';
+/* eslint-disable prettier/prettier */
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  UseInterceptors,
+  UploadedFile,
+  Res,
+  UnauthorizedException,
+  Session,
+  Put,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
+  Delete,
+  UsePipes,
+  ValidationPipe,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { AdminService } from '../Services/admin.service';
 import { AdminForm } from '../DTOs/adminform.dto';
 import { MulterError, diskStorage } from "multer";
@@ -59,16 +79,6 @@ export class AdminController {
     return this.adminService.createUser(createUser);
   }
 
-  /* update account 
-  // @Put('/updateadmin/')
-  // @UseGuards(SessionGuard)
-  // @UsePipes(new ValidationPipe())
-  // updateAdmin(@Session() session, @Body('name') name: string): any {
-  //   console.log(session.email);
-  //   return this.adminService.updateUser(name, session.email);
-  // } */
-
-
   // add banner
   @Post('add-banner-images')
   @UseInterceptors(FileInterceptor('file',
@@ -82,7 +92,7 @@ export class AdminController {
       },
       limits: { fileSize: 30000 },
       storage: diskStorage({
-        destination: './uploads',
+        destination: './uploads', 
         filename: function (req, file, cb) {
           cb(null, Date.now() + file.originalname)
         },
@@ -118,7 +128,7 @@ export class AdminController {
     }))
   addNewProduct(@Body() myDto, @UploadedFile(new ParseFilePipe({
     validators: [
-      new MaxFileSizeValidator({ maxSize: 40000 }),
+      new MaxFileSizeValidator({ maxSize: 4000000 }),
       new FileTypeValidator({ fileType: 'png|jpg|jpeg|' }),
     ],
   }),) file: Express.Multer.File) {
@@ -141,11 +151,17 @@ export class AdminController {
     return this.adminService.viewProductCategories();
   }
 
+  // view size
+  @Get('view-product-sizes')
+  viewProductSizes(){
+    return this.adminService.viewProductSizes();
+  }
+
   // get category by id 
   @Get('getCategoryById/:id')
   @UsePipes(ValidationPipe)
   getCategoryById(
-    @Param('id') id,
+    @Param('id') id, 
   ){
     return this.adminService.getCategoryById(id);
   }
@@ -165,7 +181,15 @@ export class AdminController {
   // delete category by id 
   @Delete('deleteCategory/:id')
   async deleteCategoryById(@Param('id', ParseIntPipe) id: number) {
-    await this.adminService.deleteCategoryById(id);
+
+    return this.adminService.deleteCategoryById(id);
+  }
+
+  // delete size by id 
+  @Delete('deleteSize/:id')
+  async deleteSizeById(@Param('id', ParseIntPipe) id: number) {
+
+    return this.adminService.deleteSizeById(id);
   }
 
   // add new category 
@@ -177,6 +201,17 @@ export class AdminController {
     @Body() myDto,
   ) {
     return this.adminService.createNewCategory(myDto);
+  }
+
+  // add new size 
+  @Post('addSize')
+  @UsePipes(ValidationPipe)
+  createNewSize(
+    @Param('id') id,
+    @Session() session,
+    @Body() myDto,
+  ) {
+    return this.adminService.createNewSize(myDto);
   }
 
   // change category image 

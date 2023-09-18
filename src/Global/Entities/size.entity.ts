@@ -1,4 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn, BeforeInsert, ManyToOne } from 'typeorm';
+/* eslint-disable prettier/prettier */
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { SizeAndProductEntity } from './sizeAndProduct.entity';
 
 @Entity('size')
 export class SizeEntity {
@@ -8,5 +10,8 @@ export class SizeEntity {
 
     @Column()
     size: string
+
+    @OneToMany(()=> SizeAndProductEntity,(sizeAndProduct)=>sizeAndProduct.size)
+    sizeAndProducts:SizeAndProductEntity[]
 
 }

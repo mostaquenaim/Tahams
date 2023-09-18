@@ -1,30 +1,25 @@
-import { Entity, Column, PrimaryGeneratedColumn, BeforeInsert } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('admin')
 export class AdminEntity {
+  @PrimaryGeneratedColumn()
+  id: number;
 
+  @Column()
+  name: string;
 
-    @PrimaryGeneratedColumn()
-    id: number;
+  @Column({ nullable: true })
+  uname: string;
 
-    @Column()
-    name: string
+  @Column()
+  password: string;
 
-    @Column({ nullable: true })
-    uname: string
+  @Column({ unique: true })
+  email: string;
 
-    @Column()
-    password: string
+  @Column({ nullable: true })
+  mbl_no: string;
 
-    @Column({ unique: true })
-    email: string;
-
-    @Column({ nullable: true })
-    mbl_no: string
-    
-    @Column({ nullable: true })
-    filename: string
-
-
-
+  @Column({ nullable: true })
+  filename: string;
 }

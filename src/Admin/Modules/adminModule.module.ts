@@ -8,6 +8,8 @@ import { CustomerEntity } from "src/Customer/Entities/customer.entity";
 import { ProductEntity } from "src/Global/Entities/product.entity";
 import { BannerEntity } from "src/Global/Entities/banner.entity";
 import { CategoryEntity } from "src/Global/Entities/category.entity";
+import { SizeAndProductEntity } from "src/Global/Entities/sizeAndProduct.entity";
+import { SizeEntity } from "src/Global/Entities/size.entity";
 
 
 @Module({
@@ -26,7 +28,7 @@ import { CategoryEntity } from "src/Global/Entities/category.entity";
           }
           
           ),
-        TypeOrmModule.forFeature([AdminEntity, CustomerEntity, ProductEntity, BannerEntity, CategoryEntity])],
+        TypeOrmModule.forFeature([AdminEntity, CustomerEntity, ProductEntity, BannerEntity, CategoryEntity, SizeEntity, SizeAndProductEntity])],
 controllers: [AdminController],
 providers: [AdminService],
 })

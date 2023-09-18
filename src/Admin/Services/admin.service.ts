@@ -1,4 +1,5 @@
-import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+/* eslint-disable prettier/prettier */
+import { HttpException, HttpStatus, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AdminForm } from '../DTOs/adminform.dto';
 import { Repository, FindManyOptions } from 'typeorm';
@@ -9,6 +10,7 @@ import { BannerEntity } from 'src/Global/Entities/banner.entity';
 import * as bcrypt from 'bcrypt';
 import { MailerService } from "@nestjs-modules/mailer/dist";
 import { CategoryEntity } from 'src/Global/Entities/category.entity';
+import { SizeEntity } from 'src/Global/Entities/size.entity';
 
 @Injectable()
 export class AdminService {
@@ -16,7 +18,7 @@ export class AdminService {
   constructor(
     @InjectRepository(AdminEntity)
     private adminRepo: Repository<AdminEntity>,
-    private mailerService: MailerService,
+    private mailerService: MailerService, 
 
     @InjectRepository(CustomerEntity)
     private customerRepo: Repository<CustomerEntity>,
@@ -29,6 +31,10 @@ export class AdminService {
 
     @InjectRepository(CategoryEntity)
     private categoryRepo: Repository<CategoryEntity>,
+
+    @InjectRepository(SizeEntity)
+    private sizeRepo: Repository<SizeEntity>,
+
 
     // @InjectRepository(UserEntity)
     // private userRepo:Repository<UserEntity>,
@@ -52,15 +58,15 @@ export class AdminService {
   }
 
   // send email 
-  async sendEmail(mydto){
+  async sendEmail(mydto) {
 
-    return   await this.mailerService.sendMail({
-           to: mydto.email,
-           subject: mydto.subject,
-           text: mydto.text, 
-         });
-   }
-   
+    return await this.mailerService.sendMail({
+      to: mydto.email,
+      subject: mydto.subject,
+      text: mydto.text,
+    });
+  }
+
   // admin login 
   async signIn(myDto) {
 
@@ -103,7 +109,14 @@ export class AdminService {
 
   // add new product 
   async addNewProduct(myDto) {
-    return this.productRepo.save(myDto);
+    const newCategory = await this.getCategoryById(myDto.categoryId)
+
+    const newProduct = this.productRepo.create({
+      ...myDto,
+      category: newCategory
+    });
+
+    return this.productRepo.save(newProduct);
   }
 
   // view all product 
@@ -114,40 +127,82 @@ export class AdminService {
   }
 
   // view product category 
-  async viewProductCategories(){
+  async viewProductCategories() {
     const options: FindManyOptions<CategoryEntity> = {};
     const categories = await this.categoryRepo.find(options);
     return categories;
   }
 
+  // view product size 
+  async viewProductSizes() {
+    const options: FindManyOptions<SizeEntity> = {};
+    const sizes = await this.sizeRepo.find(options);
+    return sizes;
+  }
+
   // get category by id 
-  async getCategoryById(id){
+  async getCategoryById(id) {
     return await this.categoryRepo.findOneBy({ id });
   }
 
   // update category by id 
   async updateCategory(id: number, category) {
 
-    const user = await this.categoryRepo.findOneBy({id});
-  
+    const user = await this.categoryRepo.findOneBy({ id });
+
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found.`);
     }
-  
+
     await this.categoryRepo.update(id, { ...category });
   }
 
   // delete category by id 
   async deleteCategoryById(id: number) {
+    try {
+      const category = await this.categoryRepo.findOneBy({ id });
 
-    const user = await this.categoryRepo.findOneBy({id});
-    if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found.`); 
+      if (!category) {
+        throw new NotFoundException(`Category with ID ${id} not found.`);
+      }
+
+      const productCheck = await this.productRepo.findOneBy({
+        category: category,
+      });
+
+
+      if (productCheck) {
+        // console.log("ekhane");
+        // throw new NotAcceptableException(
+        //   `Product(s) with category ${category.categoryName} exist(s).`,
+        // );
+        // console.log("eijee")
+        return false;
+      }
+
+      const deleted = this.categoryRepo.delete(category);
+      return deleted;
+    } catch (error) {
+      console.error('Error deleting category:', error);
     }
-    await this.categoryRepo.delete(user);
-
   }
 
+  // delete size by id 
+  async deleteSizeById(id: number) {
+    try {
+      const size = await this.sizeRepo.findOneBy({ id });
+
+      if (!size) {
+        throw new NotFoundException(`Size with ID ${id} not found.`);
+      }
+
+      const deleted = this.sizeRepo.delete(size);
+
+      return deleted;
+    } catch (error) {
+      console.error('Error deleting size:', error);
+    }
+  }
 
   // create new category 
   async createNewCategory(
@@ -162,19 +217,28 @@ export class AdminService {
     const newCategory = this.categoryRepo.create({
       ...myDto
     });
-    console.log(newCategory)
     return this.categoryRepo.save(newCategory);
+  }
+
+  // create new size 
+  async createNewSize(
+    myDto,
+  ) {
+    const newSize = this.sizeRepo.create({
+      ...myDto
+    });
+    return this.sizeRepo.save(newSize);
   }
 
   // change category image 
   async changeCategoryImage(id, myFile) {
     const user = await this.categoryRepo.findOneBy({ id });
-  
+
     if (user) {
       user.filename = myFile; // Update the filename property with the new file value
       return await this.categoryRepo.save(user); // Save the updated user entity
     }
-  
+
     return null; // Return null if no user found with the provided email
   }
 }

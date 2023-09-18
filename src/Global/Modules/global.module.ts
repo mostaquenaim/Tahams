@@ -6,6 +6,7 @@ import { PartnerEntity } from "../Entities/partner.entity";
 import { BannerEntity } from "../Entities/banner.entity";
 import { CategoryEntity } from "../Entities/category.entity";
 import { SizeEntity } from "../Entities/size.entity";
+import { SizeAndProductEntity } from "../Entities/sizeAndProduct.entity";
 
 
 @Module({
@@ -24,7 +25,7 @@ import { SizeEntity } from "../Entities/size.entity";
         }
 
         ),
-        TypeOrmModule.forFeature([ProductEntity, PartnerEntity, BannerEntity, CategoryEntity, SizeEntity])],
+        TypeOrmModule.forFeature([ProductEntity, PartnerEntity, BannerEntity, CategoryEntity, SizeEntity, SizeAndProductEntity])],
     controllers: [],
     providers: [],
 })
