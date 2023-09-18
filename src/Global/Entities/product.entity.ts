@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, ManyToMany, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany } from 'typeorm';
 import { CategoryEntity } from './category.entity';
 import { SizeAndProductEntity } from './sizeAndProduct.entity';
 
@@ -23,6 +23,9 @@ export class ProductEntity {
 
     @Column()
     price: string
+
+    @Column({ nullable: true })
+    availableSizes: string
 
     @Column({ nullable: true })
     filename: string

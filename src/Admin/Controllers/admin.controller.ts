@@ -140,7 +140,7 @@ export class AdminController {
   }
 
   // view all product 
-  @Get('view-all-product')
+  @Get('view-all-products')
   viewAllProduct() {
     return this.adminService.viewAllProduct();
   }
