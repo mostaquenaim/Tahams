@@ -113,28 +113,52 @@ export class AdminController {
   }
 
   // add product 
+  // @Post('add-new-product')
+  // @UseInterceptors(FileInterceptor('filename',
+  //   {
+  //     storage: diskStorage({
+  //       destination: './uploads',
+  //       filename: function (req, file, cb) {
+  //         cb(null, Date.now() + file.originalname)
+  //       }
+  //     })
+
+  //   }))
+  // addNewProduct(@Body() myDto, @UploadedFile(new ParseFilePipe({
+  //   validators: [
+  //     new MaxFileSizeValidator({ maxSize: 4000000 }),
+  //     new FileTypeValidator({ fileType: 'png|jpg|jpeg|' }),
+  //   ],
+  // }),) file: Express.Multer.File) {
+
+  //   myDto.filename = file.filename;
+
+  //   return this.adminService.addNewProduct(myDto);
+  //   // console.log(file)
+  // }
+
   @Post('add-new-product')
-  @UseInterceptors(FileInterceptor('filename',
-    {
+  @UseInterceptors(
+    FileInterceptor('filename', {
       storage: diskStorage({
         destination: './uploads',
         filename: function (req, file, cb) {
-          cb(null, Date.now() + file.originalname)
-        }
-      })
-
-    }))
+          // Remove spaces and replace them with hyphens in the original filename
+          const originalnameWithoutSpaces = file.originalname.replace(/ /g, '-');
+          const uniqueFilename = Date.now() + '-' + originalnameWithoutSpaces;
+          cb(null, uniqueFilename);
+        },
+      }),
+    }), 
+  )
   addNewProduct(@Body() myDto, @UploadedFile(new ParseFilePipe({
     validators: [
       new MaxFileSizeValidator({ maxSize: 4000000 }),
-      new FileTypeValidator({ fileType: 'png|jpg|jpeg|' }),
+      new FileTypeValidator({ fileType: 'png|jpg|jpeg' }),
     ],
-  }),) file: Express.Multer.File) {
-
+  })) file: Express.Multer.File) {
     myDto.filename = file.filename;
-
     return this.adminService.addNewProduct(myDto);
-    // console.log(file)
   }
 
   // view all product 
@@ -190,6 +214,13 @@ export class AdminController {
   async deleteCategoryById(@Param('id', ParseIntPipe) id: number) {
 
     return this.adminService.deleteCategoryById(id);
+  }
+
+  // delete product by id  
+  @Delete('deleteProduct/:id')
+  async deleteProductById(@Param('id', ParseIntPipe) id: number) {
+
+    return this.adminService.deleteProductById(id);
   }
 
   // delete size by id 

@@ -7,6 +7,12 @@ export class BannerEntity {
     id: number;
 
     @Column()
+    name: string
+
+    @Column()
     filename: string
+
+    @Column()
+    isEnable: string
 
 }

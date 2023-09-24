@@ -15,6 +15,8 @@ export class ProductEntity {
     @Column({ nullable: true })
     tags: string
 
+    
+
     @Column()
     description: string
 
@@ -29,9 +31,6 @@ export class ProductEntity {
 
     @Column({ nullable: true })
     filename: string
-
-    @ManyToOne(()=> CategoryEntity,(category)=>category.products)
-    category:CategoryEntity
 
     @OneToMany(()=> SizeAndProductEntity,(sizeAndProduct)=>sizeAndProduct.product)
     sizeAndProducts:SizeAndProductEntity[]

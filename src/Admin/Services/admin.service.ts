@@ -192,6 +192,22 @@ export class AdminService {
     }
   }
 
+  // delete product by id 
+  async deleteProductById(id: number) {
+    try {
+      const product = await this.productRepo.findOneBy({ id });
+
+      if (!product) {
+        throw new NotFoundException(`Product with ID ${id} not found.`);
+      }
+
+      const deleted = this.productRepo.delete(product);
+      return deleted;
+    } catch (error) {
+      console.error('Error deleting product:', error);
+    }
+  }
+
   // delete size by id 
   async deleteSizeById(id: number) {
     try {
