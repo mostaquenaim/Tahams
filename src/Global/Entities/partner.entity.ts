@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, BeforeInsert } from 'typeorm';
+/* eslint-disable prettier/prettier */
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('partner')
 export class PartnerEntity {

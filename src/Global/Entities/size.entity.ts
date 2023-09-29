@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
-import { SizeAndProductEntity } from './sizeAndProduct.entity';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToMany } from 'typeorm';
+import { ProductEntity } from './product.entity';
 
 @Entity('size')
 export class SizeEntity {
@@ -11,7 +11,6 @@ export class SizeEntity {
     @Column()
     size: string
 
-    @OneToMany(()=> SizeAndProductEntity,(sizeAndProduct)=>sizeAndProduct.size)
-    sizeAndProducts:SizeAndProductEntity[]
-
+    @ManyToMany(() => ProductEntity, (product) => product.sizes)
+    products: ProductEntity[]
 }

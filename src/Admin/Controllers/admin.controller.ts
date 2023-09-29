@@ -30,11 +30,6 @@ import { FileInterceptor } from '@nestjs/platform-express';
 export class AdminController {
   constructor(private readonly adminService: AdminService) { }
 
-  @Get()
-  getHello(): string {
-    return this.adminService.getHello();
-  }
-
   //Login to admin account 
   @Post('/signin')
   async signIn(@Session() session, @Body() myDto: AdminForm) {
@@ -68,7 +63,6 @@ export class AdminController {
       throw new UnauthorizedException("Can't log out");
     }
   }
-
 
   // create new account 
   @Post('create')

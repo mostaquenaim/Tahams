@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, BeforeInsert, OneToMany } from 'typeorm';
+/* eslint-disable prettier/prettier */
+import { Entity, Column, PrimaryGeneratedColumn, ManyToMany } from 'typeorm';
 import { ProductEntity } from './product.entity';
 
 @Entity('category')
@@ -13,7 +14,7 @@ export class CategoryEntity {
     @Column({nullable:true})
     filename: string
 
-    @OneToMany(()=> ProductEntity,(product)=>product.category)
-    products:ProductEntity[]
+    @ManyToMany(() => ProductEntity, (product) => product.categories)
+    products: ProductEntity[]
 
 }

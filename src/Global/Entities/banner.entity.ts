@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, BeforeInsert } from 'typeorm';
+/* eslint-disable prettier/prettier */
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('banner')
 export class BannerEntity {
@@ -7,12 +8,21 @@ export class BannerEntity {
     id: number;
 
     @Column()
-    name: string
+    title: string
 
     @Column()
     filename: string
 
     @Column()
     isEnable: string
+
+    @Column()
+    startDate: Date
+
+    @Column()
+    endDate: Date
+
+    @Column()
+    platform: string
 
 }

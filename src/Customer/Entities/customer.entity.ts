@@ -1,4 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn, BeforeInsert } from 'typeorm';
+/* eslint-disable prettier/prettier */
+import { BuyingHistoryEntity } from 'src/Global/Entities/buyingHistory.entity';
+import { Entity, Column, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('customer')
 export class CustomerEntity {
@@ -9,9 +11,6 @@ export class CustomerEntity {
 
     @Column()
     name: string
-
-    @Column({ nullable: true })
-    uname: string
 
     @Column()
     password: string
@@ -25,6 +24,7 @@ export class CustomerEntity {
     @Column({ nullable: true })
     filename: string
 
-
+    @OneToMany(() => BuyingHistoryEntity, (buyingHistory) => buyingHistory.customer)
+    buyingHistories: BuyingHistoryEntity[]
 
 }
