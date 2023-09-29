@@ -204,11 +204,11 @@ export class AdminController {
   }
 
   // delete category by id 
-  @Delete('deleteCategory/:id')
-  async deleteCategoryById(@Param('id', ParseIntPipe) id: number) {
+  // @Delete('deleteCategory/:id')
+  // async deleteCategoryById(@Param('id', ParseIntPipe) id: number) {
 
-    return this.adminService.deleteCategoryById(id);
-  }
+  //   return this.adminService.deleteCategoryById(id);
+  // }
 
   // delete product by id  
   @Delete('deleteProduct/:id')

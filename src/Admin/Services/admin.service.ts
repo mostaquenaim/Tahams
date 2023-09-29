@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { HttpException, HttpStatus, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AdminForm } from '../DTOs/adminform.dto';
 import { Repository, FindManyOptions } from 'typeorm';
@@ -163,34 +163,34 @@ export class AdminService {
   }
 
   // delete category by id 
-  async deleteCategoryById(id: number) {
-    try {
-      const category = await this.categoryRepo.findOneBy({ id });
+  // async deleteCategoryById(id: number) {
+  //   try {
+  //     const category = await this.categoryRepo.findOneBy({ id });
 
-      if (!category) {
-        throw new NotFoundException(`Category with ID ${id} not found.`);
-      }
+  //     if (!category) {
+  //       throw new NotFoundException(`Category with ID ${id} not found.`);
+  //     }
 
-      const productCheck = await this.productRepo.findOneBy({
-        category: category,
-      });
+  //     const productCheck = await this.productRepo.findOneBy({
+  //       category: category,
+  //     });
 
 
-      if (productCheck) {
-        // console.log("ekhane");
-        // throw new NotAcceptableException(
-        //   `Product(s) with category ${category.categoryName} exist(s).`,
-        // );
-        // console.log("eijee")
-        return false;
-      }
+  //     if (productCheck) {
+  //       // console.log("ekhane");
+  //       // throw new NotAcceptableException(
+  //       //   `Product(s) with category ${category.categoryName} exist(s).`,
+  //       // );
+  //       // console.log("eijee")
+  //       return false;
+  //     }
 
-      const deleted = this.categoryRepo.delete(category);
-      return deleted;
-    } catch (error) {
-      console.error('Error deleting category:', error);
-    }
-  }
+  //     const deleted = this.categoryRepo.delete(category);
+  //     return deleted;
+  //   } catch (error) {
+  //     console.error('Error deleting category:', error);
+  //   }
+  // }
 
   // delete product by id 
   async deleteProductById(id: number) {

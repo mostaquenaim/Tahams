@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { MailerModule } from "@nestjs-modules/mailer";
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
@@ -8,7 +9,6 @@ import { CustomerEntity } from "src/Customer/Entities/customer.entity";
 import { ProductEntity } from "src/Global/Entities/product.entity";
 import { BannerEntity } from "src/Global/Entities/banner.entity";
 import { CategoryEntity } from "src/Global/Entities/category.entity";
-import { SizeAndProductEntity } from "src/Global/Entities/sizeAndProduct.entity";
 import { SizeEntity } from "src/Global/Entities/size.entity";
 
 
@@ -22,13 +22,13 @@ import { SizeEntity } from "src/Global/Entities/size.entity";
                        secure: true,
                        auth: {
                            user: 'mostaquenaimislam@gmail.com',
-                           pass: 'vwaxokzhcyjpldl' //missing i
+                           pass: '' //missing i
                        },
                       }
           }
           
           ),
-        TypeOrmModule.forFeature([AdminEntity, CustomerEntity, ProductEntity, BannerEntity, CategoryEntity, SizeEntity, SizeAndProductEntity])],
+        TypeOrmModule.forFeature([AdminEntity, CustomerEntity, ProductEntity, BannerEntity, CategoryEntity, SizeEntity])],
 controllers: [AdminController],
 providers: [AdminService],
 })

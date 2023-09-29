@@ -2,9 +2,9 @@
 import { MailerModule } from "@nestjs-modules/mailer";
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { CustomerController } from "../Controllers/customer.controller"
-import { CustomerEntity } from "../Entities/customer.entity";
-import { CustomerService } from "../Services/customer.service"
+import { EmployeeController } from "../Controllers/employee.controller"
+import { EmployeeEntity } from "../Entities/employee.entity";
+import { EmployeeService } from "../Services/employee.service"
 
 
 @Module({
@@ -23,9 +23,9 @@ import { CustomerService } from "../Services/customer.service"
           }
           
           ),
-        TypeOrmModule.forFeature([CustomerEntity])],
-controllers: [CustomerController],
-providers: [CustomerService],
+        TypeOrmModule.forFeature([EmployeeEntity])],
+controllers: [EmployeeController],
+providers: [EmployeeService],
 })
 
-export class CustomerModule {}
+export class EmployeeModule {}
