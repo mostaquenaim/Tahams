@@ -1,8 +1,7 @@
 /* eslint-disable prettier/prettier */
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
-import { CustomerEntity } from 'src/Customer/Entities/customer.entity';
-import { ProductEntity } from './product.entity';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany } from 'typeorm';
 import { DeliveryStatusEntity } from './deliveryStatus.entity';
+import { CartsEntity } from './cart.entity';
 
 @Entity('buying-history')
 export class BuyingHistoryEntity {
@@ -17,25 +16,7 @@ export class BuyingHistoryEntity {
     Address: string 
 
     @Column()
-    Quantity: number
-
-    @Column()
-    ProductName: string
-
-    @Column()
-    UnitPrice: number
-
-    @Column()
-    TotalPrice: number
-
-    @Column()
     BuyingDate: Date
-
-    @Column()
-    discountedPrice: number
-
-    @Column({nullable:true})
-    Coupon: string
 
     @Column({nullable:true})
     Payment: string
@@ -43,12 +24,9 @@ export class BuyingHistoryEntity {
     @Column()
     PaymentDone: string
 
-    @ManyToOne(() => CustomerEntity, (customer) => customer.buyingHistories)
-    customer: CustomerEntity
-
-    @ManyToOne(() => ProductEntity, (product) => product.buyingHistories)
-    product: ProductEntity
-
     @ManyToOne(() => DeliveryStatusEntity, (deliveryStatus) => deliveryStatus.buyingHistories)
     deliveryStatus: DeliveryStatusEntity
+
+    @OneToMany(() => CartsEntity, (cart) => cart.history)
+    carts: CartsEntity[]
 }

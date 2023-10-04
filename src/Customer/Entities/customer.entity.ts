@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { BuyingHistoryEntity } from 'src/Global/Entities/buyingHistory.entity';
+import { CartsEntity } from 'src/Global/Entities/cart.entity';
 import { Entity, Column, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('customer')
@@ -24,7 +24,7 @@ export class CustomerEntity {
     @Column({ nullable: true })
     filename: string
 
-    @OneToMany(() => BuyingHistoryEntity, (buyingHistory) => buyingHistory.customer)
-    buyingHistories: BuyingHistoryEntity[]
+    @OneToMany(() => CartsEntity, (cart) => cart.customer)
+    carts: CartsEntity[]
 
 }

@@ -1,4 +1,9 @@
-import { IsEmail, IsNotEmpty, IsString, Length, Matches } from "class-validator";
+/* eslint-disable prettier/prettier */
+import {
+  IsEmail,
+  IsString,
+  Matches,
+} from 'class-validator';
 
 export class AdminForm {
 

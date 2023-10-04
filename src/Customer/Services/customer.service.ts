@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CustomerForm } from '../DTOs/customerform.dto';
@@ -7,9 +8,12 @@ import { CustomerEntity } from '../Entities/customer.entity';
 @Injectable()
 export class CustomerService {
 
-  constructor(@InjectRepository(CustomerEntity) private userRepository: Repository<CustomerEntity>) {}
+  constructor(
+    @InjectRepository(CustomerEntity)
+    private userRepository: Repository<CustomerEntity>,
+  ) {}
 
-  getHello(): string {
+  getHome(): string {
     return 'Hello World!';
   }
 

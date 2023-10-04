@@ -50,6 +50,36 @@ export class AdminController {
     return this.adminService.sendEmail(mydata);
   }
 
+  // add banner 
+  @Post('addBanner')
+  @UseInterceptors(FileInterceptor('filename',
+    {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: function (req, file, cb) {
+          cb(null, Date.now() + file.originalname)
+        }
+      })
+
+    }))
+  addBanner(@Body() myDto, @UploadedFile(new ParseFilePipe({
+    validators: [
+      new MaxFileSizeValidator({ maxSize: 160000 }),
+      new FileTypeValidator({ fileType: 'png|jpg|jpeg|' }),
+    ],
+  }),) file: Express.Multer.File) {
+
+    myDto.filename = file.filename;
+    console.log(myDto)
+    return this.adminService.addBanner(myDto);
+  }
+
+  // delete banner 
+  @Delete('deleteBanner/:id')
+  async deleteBanner(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.deleteBanner(id);
+  }
+
   //logout
   @Get('/logout')
   logout(@Session() session) {
@@ -67,93 +97,33 @@ export class AdminController {
   // create new account 
   @Post('create')
   createUser(@Body() createUser: AdminForm) {
-    console.log(createUser)
     return this.adminService.createUser(createUser);
   }
 
-  // add banner
-  @Post('add-banner-images')
-  @UseInterceptors(FileInterceptor('file',
-    {
-      fileFilter: (req, file, cb) => {
-        if (file.originalname.match(/^.*\.(jpg|webp|png|jpeg)$/))
-          cb(null, true);
-        else {
-          cb(new MulterError('LIMIT_UNEXPECTED_FILE', 'image'), false);
-        }
-      },
-      limits: { fileSize: 30000 },
-      storage: diskStorage({
-        destination: './uploads', 
-        filename: function (req, file, cb) {
-          cb(null, Date.now() + file.originalname)
-        },
-      })
-    }))
-  addBannerImages(@UploadedFile() file: Express.Multer.File) {
-    return file.filename;
-  }
-
-  // delete banner image 
-  @Delete('delete-banner-image')
-  deleteAdmin(@Session() session, @Body('filename') file) {
-
-    if (session.email) {
-      if (this.adminService.deleteBannerImage(file)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // add product 
+  // add new product 
   // @Post('add-new-product')
-  // @UseInterceptors(FileInterceptor('filename',
-  //   {
+  // @UseInterceptors(
+  //   FileInterceptor('filename', {
   //     storage: diskStorage({
   //       destination: './uploads',
   //       filename: function (req, file, cb) {
-  //         cb(null, Date.now() + file.originalname)
-  //       }
-  //     })
-
-  //   }))
+  //         // Remove spaces and replace them with hyphens in the original filename
+  //         const originalnameWithoutSpaces = file.originalname.replace(/ /g, '-');
+  //         const uniqueFilename = Date.now() + '-' + originalnameWithoutSpaces;
+  //         cb(null, uniqueFilename);
+  //       },
+  //     }),
+  //   }),
+  // )
   // addNewProduct(@Body() myDto, @UploadedFile(new ParseFilePipe({
   //   validators: [
   //     new MaxFileSizeValidator({ maxSize: 4000000 }),
-  //     new FileTypeValidator({ fileType: 'png|jpg|jpeg|' }),
+  //     new FileTypeValidator({ fileType: 'png|jpg|jpeg' }),
   //   ],
-  // }),) file: Express.Multer.File) {
-
+  // })) file: Express.Multer.File) {
   //   myDto.filename = file.filename;
-
   //   return this.adminService.addNewProduct(myDto);
-  //   // console.log(file)
   // }
-
-  @Post('add-new-product')
-  @UseInterceptors(
-    FileInterceptor('filename', {
-      storage: diskStorage({
-        destination: './uploads',
-        filename: function (req, file, cb) {
-          // Remove spaces and replace them with hyphens in the original filename
-          const originalnameWithoutSpaces = file.originalname.replace(/ /g, '-');
-          const uniqueFilename = Date.now() + '-' + originalnameWithoutSpaces;
-          cb(null, uniqueFilename);
-        },
-      }),
-    }), 
-  )
-  addNewProduct(@Body() myDto, @UploadedFile(new ParseFilePipe({
-    validators: [
-      new MaxFileSizeValidator({ maxSize: 4000000 }),
-      new FileTypeValidator({ fileType: 'png|jpg|jpeg' }),
-    ],
-  })) file: Express.Multer.File) {
-    myDto.filename = file.filename;
-    return this.adminService.addNewProduct(myDto);
-  }
 
   // view all product 
   @Get('view-all-products')
@@ -161,15 +131,21 @@ export class AdminController {
     return this.adminService.viewAllProduct();
   }
 
+  // view sub category
+  @Get('view-product-sub-categories')
+  viewProductSubCategories() {
+    return this.adminService.viewProductSubCategories();
+  }
+
   // view category
   @Get('view-product-categories')
-  viewProductCategories(){
+  viewProductCategories() {
     return this.adminService.viewProductCategories();
   }
 
   // view size
   @Get('view-product-sizes')
-  viewProductSizes(){
+  viewProductSizes() {
     return this.adminService.viewProductSizes();
   }
 
@@ -177,8 +153,8 @@ export class AdminController {
   @Get('getCategoryById/:id')
   @UsePipes(ValidationPipe)
   getCategoryById(
-    @Param('id') id, 
-  ){
+    @Param('id') id,
+  ) {
     return this.adminService.getCategoryById(id);
   }
 
@@ -186,21 +162,40 @@ export class AdminController {
   @Get('getProductById/:id')
   @UsePipes(ValidationPipe)
   getProductById(
-    @Param('id') id, 
-  ){
+    @Param('id') id,
+  ) {
     return this.adminService.getProductById(id);
+  }
+
+  // get products by category id
+  @Get('getProductByCat/:id')
+  @UsePipes(ValidationPipe)
+  getProductByCatId(
+    @Param('id') id,
+  ) {
+    return this.adminService.getProductByCatId(id);
   }
 
   //update category by id
   @Put('updateCategory/:id')
   @UsePipes(ValidationPipe)
-  async updateVehicle
+  async updateCategory
     (
       @Param('id', ParseIntPipe) id: number,
       @Body() myDto,
     ) {
-    console.log("ashche")
     await this.adminService.updateCategory(id, myDto);
+  }
+
+  //update banner by id
+  @Put('updateBanner/:id')
+  @UsePipes(ValidationPipe)
+  async updateBanner
+    (
+      @Param('id', ParseIntPipe) id: number,
+      @Body() myDto,
+    ) {
+    await this.adminService.updateBanner(id, myDto);
   }
 
   // delete category by id 
@@ -228,11 +223,29 @@ export class AdminController {
   @Post('addCategory')
   @UsePipes(ValidationPipe)
   createNewCategory(
+    @Body() myDto,
+  ) {
+    return this.adminService.createNewCategory(myDto);
+  }
+
+  // add new coupon 
+  @Post('addCoupon')
+  @UsePipes(ValidationPipe)
+  createNewCoupon(
+    @Body() myDto,
+  ) {
+    return this.adminService.createNewCoupon(myDto);
+  }
+
+  // add new sub-category 
+  @Post('addSubCategory')
+  @UsePipes(ValidationPipe)
+  createNewSubCategory(
     @Param('id') id,
     @Session() session,
     @Body() myDto,
   ) {
-    return this.adminService.createNewCategory(myDto);
+    return this.adminService.createNewSubCategory(myDto);
   }
 
   // add new size 
@@ -246,6 +259,16 @@ export class AdminController {
     return this.adminService.createNewSize(myDto);
   }
 
+  // add new product 
+  @Post('addProduct')
+  @UsePipes(ValidationPipe)
+  createNewProduct( 
+    @Body() myDto,  
+  ) {
+    console.log("myDto", myDto)
+    return this.adminService.createNewProduct(myDto);
+  }
+
   // change category image 
   @Post(('changeCategoryImage/:id'))
   @UseInterceptors(FileInterceptor('filename',
@@ -257,13 +280,29 @@ export class AdminController {
         }
       })
     }))
-    changeCategoryImage(
+  changeCategoryImage(
     @Param('id') id,
     // @Body('file') filename,
     @UploadedFile() file: Express.Multer.File): object {
-    console.log("filename")
-    console.log(file.filename)
     return this.adminService.changeCategoryImage(id, file.filename);
+  }
+
+  // change banner image 
+  @Post(('changeCategoryImage/:id'))
+  @UseInterceptors(FileInterceptor('filename',
+    {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: function (req, file, cb) {
+          cb(null, Date.now() + file.originalname)
+        }
+      })
+    }))
+  changeBannerImage(
+    @Param('id') id,
+    // @Body('file') filename,
+    @UploadedFile() file: Express.Multer.File): object {
+    return this.adminService.changeBannerImage(id, file.filename);
   }
 
   // testing
@@ -297,7 +336,7 @@ export class AdminController {
       })
     }))
   uploadFile(@UploadedFile() file: Express.Multer.File) {
-    console.log(file);
+
     return file.filename;
   }
 

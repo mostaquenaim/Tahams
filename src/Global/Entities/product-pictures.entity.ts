@@ -2,7 +2,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
 import { ColorEntity } from './colors.entity';
 
-@Entity('product-picture')
+@Entity('product-pictures')
 export class ProductPictureEntity {
 
     @PrimaryGeneratedColumn()

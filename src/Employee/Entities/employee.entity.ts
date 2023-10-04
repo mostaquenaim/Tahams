@@ -24,7 +24,5 @@ export class EmployeeEntity {
     @Column({ nullable: true })
     filename: string
 
-    @OneToMany(() => BuyingHistoryEntity, (buyingHistory) => buyingHistory.customer)
-    buyingHistories: BuyingHistoryEntity[]
 
 }

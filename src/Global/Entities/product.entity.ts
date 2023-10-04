@@ -1,10 +1,11 @@
 /* eslint-disable prettier/prettier */
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany, ManyToMany, JoinTable } from 'typeorm';
 import { CategoryEntity } from './category.entity';
-import { SizeEntity } from './size.entity';
 import { SubCategoryEntity } from './subCategory.entity';
-import { BuyingHistoryEntity } from './buyingHistory.entity';
 import { ColorEntity } from './colors.entity';
+import { CartsEntity } from './cart.entity';
+import { WishEntity } from './wish.entity';
+// import { CouponEntity } from './coupon.entity';
 
 @Entity('product')
 export class ProductEntity {
@@ -13,13 +14,10 @@ export class ProductEntity {
     id: number;
 
     @Column()
-    name: string
+    name: string 
 
     @Column()
     serialNo: string
-
-    @Column({nullable:true})
-    quantity: number
 
     @Column({nullable:true})
     note: string
@@ -51,18 +49,22 @@ export class ProductEntity {
     @OneToMany(() => ColorEntity, (color) => color.product)
     colors: ColorEntity[]
 
-    @OneToMany(() => BuyingHistoryEntity, (buyingHistory) => buyingHistory.product)
-    buyingHistories: BuyingHistoryEntity[]
+    @OneToMany(() => CartsEntity, (cart) => cart.product)
+    carts: CartsEntity[]
+
+    @OneToMany(() => WishEntity, (wish) => wish.product)
+    wishes: WishEntity[]
 
     @ManyToMany(() => CategoryEntity, (category) => category.products)
     @JoinTable()
     categories: CategoryEntity[]
 
+    // @ManyToMany(() => CouponEntity, (coupon) => coupon.products)
+    // @JoinTable()
+    // coupons: CouponEntity[]
+
     @ManyToMany(() => SubCategoryEntity, (subCategory) => subCategory.products)
     @JoinTable()
     subCategories: SubCategoryEntity[]
 
-    @ManyToMany(() => SizeEntity, (size) => size.products)
-    @JoinTable()
-    sizes: SubCategoryEntity[]
 }

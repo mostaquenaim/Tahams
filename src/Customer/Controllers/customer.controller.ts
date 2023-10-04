@@ -1,6 +1,15 @@
-import { Body, Controller, Get, Param, Post, UseInterceptors, UploadedFile, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  UseInterceptors,
+  UploadedFile,
+  Res,
+} from '@nestjs/common';
 import { CustomerService } from '../Services/customer.service';
-import { MulterError, diskStorage } from "multer";
+import { MulterError, diskStorage } from 'multer';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CustomerForm } from '../DTOs/customerform.dto';
 
@@ -11,8 +20,8 @@ export class CustomerController {
   constructor(private readonly appService: CustomerService) { }
 
   @Get()
-  getHello(): string {
-    return this.appService.getHello();
+  getHome(): string {
+    return this.appService.getHome();
   }
 
   @Post('create')
@@ -20,7 +29,6 @@ export class CustomerController {
     console.log(createUser)
     return this.appService.createUser(createUser);
   }
-
 
   @Get('name')
   getName(): string {

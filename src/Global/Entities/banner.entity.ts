@@ -11,10 +11,13 @@ export class BannerEntity {
     title: string
 
     @Column()
+    description: string
+
+    @Column()
     filename: string
 
     @Column()
-    isEnable: string
+    isEnable: boolean
 
     @Column()
     startDate: Date

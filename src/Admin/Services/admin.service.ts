@@ -11,6 +11,9 @@ import * as bcrypt from 'bcrypt';
 import { MailerService } from "@nestjs-modules/mailer/dist";
 import { CategoryEntity } from 'src/Global/Entities/category.entity';
 import { SizeEntity } from 'src/Global/Entities/size.entity';
+import { SubCategoryEntity } from 'src/Global/Entities/subCategory.entity';
+import { CouponEntity } from 'src/Global/Entities/coupon.entity';
+import { ColorEntity } from 'src/Global/Entities/colors.entity';
 
 @Injectable()
 export class AdminService {
@@ -18,7 +21,7 @@ export class AdminService {
   constructor(
     @InjectRepository(AdminEntity)
     private adminRepo: Repository<AdminEntity>,
-    private mailerService: MailerService, 
+    private mailerService: MailerService,
 
     @InjectRepository(CustomerEntity)
     private customerRepo: Repository<CustomerEntity>,
@@ -31,6 +34,15 @@ export class AdminService {
 
     @InjectRepository(CategoryEntity)
     private categoryRepo: Repository<CategoryEntity>,
+
+    @InjectRepository(CouponEntity)
+    private couponRepo: Repository<CouponEntity>,
+
+    @InjectRepository(ColorEntity)
+    private colorRepo: Repository<ColorEntity>,
+
+    @InjectRepository(SubCategoryEntity)
+    private subCategoryRepo: Repository<SubCategoryEntity>,
 
     @InjectRepository(SizeEntity)
     private sizeRepo: Repository<SizeEntity>,
@@ -49,6 +61,11 @@ export class AdminService {
   getName(): string {
     return 'my name is khan'
   }
+
+  async addBanner(myDto) {
+    return this.bannerRepo.save(myDto);
+  }
+
 
   async createUser(myDto) {
     const salt = await bcrypt.genSalt();
@@ -97,14 +114,12 @@ export class AdminService {
     }
   }
 
-  // delete banner image 
-  async deleteBannerImage(filename) {
-
-    const myData = await this.bannerRepo.findOneBy({ filename: filename });
-
+  // delete banner  
+  async deleteBanner(id: number) {
+    const myData = await this.bannerRepo.findOneBy({ id });
     if (myData)
       return this.bannerRepo.delete(myData);
-    return false;
+    throw new NotFoundException(`Banner with ID ${id} not found.`);;
   }
 
   // add new product 
@@ -133,6 +148,13 @@ export class AdminService {
     return categories;
   }
 
+  // view product sub-category 
+  async viewProductSubCategories() {
+    const options: FindManyOptions<SubCategoryEntity> = {};
+    const subCategories = await this.subCategoryRepo.find(options);
+    return subCategories;
+  }
+
   // view product size 
   async viewProductSizes() {
     const options: FindManyOptions<SizeEntity> = {};
@@ -150,47 +172,28 @@ export class AdminService {
     return await this.productRepo.findOneBy({ id });
   }
 
+  // get Product by category id 
+  async getProductByCatId(id) {
+    return await this.productRepo.findOneBy({ id });
+  }
+
   // update category by id 
   async updateCategory(id: number, category) {
-
     const user = await this.categoryRepo.findOneBy({ id });
-
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found.`);
     }
-
     await this.categoryRepo.update(id, { ...category });
   }
 
-  // delete category by id 
-  // async deleteCategoryById(id: number) {
-  //   try {
-  //     const category = await this.categoryRepo.findOneBy({ id });
-
-  //     if (!category) {
-  //       throw new NotFoundException(`Category with ID ${id} not found.`);
-  //     }
-
-  //     const productCheck = await this.productRepo.findOneBy({
-  //       category: category,
-  //     });
-
-
-  //     if (productCheck) {
-  //       // console.log("ekhane");
-  //       // throw new NotAcceptableException(
-  //       //   `Product(s) with category ${category.categoryName} exist(s).`,
-  //       // );
-  //       // console.log("eijee")
-  //       return false;
-  //     }
-
-  //     const deleted = this.categoryRepo.delete(category);
-  //     return deleted;
-  //   } catch (error) {
-  //     console.error('Error deleting category:', error);
-  //   }
-  // }
+  // update banner by id 
+  async updateBanner(id: number, bannerDto) {
+    const banner = await this.bannerRepo.findOneBy({ id });
+    if (!banner) {
+      throw new NotFoundException(`Banner with ID ${id} not found.`);
+    }
+    await this.bannerRepo.update(id, { ...bannerDto });
+  }
 
   // delete product by id 
   async deleteProductById(id: number) {
@@ -229,17 +232,32 @@ export class AdminService {
   async createNewCategory(
     myDto,
   ) {
-    // const user = await this.adminRepo.findOneBy({ id });
-    // if (!user)
-    //   throw new HttpException(
-    //     'User not found. Cannot Add Vehicle Information',
-    //     HttpStatus.BAD_REQUEST,
-    //   );
     const newCategory = this.categoryRepo.create({
       ...myDto
     });
     return this.categoryRepo.save(newCategory);
   }
+
+  // create new coupon 
+  async createNewCoupon(
+    myDto,
+  ) {
+    const newCoupon = this.couponRepo.create({
+      ...myDto
+    });
+    return this.couponRepo.save(newCoupon);
+  }
+
+  // create new sub-category 
+  async createNewSubCategory(
+    myDto,
+  ) {
+    const newCategory = this.subCategoryRepo.create({
+      ...myDto
+    });
+    return this.subCategoryRepo.save(newCategory);
+  }
+
 
   // create new size 
   async createNewSize(
@@ -251,15 +269,55 @@ export class AdminService {
     return this.sizeRepo.save(newSize);
   }
 
-  // change category image 
-  async changeCategoryImage(id, myFile) {
-    const user = await this.categoryRepo.findOneBy({ id });
+  // create new product 
+  async createNewProduct(myDto) {
+    const newProduct = this.productRepo.create({
+      ...myDto
+    });
 
-    if (user) {
-      user.filename = myFile; // Update the filename property with the new file value
-      return await this.categoryRepo.save(user); // Save the updated user entity
+    const savedProduct = await this.productRepo.save(newProduct);
+    this.createNewColorObject(savedProduct, myDto.colors)
+    return savedProduct;
+  }
+
+  // create new color object 
+  async createNewColorObject(product, colorsData) {
+
+    for (const colorData of colorsData) {
+      const color = this.colorRepo.create({
+        colorCode: colorData.colorCode,
+        name: colorData.colorName,
+        quantity: colorData.quantity,
+        product: product,
+      });
+
+      await this.colorRepo.save(color);
+    }
+      return true;
     }
 
-    return null; // Return null if no user found with the provided email
+
+  // change category image 
+  async changeCategoryImage(id, myFile) {
+      const user = await this.categoryRepo.findOneBy({ id });
+
+      if (user) {
+        user.filename = myFile; // Update the filename property with the new file value
+        return await this.categoryRepo.save(user); // Save the updated user entity
+      }
+
+      return null; // Return null if no user found with the provided email
+    }
+
+  // change banner image 
+  async changeBannerImage(id: number, myFile: string) {
+      const banner = await this.bannerRepo.findOneBy({ id });
+
+      if (banner) {
+        banner.filename = myFile; // Update the filename property with the new file value
+        return await this.bannerRepo.save(banner); // Save the updated user entity
+      }
+
+      return null; // Return null if no user found with the provided email
+    }
   }
-}
