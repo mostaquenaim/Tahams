@@ -3,7 +3,6 @@ import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('banner')
 export class BannerEntity {
-
     @PrimaryGeneratedColumn()
     id: number;
 
@@ -27,5 +26,4 @@ export class BannerEntity {
 
     @Column()
     platform: string
-
 }

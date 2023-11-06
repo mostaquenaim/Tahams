@@ -16,7 +16,6 @@ export class ColorEntity {
     @Column({nullable:true})
     quantity: number;
 
-    
     @ManyToMany(() => SizeEntity, (size) => size.colors, { nullable: true })
     @JoinTable()
     sizes: SizeEntity[]

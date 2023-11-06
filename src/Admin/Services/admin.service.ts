@@ -46,21 +46,9 @@ export class AdminService {
 
     @InjectRepository(SizeEntity)
     private sizeRepo: Repository<SizeEntity>,
-
-
     // @InjectRepository(UserEntity)
     // private userRepo:Repository<UserEntity>,
-
-
   ) { }
-
-  getHello(): string {
-    return 'Hello World!';
-  }
-
-  getName(): string {
-    return 'my name is khan'
-  }
 
   async addBanner(myDto) {
     return this.bannerRepo.save(myDto);

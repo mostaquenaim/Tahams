@@ -14,6 +14,8 @@ export class CompanyEntity {
     slogan: string
     @Column()
     filename: string
+    @Column()
+    isDefault: boolean
 
     // @OneToMany(() => BuyingHistoryEntity, (buyingHistory) => buyingHistory.color)
     // buyingHistories: BuyingHistoryEntity[]

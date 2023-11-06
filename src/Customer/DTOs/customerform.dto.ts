@@ -1,19 +1,18 @@
-import { IsEmail, IsNotEmpty, IsString, Length, Matches } from "class-validator";
+/* eslint-disable prettier/prettier */
+import { IsEmail, IsNotEmpty, Matches, IsOptional } from 'class-validator';
 
-export class CustomerForm {
+export default class CustomerForm {
 
-  @Matches(/^[A-Za-z]+$/)
-  firstName: string;
+  @Matches(/^[A-Za-z ]+$/, { message: 'Invalid name' })
+  name: string;
 
-  @IsString()
-  lastName: string;
-
-  @IsEmail()
+  @IsEmail({}, { message: 'Invalid email address' })
   email: string;
 
-  @IsString()
+  @IsNotEmpty({ message: 'Password is required' })
   password: string;
 
-
+  @IsOptional()
+  @Matches(/^01[356789][0-9]{8}$/, { message: 'Phone number must be valid' })
+  mbl_no: string | null;
 }
-

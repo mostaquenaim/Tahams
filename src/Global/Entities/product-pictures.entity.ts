@@ -4,7 +4,6 @@ import { ColorEntity } from './colors.entity';
 
 @Entity('product-pictures')
 export class ProductPictureEntity {
-
     @PrimaryGeneratedColumn()
     id: number;
 
@@ -16,6 +15,4 @@ export class ProductPictureEntity {
 
     @ManyToOne(() => ColorEntity, (color) => color.productPictures)
     color: ColorEntity
-
-
 }

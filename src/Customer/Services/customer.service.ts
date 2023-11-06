@@ -1,9 +1,10 @@
 /* eslint-disable prettier/prettier */
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { CustomerForm } from '../DTOs/customerform.dto';
+import CustomerForm from '../DTOs/customerform.dto';
 import { Repository } from 'typeorm';
 import { CustomerEntity } from '../Entities/customer.entity';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class CustomerService {
@@ -13,17 +14,10 @@ export class CustomerService {
     private userRepository: Repository<CustomerEntity>,
   ) {}
 
-  getHome(): string {
-    return 'Hello World!';
-  }
-
-  getName(): string {
-    return 'my name is khan'
-  }
-
-  createUser(createUserDto: CustomerForm) {
-    console.log(createUserDto)
-    // Logic to create a user using the provided data
-    return createUserDto;
+  async createUser(myDto : CustomerForm) {
+    const salt = await bcrypt.genSalt();
+    const hashedPass = await bcrypt.hash(myDto.password, salt);
+    myDto.password = hashedPass;
+    return this.userRepository.save(myDto);
   }
 }

@@ -24,8 +24,6 @@ import { AdminForm } from '../DTOs/adminform.dto';
 import { MulterError, diskStorage } from "multer";
 import { FileInterceptor } from '@nestjs/platform-express';
 
-
-
 @Controller('admin')
 export class AdminController {
   constructor(private readonly adminService: AdminService) { }
@@ -93,37 +91,12 @@ export class AdminController {
       throw new UnauthorizedException("Can't log out");
     }
   }
-
+ 
   // create new account 
   @Post('create')
   createUser(@Body() createUser: AdminForm) {
     return this.adminService.createUser(createUser);
   }
-
-  // add new product 
-  // @Post('add-new-product')
-  // @UseInterceptors(
-  //   FileInterceptor('filename', {
-  //     storage: diskStorage({
-  //       destination: './uploads',
-  //       filename: function (req, file, cb) {
-  //         // Remove spaces and replace them with hyphens in the original filename
-  //         const originalnameWithoutSpaces = file.originalname.replace(/ /g, '-');
-  //         const uniqueFilename = Date.now() + '-' + originalnameWithoutSpaces;
-  //         cb(null, uniqueFilename);
-  //       },
-  //     }),
-  //   }),
-  // )
-  // addNewProduct(@Body() myDto, @UploadedFile(new ParseFilePipe({
-  //   validators: [
-  //     new MaxFileSizeValidator({ maxSize: 4000000 }),
-  //     new FileTypeValidator({ fileType: 'png|jpg|jpeg' }),
-  //   ],
-  // })) file: Express.Multer.File) {
-  //   myDto.filename = file.filename;
-  //   return this.adminService.addNewProduct(myDto);
-  // }
 
   // view all product 
   @Get('view-all-products')
@@ -197,13 +170,6 @@ export class AdminController {
     ) {
     await this.adminService.updateBanner(id, myDto);
   }
-
-  // delete category by id 
-  // @Delete('deleteCategory/:id')
-  // async deleteCategoryById(@Param('id', ParseIntPipe) id: number) {
-
-  //   return this.adminService.deleteCategoryById(id);
-  // }
 
   // delete product by id  
   @Delete('deleteProduct/:id')
@@ -288,7 +254,7 @@ export class AdminController {
   }
 
   // change banner image 
-  @Post(('changeCategoryImage/:id'))
+  @Post(('changeBannerImage/:id'))
   @UseInterceptors(FileInterceptor('filename',
     {
       storage: diskStorage({
@@ -303,41 +269,6 @@ export class AdminController {
     // @Body('file') filename,
     @UploadedFile() file: Express.Multer.File): object {
     return this.adminService.changeBannerImage(id, file.filename);
-  }
-
-  // testing
-  @Get('name')
-  getName(): string {
-    return this.adminService.getName();
-  }
-
-  // testing
-  @Get(':id')
-  findOne(@Param('id') xd: string): string {
-    return `This action returns a #${xd} cat`;
-  }
-
-  @Post('upload')
-  @UseInterceptors(FileInterceptor('file',
-    {
-      fileFilter: (req, file, cb) => {
-        if (file.originalname.match(/^.*\.(jpg|webp|png|jpeg)$/))
-          cb(null, true);
-        else {
-          cb(new MulterError('LIMIT_UNEXPECTED_FILE', 'image'), false);
-        }
-      },
-      limits: { fileSize: 30000 },
-      storage: diskStorage({
-        destination: './uploads',
-        filename: function (req, file, cb) {
-          cb(null, Date.now() + file.originalname)
-        },
-      })
-    }))
-  uploadFile(@UploadedFile() file: Express.Multer.File) {
-
-    return file.filename;
   }
 
   // testing 
@@ -368,9 +299,5 @@ export class AdminController {
     return this.adminService.updateAdmin(myDto, myDto.email);
 
   }
-
-
-
-
 
 }
