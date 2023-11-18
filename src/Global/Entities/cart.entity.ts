@@ -11,23 +11,17 @@ export class CartsEntity {
     @PrimaryGeneratedColumn()
     id: number;
 
+    @Column({nullable:true})
+    uniqueId: string
+
     @Column()
     Quantity: number
 
     @Column()
     ProductName: string
 
-    @Column()
-    UnitPrice: number
-
-    @Column()
-    TotalPrice: number
-
-    @Column()
-    BuyingDate: Date
-
-    @Column()
-    discountedPrice: number
+    @Column({default:false})
+    isBought: boolean
 
     @ManyToOne(() => CustomerEntity, (customer) => customer.carts)
     customer: CustomerEntity

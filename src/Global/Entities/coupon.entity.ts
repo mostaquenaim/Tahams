@@ -11,20 +11,20 @@ export class CouponEntity {
     @Column()
     name: string
 
-    @Column({nullable:true})
-    discountPercentage: string
+    @Column({ default: 0 })
+    discountPercentage: number
 
-    @Column({nullable:true})
-    discountMoney: string
+    @Column({ default: 0 })
+    discountMoney: number
 
-    @Column({nullable:true})
-    limitAmount: string
+    @Column({ default: 10000 })
+    limitAmount: number
+ 
+    @Column({ default: 0 })
+    minimumSpent: number
 
-    @Column()
-    minimumSpent: string
-
-    @Column()
-    isEnable: boolean
+    @Column({ default: true })
+    isEnable: boolean;
 
     @OneToMany(() => CartsEntity, (cart) => cart.coupon)
     carts: CartsEntity[]

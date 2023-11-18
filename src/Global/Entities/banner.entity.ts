@@ -1,21 +1,22 @@
 /* eslint-disable prettier/prettier */
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
+import { CategoryEntity } from './category.entity';
 
 @Entity('banner')
 export class BannerEntity {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column()
+    @Column({nullable:true})
     title: string
 
-    @Column()
+    @Column({nullable:true})
     description: string
 
     @Column()
     filename: string
 
-    @Column()
+    @Column({default:true})
     isEnable: boolean
 
     @Column()
@@ -24,6 +25,10 @@ export class BannerEntity {
     @Column()
     endDate: Date
 
-    @Column()
+    @Column({nullable:true})
     platform: string
+
+    @ManyToOne(() => CategoryEntity, (category) => category.subs, { nullable: true })
+    category: CategoryEntity | null;
+
 }

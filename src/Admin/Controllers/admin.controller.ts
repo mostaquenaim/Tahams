@@ -18,11 +18,15 @@ import {
   UsePipes,
   ValidationPipe,
   ParseIntPipe,
+  Patch,
+  Query,
 } from '@nestjs/common';
 import { AdminService } from '../Services/admin.service';
 import { AdminForm } from '../DTOs/adminform.dto';
 import { MulterError, diskStorage } from "multer";
 import { FileInterceptor } from '@nestjs/platform-express';
+import CouponForm from 'src/Global/DTOs/couponform.dto';
+import ProductForm from 'src/Global/DTOs/productForm.dto';
 
 @Controller('admin')
 export class AdminController {
@@ -42,14 +46,8 @@ export class AdminController {
     }
   }
 
-  // send mail 
-  @Post('sendemail')
-  sendEmail(@Body() mydata) {
-    return this.adminService.sendEmail(mydata);
-  }
-
   // add banner 
-  @Post('addBanner')
+  @Post('add-banner')
   @UseInterceptors(FileInterceptor('filename',
     {
       storage: diskStorage({
@@ -72,54 +70,148 @@ export class AdminController {
     return this.adminService.addBanner(myDto);
   }
 
+  // get all banners 
+  @Get('all-banners')
+  viewAllBanners() {
+    return this.adminService.viewAllBanners();
+  }
+
+  // get banner by id 
+  @Get('banner-by-id/:id')
+  viewBannerById(
+    @Param('id', ParseIntPipe) id: number
+  ) {
+    return this.adminService.getBannerById(id);
+  }
+
   // delete banner 
   @Delete('deleteBanner/:id')
   async deleteBanner(@Param('id', ParseIntPipe) id: number) {
     return this.adminService.deleteBanner(id);
   }
 
-  //logout
-  @Get('/logout')
-  logout(@Session() session) {
-
-    if (session) {
-      session.destroy()
-      return { message: "you are logged out successfully" };
-    }
-
-    else {
-      throw new UnauthorizedException("Can't log out");
-    }
-  }
- 
-  // create new account 
-  @Post('create')
-  createUser(@Body() createUser: AdminForm) {
-    return this.adminService.createUser(createUser);
+  //update banner by id
+  @Put('updateBanner/:id')
+  @UsePipes(ValidationPipe)
+  async updateBanner
+    (
+      @Param('id', ParseIntPipe) id: number,
+      @Body() myDto,
+    ) {
+    await this.adminService.updateBanner(id, myDto);
   }
 
-  // view all product 
-  @Get('view-all-products')
-  viewAllProduct() {
-    return this.adminService.viewAllProduct();
+  // change banner image 
+  @Post(('changeBannerImage/:id'))
+  @UseInterceptors(FileInterceptor('filename',
+    {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: function (req, file, cb) {
+          cb(null, Date.now() + file.originalname)
+        }
+      })
+    }))
+  changeBannerImage(
+    @Param('id') id,
+    // @Body('file') filename,
+    @UploadedFile() file: Express.Multer.File): object {
+    return this.adminService.changeBannerImage(id, file.filename);
   }
 
-  // view sub category
-  @Get('view-product-sub-categories')
-  viewProductSubCategories() {
-    return this.adminService.viewProductSubCategories();
+  // add new buying  
+  @Post('add-to-buy')
+  @UsePipes(ValidationPipe)
+  createNewBuy(
+    @Body() myDto,
+  ) {
+    return this.adminService.createNewBuy(myDto);
+  }
+
+  // update buying history 
+  @Patch('update-buy-reference/:token')
+  updateBuyingHistory(
+    @Param('token') id,
+    @Query('email') email: string,
+    @Body('PaymentDetails') details,
+  ) {
+    return this.adminService.updateBuyingHistory(id, details, email)
+  }
+
+  // get buying histoy by id 
+  @Get('get-buying-history-by-id/:token')
+  getBuyingHistoryById(
+    @Param('token') id,
+  ) {
+    return this.adminService.getBuyingHistoryById(id)
+  }
+
+  // get particular customer all buying history 
+  @Get('get-all-buying-history')
+  getAllBuyingHistories(
+    @Query('email') email: string,
+  ) {
+    return this.adminService.getAllBuyingHistories(email)
+  }
+
+  // add new cart 
+  @Post('add-to-cart')
+  @UsePipes(ValidationPipe)
+  createNewCart(
+    @Body() myDto,
+  ) {
+    return this.adminService.createNewCart(myDto);
+  }
+
+  // delete a cart 
+  @Delete('delete-cart/:uniqueId')
+  deleteCartItem(
+    @Param('token') id,
+    @Query('email') email,
+  ) {
+    return this.adminService.deleteCartItem(id, email);
+  }
+
+  // delete carts 
+  @Delete('delete-carts')
+  deleteCarts(
+    @Query('email') email,
+    @Body() cartArray
+  ) {
+    return this.adminService.deleteCarts(cartArray, email);
+  }
+
+  // get particular customer cart history 
+  @Get('get-all-carts')
+  getAllCarts(
+    @Query('email') email: string,
+  ) {
+    return this.adminService.getAllCarts(email)
   }
 
   // view category
   @Get('view-product-categories')
-  viewProductCategories() {
-    return this.adminService.viewProductCategories();
+  async viewProductCategories() {
+    const result = await this.adminService.viewProductCategories();
+    console.log(result);
+    return result;
   }
 
-  // view size
-  @Get('view-product-sizes')
-  viewProductSizes() {
-    return this.adminService.viewProductSizes();
+  // view sub category by category
+  @Get('view-product-sub-categories/:id')
+  viewProductSubCategories(
+    @Param('id') id: number
+  ) {
+    return this.adminService.viewProductSubCategories(id);
+  }
+
+  // now here 
+  // view sub sub-category by category
+  @Get('view-product-sub-sub-categories/:id')
+  viewProductSubSubCategories(
+    @Param('id') id: number
+  ) {
+    return this.adminService.viewProductSubSubCategories(id);
   }
 
   // get category by id 
@@ -129,15 +221,6 @@ export class AdminController {
     @Param('id') id,
   ) {
     return this.adminService.getCategoryById(id);
-  }
-
-  // get product by id 
-  @Get('getProductById/:id')
-  @UsePipes(ValidationPipe)
-  getProductById(
-    @Param('id') id,
-  ) {
-    return this.adminService.getProductById(id);
   }
 
   // get products by category id
@@ -160,31 +243,6 @@ export class AdminController {
     await this.adminService.updateCategory(id, myDto);
   }
 
-  //update banner by id
-  @Put('updateBanner/:id')
-  @UsePipes(ValidationPipe)
-  async updateBanner
-    (
-      @Param('id', ParseIntPipe) id: number,
-      @Body() myDto,
-    ) {
-    await this.adminService.updateBanner(id, myDto);
-  }
-
-  // delete product by id  
-  @Delete('deleteProduct/:id')
-  async deleteProductById(@Param('id', ParseIntPipe) id: number) {
-
-    return this.adminService.deleteProductById(id);
-  }
-
-  // delete size by id 
-  @Delete('deleteSize/:id')
-  async deleteSizeById(@Param('id', ParseIntPipe) id: number) {
-
-    return this.adminService.deleteSizeById(id);
-  }
-
   // add new category 
   @Post('addCategory')
   @UsePipes(ValidationPipe)
@@ -194,45 +252,13 @@ export class AdminController {
     return this.adminService.createNewCategory(myDto);
   }
 
-  // add new coupon 
-  @Post('addCoupon')
-  @UsePipes(ValidationPipe)
-  createNewCoupon(
-    @Body() myDto,
-  ) {
-    return this.adminService.createNewCoupon(myDto);
-  }
-
   // add new sub-category 
   @Post('addSubCategory')
   @UsePipes(ValidationPipe)
   createNewSubCategory(
-    @Param('id') id,
-    @Session() session,
     @Body() myDto,
   ) {
     return this.adminService.createNewSubCategory(myDto);
-  }
-
-  // add new size 
-  @Post('addSize')
-  @UsePipes(ValidationPipe)
-  createNewSize(
-    @Param('id') id,
-    @Session() session,
-    @Body() myDto,
-  ) {
-    return this.adminService.createNewSize(myDto);
-  }
-
-  // add new product 
-  @Post('addProduct')
-  @UsePipes(ValidationPipe)
-  createNewProduct( 
-    @Body() myDto,  
-  ) {
-    console.log("myDto", myDto)
-    return this.adminService.createNewProduct(myDto);
   }
 
   // change category image 
@@ -253,22 +279,142 @@ export class AdminController {
     return this.adminService.changeCategoryImage(id, file.filename);
   }
 
-  // change banner image 
-  @Post(('changeBannerImage/:id'))
-  @UseInterceptors(FileInterceptor('filename',
-    {
-      storage: diskStorage({
-        destination: './uploads',
-        filename: function (req, file, cb) {
-          cb(null, Date.now() + file.originalname)
-        }
-      })
-    }))
-  changeBannerImage(
+  // add new coupon 
+  @Post('add-coupon')
+  @UsePipes(ValidationPipe)
+  createNewCoupon(
+    @Body() myDto: CouponForm,
+  ) {
+    return this.adminService.createNewCoupon(myDto);
+  }
+
+  // get all coupons 
+  @Get('get-coupons')
+  getAllCoupons() {
+    return this.adminService.getAllCoupons();
+  }
+
+  // get particular coupon 
+  @Get('get-coupons/:id')
+  getParticularCoupon(
+    @Param('id') id: number
+  ) {
+    return this.adminService.getParticularCoupon(id);
+  }
+
+  // disable coupon 
+  @Patch('disable-coupon/:id')
+  disableCoupon(
+    @Param('id') id: number
+  ) {
+    return this.adminService.disableCoupon(id);
+  }
+
+  // get all delivery status 
+  @Get('get-all-delivery-status')
+  getAllDeliveryStatus(
+  ) {
+    return this.adminService.getAllDeliveryStatus()
+  }
+
+  // get all payment methods
+  @Get('get-all-payment-methods')
+  getAllPaymentMethod(
+  ) {
+    return this.adminService.getAllPaymentMethod()
+  }
+
+  // send mail 
+  @Post('sendemail')
+  sendEmail(@Body() mydata) {
+    return this.adminService.sendEmail(mydata);
+  }
+
+  //logout
+  @Get('/logout')
+  logout(@Session() session) {
+
+    if (session) {
+      session.destroy()
+      return { message: "you are logged out successfully" };
+    }
+
+    else {
+      throw new UnauthorizedException("Can't log out");
+    }
+  }
+
+  // create new account 
+  @Post('create')
+  createUser(@Body() createUser: AdminForm) {
+    return this.adminService.createUser(createUser);
+  }
+
+  // view all product 
+  @Get('view-all-products')
+  viewAllProduct() {
+    return this.adminService.viewAllProduct();
+  }
+
+  // view size
+  @Get('view-product-sizes')
+  viewProductSizes() {
+    return this.adminService.viewProductSizes();
+  }
+
+  // get product by id 
+  @Get('getProductById/:id')
+  @UsePipes(ValidationPipe)
+  getProductById(
     @Param('id') id,
-    // @Body('file') filename,
-    @UploadedFile() file: Express.Multer.File): object {
-    return this.adminService.changeBannerImage(id, file.filename);
+  ) {
+    return this.adminService.getProductById(id);
+  }
+
+  // delete product by id  
+  @Delete('deleteProduct/:id')
+  async deleteProductById(@Param('id', ParseIntPipe) id: number) {
+
+    return this.adminService.deleteProductById(id);
+  }
+
+  // delete size by id 
+  @Delete('deleteSize/:id')
+  async deleteSizeById(@Param('id', ParseIntPipe) id: number) {
+
+    return this.adminService.deleteSizeById(id);
+  }
+
+  // add new size 
+  @Post('addSize')
+  @UsePipes(ValidationPipe)
+  createNewSize(
+    @Param('id') id,
+    @Session() session,
+    @Body() myDto,
+  ) {
+    return this.adminService.createNewSize(myDto);
+  }
+
+  // add new product 
+  @Post('add-product')
+  @UsePipes(ValidationPipe)
+  createNewProduct(
+    @Body() myDto: ProductForm,
+  ) {
+    console.log("myDto", myDto)
+    return this.adminService.createNewProduct(myDto);
+  }
+
+  // add new wish 
+  @Post('addWish')
+  @UsePipes(ValidationPipe)
+  createNewWish(
+    // @Body('colors') colors,
+    @Body() myDto,
+  ) {
+    console.log("myDto", myDto)
+    return this.adminService.createNewWish(myDto);
   }
 
   // testing 

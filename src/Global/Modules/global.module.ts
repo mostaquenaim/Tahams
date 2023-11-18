@@ -15,6 +15,8 @@ import { SubCategoryEntity } from "../Entities/subCategory.entity";
 import { CartsEntity } from "../Entities/cart.entity";
 import { WishEntity } from "../Entities/wish.entity";
 import { CouponEntity } from "../Entities/coupon.entity";
+import { PaymentMethodEntity } from "../Entities/paymentMethod.entity";
+import { SubSubCategoryEntity } from "../Entities/subSubCategory.entity";
 
 
 @Module({
@@ -33,7 +35,7 @@ import { CouponEntity } from "../Entities/coupon.entity";
         }
 
         ),
-        TypeOrmModule.forFeature([BannerEntity, BuyingHistoryEntity, CategoryEntity, ColorEntity, CartsEntity, CouponEntity, DeliveryStatusEntity, ProductPictureEntity, ProductEntity, PartnerEntity, SizeEntity, SubCategoryEntity, WishEntity ])],
+        TypeOrmModule.forFeature([BannerEntity, BuyingHistoryEntity, CategoryEntity, ColorEntity, CartsEntity, CouponEntity, DeliveryStatusEntity, PaymentMethodEntity, ProductPictureEntity, ProductEntity, PartnerEntity, SizeEntity, SubCategoryEntity, SubSubCategoryEntity, WishEntity ])],
     controllers: [],
     providers: [],
 })

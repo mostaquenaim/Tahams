@@ -9,11 +9,14 @@ export class ColorEntity {
 
     @PrimaryGeneratedColumn()
     id: number;
+
     @Column()
     name: string;
+
     @Column()
     colorCode: string;
-    @Column({nullable:true})
+
+    @Column({default:1})
     quantity: number;
 
     @ManyToMany(() => SizeEntity, (size) => size.colors, { nullable: true })

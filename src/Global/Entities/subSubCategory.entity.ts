@@ -2,10 +2,10 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, ManyToOne, OneToMany } from 'typeorm';
 import { ProductEntity } from './product.entity';
 import { CategoryEntity } from './category.entity';
-import { SubSubCategoryEntity } from './subSubCategory.entity';
+import { SubCategoryEntity } from './subCategory.entity';
 
-@Entity('sub-category')
-export class SubCategoryEntity {
+@Entity('sub-sub-category')
+export class SubSubCategoryEntity {
     
     @PrimaryGeneratedColumn()
     id: number;
@@ -16,9 +16,10 @@ export class SubCategoryEntity {
     @Column({ nullable: true })
     filename: string;
 
-    @ManyToOne(() => CategoryEntity, (category) => category.subs)
-    category: CategoryEntity
+    @ManyToMany(() => ProductEntity, (product) => product.subCategories)
+    products: ProductEntity[]
 
-    @OneToMany(() => SubSubCategoryEntity, (subSubs) => subSubs.category)
-    subSubs: SubSubCategoryEntity
+    @ManyToOne(() => SubCategoryEntity, (category) => category.subSubs)
+    category: SubCategoryEntity
+
 }

@@ -11,6 +11,9 @@ export class CustomerEntity {
     @Column()
     name: string;
 
+    @Column({nullable:true})
+    uniqueId: string;
+
     @Column()
     password: string;
 

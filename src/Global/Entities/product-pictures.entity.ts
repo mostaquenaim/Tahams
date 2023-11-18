@@ -10,8 +10,11 @@ export class ProductPictureEntity {
     @Column()
     filename: string
 
-    @Column()
+    @Column({default:false})
     isThumbnail : boolean
+
+    @Column({default:false})
+    isFeatured : boolean
 
     @ManyToOne(() => ColorEntity, (color) => color.productPictures)
     color: ColorEntity
