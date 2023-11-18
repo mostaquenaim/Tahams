@@ -423,7 +423,7 @@ export class AdminController {
     res.sendFile(name, { root: './uploads' })
   }
 
-  // update admin profile 
+  // update admin profile  
   @Put('/updateProfile')
   @UseInterceptors(FileInterceptor('filename',
     {
