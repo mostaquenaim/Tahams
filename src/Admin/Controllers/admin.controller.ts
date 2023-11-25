@@ -20,11 +20,12 @@ import {
   ParseIntPipe,
   Patch,
   Query,
+  UploadedFiles,
 } from '@nestjs/common';
 import { AdminService } from '../Services/admin.service';
 import { AdminForm } from '../DTOs/adminform.dto';
 import { MulterError, diskStorage } from "multer";
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor, FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import CouponForm from 'src/Global/DTOs/couponform.dto';
 import ProductForm from 'src/Global/DTOs/productForm.dto';
 
@@ -169,7 +170,7 @@ export class AdminController {
     @Param('token') id,
     @Query('email') email,
   ) {
-    return this.adminService.deleteCartItem(id, email);
+    return this.adminService.deleteCartItem(id);
   }
 
   // delete carts 
@@ -197,21 +198,50 @@ export class AdminController {
     return result;
   }
 
+  // view all sub sub category
+  @Get('view-product-sub-sub-categories')
+  async viewAllProductSubSubCategories() {
+    const result = await this.adminService.viewAllProductSubSubCategories();
+    return result;
+  }
+
+  // view category
+  @Get('view-product-sub-categories')
+  async viewAllProductSubCategories() {
+    const result = await this.adminService.viewAllProductSubCategories();
+    return result;
+  }
+
   // view sub category by category
-  @Get('view-product-sub-categories/:id')
+  @Get('view-product-sub-category/:id')
   viewProductSubCategories(
     @Param('id') id: number
   ) {
     return this.adminService.viewProductSubCategories(id);
   }
 
-  // now here 
   // view sub sub-category by category
-  @Get('view-product-sub-sub-categories/:id')
+  @Get('view-product-sub-sub-category/:catId')
   viewProductSubSubCategories(
+    @Param('catId') catId: number
+  ) {
+    return this.adminService.viewProductSubSubCategories(catId);
+  }
+
+  // get sub category by id 
+  @Get('get-sub-sub-cat-by-id/:id')
+  getSubCatById(
     @Param('id') id: number
   ) {
-    return this.adminService.viewProductSubSubCategories(id);
+    return this.adminService.getSubSubCategoryById(id);
+  }
+
+  // get sub category by id 
+  @Get('get-ft-photo-by-product-id/:id')
+  getProductFtImage(
+    @Param('id') id: number
+  ) {
+    return this.adminService.getProductFtImage(id);
   }
 
   // get category by id 
@@ -230,6 +260,15 @@ export class AdminController {
     @Param('id') id,
   ) {
     return this.adminService.getProductByCatId(id);
+  }
+
+  // get products by sub sub category id
+  @Get('get-product-by-sub-sub-cat/:id')
+  @UsePipes(ValidationPipe)
+  getProductBySubSubCatId(
+    @Param('id') id,
+  ) {
+    return this.adminService.getProductBySubSubCatId(id);
   }
 
   //update category by id
@@ -397,31 +436,52 @@ export class AdminController {
   }
 
   // add new product 
+  // @Post('add-product')
+  // @UsePipes(ValidationPipe)
+  // createNewProduct(
+  //   @Body() myDto: ProductForm,
+  // ) {
+  //   console.log("myDto", myDto)
+  //   return this.adminService.createNewProduct(myDto);
+  // }
+
   @Post('add-product')
-  @UsePipes(ValidationPipe)
-  createNewProduct(
-    @Body() myDto: ProductForm,
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'filename'},
+      // { name: 'colors' }, // Adjust maxCount as needed
+    ]),
+  )
+  addProduct(
+    @UploadedFiles() files: {
+      filename?: Express.Multer.File[];
+      // background?: Express.Multer.File[];
+      // colors?: Express.Multer.File[];
+    },
+    @Body() productData: any, // Adjust the type based on your frontend object
   ) {
-    console.log("myDto", myDto)
-    return this.adminService.createNewProduct(myDto);
+    try {
+      // Save product details to the database, and associate uploaded files as needed
+      // const savedProduct = productService.saveProduct(productData, files);
+      console.log(files,"files");
+      console.log(productData,"product");
+      // Provide a meaningful response to the client
+      // return {
+      //   success: true,
+      //   message: 'Product added successfully',
+      //   data: savedProduct,
+      // };
+    } catch (error) {
+      console.error('Error adding product:', error);
+      // Handle errors and provide an appropriate response to the client
+      return {
+        success: false,
+        message: 'Failed to add product',
+        error: error.message,
+      };
+    }
   }
 
-  // add new wish 
-  @Post('addWish')
-  @UsePipes(ValidationPipe)
-  createNewWish(
-    // @Body('colors') colors,
-    @Body() myDto,
-  ) {
-    console.log("myDto", myDto)
-    return this.adminService.createNewWish(myDto);
-  }
-
-  // testing 
-  @Get('/getimage/:name')
-  getImages(@Param('name') name, @Res() res) {
-    res.sendFile(name, { root: './uploads' })
-  }
 
   // update admin profile  
   @Put('/updateProfile')
@@ -445,5 +505,24 @@ export class AdminController {
     return this.adminService.updateAdmin(myDto, myDto.email);
 
   }
+
+  // add new wish 
+  @Post('addWish')
+  @UsePipes(ValidationPipe)
+  createNewWish(
+    // @Body('colors') colors,
+    @Body() myDto,
+  ) {
+    console.log("myDto", myDto)
+    return this.adminService.createNewWish(myDto);
+  }
+
+  // testing 
+  @Get('/getimage/:name')
+  getImages(@Param('name') name, @Res() res) {
+    res.sendFile(name, { root: './uploads' })
+  }
+
+
 
 }

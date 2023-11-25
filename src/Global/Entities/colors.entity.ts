@@ -3,6 +3,7 @@ import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, ManyToMan
 import { ProductEntity } from './product.entity';
 import { ProductPictureEntity } from './product-pictures.entity';
 import { SizeEntity } from './size.entity';
+import { ColorSizeEntity } from './color-size-combined.entity';
 
 @Entity('colors')
 export class ColorEntity {
@@ -19,17 +20,13 @@ export class ColorEntity {
     @Column({default:1})
     quantity: number;
 
-    @ManyToMany(() => SizeEntity, (size) => size.colors, { nullable: true })
-    @JoinTable()
-    sizes: SizeEntity[]
-
     @ManyToOne(() => ProductEntity, (product) => product.colors)
     product: ProductEntity
 
     @OneToMany(() => ProductPictureEntity, (productPicture) => productPicture.color)
     productPictures: ProductPictureEntity[]
 
-    // @OneToMany(() => BuyingHistoryEntity, (buyingHistory) => buyingHistory.color)
-    // buyingHistories: BuyingHistoryEntity[]
+    @OneToMany(() => ColorSizeEntity, (colorsize) => colorsize.color)
+    colorsize: ColorSizeEntity[]
 
 }

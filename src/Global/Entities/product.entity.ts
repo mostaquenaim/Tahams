@@ -1,6 +1,5 @@
 /* eslint-disable prettier/prettier */
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany, ManyToMany, JoinTable } from 'typeorm';
-import { SubCategoryEntity } from './subCategory.entity';
 import { ColorEntity } from './colors.entity';
 import { CartsEntity } from './cart.entity';
 import { WishEntity } from './wish.entity';
@@ -25,17 +24,17 @@ export class ProductEntity {
     @Column({nullable:true})
     purchaseDate: Date
 
-    @Column({nullable:true})
-    vatPercentage: string
+    @Column({default:0})
+    vatPercentage: number
 
-    @Column({nullable:true})
-    discountPercentage: string
+    @Column({default:0})
+    discountPercentage: number
 
-    @Column()
-    buyingPrice: string
+    @Column({default:0})
+    buyingPrice: number
 
-    @Column()
-    sellingPrice: string
+    @Column({default:0})
+    sellingPrice: number
 
     @Column({ nullable: true })
     tags: string

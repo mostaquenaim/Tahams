@@ -22,6 +22,7 @@ import { WishEntity } from "src/Global/Entities/wish.entity";
 import { EmployeeEntity } from "src/Employee/Entities/employee.entity";
 import { PaymentMethodEntity } from "src/Global/Entities/paymentMethod.entity";
 import { SubSubCategoryEntity } from "src/Global/Entities/subSubCategory.entity";
+import { ColorSizeEntity } from "src/Global/Entities/color-size-combined.entity";
 
 
 @Module({
@@ -40,7 +41,7 @@ import { SubSubCategoryEntity } from "src/Global/Entities/subSubCategory.entity"
         }
 
         ),
-        TypeOrmModule.forFeature([AdminEntity, BannerEntity, BuyingHistoryEntity, CategoryEntity, CustomerEntity, ColorEntity, CartsEntity, CouponEntity, DeliveryStatusEntity, EmployeeEntity, PaymentMethodEntity, ProductPictureEntity, ProductEntity, PartnerEntity, SizeEntity, SubCategoryEntity, SubSubCategoryEntity, WishEntity])],
+        TypeOrmModule.forFeature([AdminEntity, BannerEntity, BuyingHistoryEntity, CategoryEntity, ColorSizeEntity, CustomerEntity, ColorEntity, CartsEntity, CouponEntity, DeliveryStatusEntity, EmployeeEntity, PaymentMethodEntity, ProductPictureEntity, ProductEntity, PartnerEntity, SizeEntity, SubCategoryEntity, SubSubCategoryEntity, WishEntity])],
     controllers: [AdminController],
     providers: [AdminService],
 })

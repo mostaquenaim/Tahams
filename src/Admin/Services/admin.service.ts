@@ -23,6 +23,7 @@ import { DeliveryStatusEntity } from 'src/Global/Entities/deliveryStatus.entity'
 import { PaymentMethodEntity } from 'src/Global/Entities/paymentMethod.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { SubSubCategoryEntity } from 'src/Global/Entities/subSubCategory.entity';
+import { ColorSizeEntity } from 'src/Global/Entities/color-size-combined.entity';
 
 @Injectable()
 export class AdminService {
@@ -76,6 +77,9 @@ export class AdminService {
 
     @InjectRepository(PaymentMethodEntity)
     private paymentMethodRepo: Repository<PaymentMethodEntity>,
+
+    @InjectRepository(ColorSizeEntity)
+    private colorSizeRepo: Repository<ColorSizeEntity>,
     // @InjectRepository(UserEntity)
     // private userRepo:Repository<UserEntity>,
   ) { }
@@ -141,7 +145,7 @@ export class AdminService {
   }
 
   // delete a cart item  
-  async deleteCartItem(id, email) {
+  async deleteCartItem(id) {
     const myData = await this.cartRepo.findOneBy({ uniqueId: id });
     if (myData) {
       return this.cartRepo.delete(myData);
@@ -196,7 +200,7 @@ export class AdminService {
         },
         relations: ['history'], // Load the related buying histories
       });
-      console.log(cartsWithHistory);
+
       // Create a Set to store unique buying histories
       const uniqueHistories = new Set();
 
@@ -252,7 +256,6 @@ export class AdminService {
           customer: { email: email },
         },
       });
-      console.log(cartsWithHistory);
       return cartsWithHistory;
     }
     throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
@@ -272,14 +275,30 @@ export class AdminService {
     return categories;
   }
 
+  // view product sub sub category 
+  async viewAllProductSubSubCategories() {
+    // const options: FindManyOptions<SubSubCategoryEntity> = {};
+    const subCategories = await this.subSubCategoryRepo.find({
+      relations: ['category','category.category'],
+    });
+    return subCategories;
+  }
+
+  // view product sub category 
+  async viewAllProductSubCategories() {
+    const options: FindManyOptions<SubCategoryEntity> = {};
+    const subCategories = await this.subCategoryRepo.find(options);
+    return subCategories;
+  }
+
   // view product sub-category 
-  async viewProductSubCategories(id) {
+  async viewProductSubCategories(id: number) {
     const subCats = await this.subCategoryRepo.find({ where: { category: { id: id } } })
     return subCats;
   }
 
   // view product sub sub-category 
-  async viewProductSubSubCategories(id) {
+  async viewProductSubSubCategories(id: number) {
     const subCats = await this.subSubCategoryRepo.find({ where: { category: { id: id } } })
     return subCats;
   }
@@ -296,9 +315,37 @@ export class AdminService {
     return await this.categoryRepo.findOneBy({ id });
   }
 
+  // get sub cat by id 
+  async getSubSubCategoryById(id) {
+    return await this.subSubCategoryRepo.findOneBy({ id });
+  }
+
+  // get featured image by product id 
+  async getProductFtImage(productId) {
+    const result = await this.productPicRepo.findOne({
+      where: {
+        isThumbnail: true,
+        color: {
+          product: {
+            id: productId,
+          },
+        },
+      },
+      // relations: ['color'],
+    });
+
+
+    return result
+  }
+
   // get category by id 
   async getBannerById(id) {
     return await this.bannerRepo.findOneBy({ id });
+  }
+
+  // get size by id 
+  async getSizeById(id) {
+    return await this.sizeRepo.findOneBy({ id });
   }
 
   // get cart by id 
@@ -351,6 +398,25 @@ export class AdminService {
     return await this.buyingHistoryRepo.findOneBy({ id });
   }
 
+  // get Product by sub sub category id 
+  async getProductBySubSubCatId(subCategoryId) {
+
+    try {
+      const products = await this.productRepo
+        .createQueryBuilder('product')
+        .leftJoinAndSelect('product.subCategories', 'subCategory')
+        .where('subCategory.id = :subCategoryId', { subCategoryId })
+        .getMany();
+
+      return products;
+    } catch (error) {
+      console.error('Error finding products:', error);
+      throw error;
+    }
+
+
+  }
+
   // update category by id 
   async updateCategory(id: number, category) {
     const user = await this.categoryRepo.findOneBy({ id });
@@ -378,7 +444,6 @@ export class AdminService {
       throw new NotFoundException(`Not found.`);
     }
 
-    console.log(email);
 
     // Update PaymentDetails in the buying history
     history.PaymentDetails = details
@@ -417,7 +482,7 @@ export class AdminService {
       return deleted;
     } catch (error) {
       console.error('Error deleting size:', error);
-    }
+    } 
   }
 
   // create new category 
@@ -509,19 +574,6 @@ export class AdminService {
     return true;
   }
 
-  // create new product 
-  async createNewProduct(myDto) {
-
-
-    const newProduct = this.productRepo.create({
-      ...myDto
-    });
-
-    const savedProduct = await this.productRepo.save(newProduct);
-    this.createNewColorObject(savedProduct, myDto.colors)
-    return savedProduct;
-  }
-
   // create new wish 
   async createNewWish(myDto) {
 
@@ -535,6 +587,18 @@ export class AdminService {
     const savedProduct = await this.wishRepo.save(newWish);
     return savedProduct;
   }
+ 
+  // create new product 
+  async createNewProduct(myDto) {
+
+    const newProduct = this.productRepo.create({
+      ...myDto 
+    });
+
+    const savedProduct = await this.productRepo.save(newProduct);
+    this.createNewColorObject(savedProduct, myDto.colors)
+    return savedProduct;
+  }
 
   // create new color object 
   async createNewColorObject(product, colorsData) {
@@ -543,15 +607,31 @@ export class AdminService {
       const color = this.colorRepo.create({
         colorCode: colorData.colorCode,
         name: colorData.name,
-        quantity: colorData.quantity,
+        quantity: colorData?.quantity || 1,
         product: product,
       });
 
       const savedColor = await this.colorRepo.save(color);
-      this.createNewFileObject(savedColor, colorData.files)
+      // this.createNewSizeObject(savedColor, colorData?.sizes)
+      this.createNewFileObject(savedColor, colorData?.files)
 
     }
     return true;
+  }
+
+  // create new size object 
+  async createNewSizeObject(color, sizesData) {
+
+    for (const sizeData of sizesData) {
+      const createdSize = this.colorSizeRepo.create({
+        size: sizeData.name,
+        quantity: sizeData.quantity,
+        color: color,
+      });
+
+      await this.colorSizeRepo.save(createdSize);
+    }
+    return true
   }
 
   // create new color object 
