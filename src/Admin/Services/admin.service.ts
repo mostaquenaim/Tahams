@@ -204,7 +204,6 @@ export class AdminService {
       // Create a Set to store unique buying histories
       const uniqueHistories = new Set();
 
-      // Iterate through carts and add each history to the Set
       cartsWithHistory.forEach((cart) => {
         if (cart.history) {
           uniqueHistories.add(cart.history);
@@ -279,7 +278,7 @@ export class AdminService {
   async viewAllProductSubSubCategories() {
     // const options: FindManyOptions<SubSubCategoryEntity> = {};
     const subCategories = await this.subSubCategoryRepo.find({
-      relations: ['category','category.category'],
+      relations: ['category', 'category.category'],
     });
     return subCategories;
   }
@@ -325,16 +324,12 @@ export class AdminService {
     const result = await this.productPicRepo.findOne({
       where: {
         isThumbnail: true,
-        color: {
-          product: {
-            id: productId,
-          },
+        product: {
+          id: productId,
         },
       },
       // relations: ['color'],
     });
-
-
     return result
   }
 
@@ -482,7 +477,7 @@ export class AdminService {
       return deleted;
     } catch (error) {
       console.error('Error deleting size:', error);
-    } 
+    }
   }
 
   // create new category 
@@ -587,18 +582,33 @@ export class AdminService {
     const savedProduct = await this.wishRepo.save(newWish);
     return savedProduct;
   }
- 
+
   // create new product 
   async createNewProduct(myDto) {
+    console.log(myDto.subCategories, "588");
+
+    // Convert myDto.subCategories to an array if it's a string
+    const subCategoriesArray = typeof myDto.subCategories === 'string' ? myDto.subCategories.split(',').map(Number) : myDto.subCategories;
+    console.log(subCategoriesArray, "594");
+
+    const subs = await this.viewAllProductSubSubCategories();
+
+    // Filter the subs array to include only elements whose id is in subCategoriesArray
+    const categories = subs.filter(cat => subCategoriesArray.includes(cat.id));
+    console.log(categories, "594");
+
+    myDto.subCategories = [...categories];
 
     const newProduct = this.productRepo.create({
-      ...myDto 
+      ...myDto
     });
 
     const savedProduct = await this.productRepo.save(newProduct);
-    this.createNewColorObject(savedProduct, myDto.colors)
     return savedProduct;
   }
+
+
+
 
   // create new color object 
   async createNewColorObject(product, colorsData) {
@@ -611,9 +621,9 @@ export class AdminService {
         product: product,
       });
 
-      const savedColor = await this.colorRepo.save(color);
+      await this.colorRepo.save(color);
       // this.createNewSizeObject(savedColor, colorData?.sizes)
-      this.createNewFileObject(savedColor, colorData?.files)
+      // this.createNewFileObject(savedColor, colorData?.files)
 
     }
     return true;
@@ -635,21 +645,20 @@ export class AdminService {
   }
 
   // create new color object 
-  async createNewFileObject(color, filesData) {
+  async createNewFileObject(product, filesData) {
 
     for (const fileData of filesData) {
       const file = this.productPicRepo.create({
-        filename: fileData.filename,
+        filename: fileData,
         isThumbnail: fileData?.isThumbnail || false,
         isFeatured: fileData?.isFeatured || false,
-        color: color,
+        product: product,
       });
 
       await this.productPicRepo.save(file);
     }
     return true;
   }
-
 
   // change category image 
   async changeCategoryImage(id, myFile) {

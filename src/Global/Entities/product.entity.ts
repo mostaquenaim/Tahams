@@ -4,6 +4,7 @@ import { ColorEntity } from './colors.entity';
 import { CartsEntity } from './cart.entity';
 import { WishEntity } from './wish.entity';
 import { SubSubCategoryEntity } from './subSubCategory.entity';
+import { ProductPictureEntity } from './product-pictures.entity';
 // import { CouponEntity } from './coupon.entity';
 
 @Entity('product')
@@ -45,12 +46,18 @@ export class ProductEntity {
     @Column({default:true})
     ifStock: boolean
 
+    @Column({nullable:true})
+    filename: string
+
     @ManyToMany(() => SubSubCategoryEntity, (subCategory) => subCategory.products)
     @JoinTable()
     subCategories: SubSubCategoryEntity[]
 
     @OneToMany(() => ColorEntity, (color) => color.product)
     colors: ColorEntity[]
+
+    @OneToMany(() => ProductPictureEntity, (productPicture) => productPicture.product)
+    productPictures: ProductPictureEntity[]
 
     @OneToMany(() => CartsEntity, (cart) => cart.product)
     carts: CartsEntity[]

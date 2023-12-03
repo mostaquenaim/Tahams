@@ -21,13 +21,18 @@ import {
   Patch,
   Query,
   UploadedFiles,
+  ParseFilePipeBuilder,
+  HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { AdminService } from '../Services/admin.service';
 import { AdminForm } from '../DTOs/adminform.dto';
 import { MulterError, diskStorage } from "multer";
-import { FileFieldsInterceptor, FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { AnyFilesInterceptor, FileFieldsInterceptor, FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import CouponForm from 'src/Global/DTOs/couponform.dto';
 import ProductForm from 'src/Global/DTOs/productForm.dto';
+import * as path from 'path';
+import * as fs from 'fs';
 
 @Controller('admin')
 export class AdminController {
@@ -435,53 +440,32 @@ export class AdminController {
     return this.adminService.createNewSize(myDto);
   }
 
-  // add new product 
-  // @Post('add-product')
-  // @UsePipes(ValidationPipe)
-  // createNewProduct(
-  //   @Body() myDto: ProductForm,
-  // ) {
-  //   console.log("myDto", myDto)
-  //   return this.adminService.createNewProduct(myDto);
-  // }
-
-  @Post('add-product')
-  @UseInterceptors(
-    FileFieldsInterceptor([
-      { name: 'filename'},
-      // { name: 'colors' }, // Adjust maxCount as needed
-    ]),
-  )
-  addProduct(
-    @UploadedFiles() files: {
-      filename?: Express.Multer.File[];
-      // background?: Express.Multer.File[];
-      // colors?: Express.Multer.File[];
-    },
-    @Body() productData: any, // Adjust the type based on your frontend object
-  ) {
-    try {
-      // Save product details to the database, and associate uploaded files as needed
-      // const savedProduct = productService.saveProduct(productData, files);
-      console.log(files,"files");
-      console.log(productData,"product");
-      // Provide a meaningful response to the client
-      // return {
-      //   success: true,
-      //   message: 'Product added successfully',
-      //   data: savedProduct,
-      // };
-    } catch (error) {
-      console.error('Error adding product:', error);
-      // Handle errors and provide an appropriate response to the client
-      return {
-        success: false,
-        message: 'Failed to add product',
-        error: error.message,
-      };
+  @Post('/add-product')
+  @UseInterceptors(FileInterceptor('myfile',
+    {
+      fileFilter: (req, file, cb) => {
+        if (file.originalname.match(/^.*\.(jpg|webp|png|jpeg)$/))
+          cb(null, true);
+        else {
+          cb(new MulterError('LIMIT_UNEXPECTED_FILE', 'myfile'), false);
+        }
+      },
+      limits: { fileSize: 30000000 },
+      storage: diskStorage({
+        destination: './uploads',
+        filename: function (req, file, cb) {
+          cb(null, Date.now() + file.originalname)
+        },
+      })
     }
+  ))
+  @UsePipes(new ValidationPipe)
+  addProductFunc(@Body() mydata, @UploadedFile() imageobj: Express.Multer.File) {
+    console.log(mydata);
+    console.log(imageobj.filename);
+    mydata.filename = imageobj.filename;
+    return this.adminService.createNewProduct(mydata);
   }
-
 
   // update admin profile  
   @Put('/updateProfile')
@@ -516,13 +500,10 @@ export class AdminController {
     console.log("myDto", myDto)
     return this.adminService.createNewWish(myDto);
   }
-
   // testing 
   @Get('/getimage/:name')
   getImages(@Param('name') name, @Res() res) {
     res.sendFile(name, { root: './uploads' })
   }
-
-
 
 }

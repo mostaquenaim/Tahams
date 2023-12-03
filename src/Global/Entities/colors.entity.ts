@@ -23,8 +23,8 @@ export class ColorEntity {
     @ManyToOne(() => ProductEntity, (product) => product.colors)
     product: ProductEntity
 
-    @OneToMany(() => ProductPictureEntity, (productPicture) => productPicture.color)
-    productPictures: ProductPictureEntity[]
+    // @OneToMany(() => ProductPictureEntity, (productPicture) => productPicture.color)
+    // productPictures: ProductPictureEntity[]
 
     @OneToMany(() => ColorSizeEntity, (colorsize) => colorsize.color)
     colorsize: ColorSizeEntity[]

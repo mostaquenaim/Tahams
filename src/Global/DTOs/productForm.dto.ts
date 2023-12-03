@@ -16,4 +16,7 @@ export default class ProductForm {
 
     @IsNotEmpty()
     description: string
+
+    @IsNotEmpty()
+    filename: string
 }
