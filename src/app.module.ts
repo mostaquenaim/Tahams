@@ -13,11 +13,11 @@ import { EmployeeModule } from './Employee/Modules/employeeModule.module';
     EmployeeModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'localhost',
-      port: 5432,
+      host: 'monorail.proxy.rlwy.net', //localhost
+      port: 45372, //5432
       username: 'postgres',
-      password: 'root',
-      database: 'Tahams',
+      password: 'AAG-Dcg5GE3g5dCE5D6e6Ga2bdBfD34g', //root
+      database: 'railway', //tahams
       autoLoadEntities: true,
       synchronize: true,
     }),
