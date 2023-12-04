@@ -16,9 +16,9 @@ import { join } from 'path';
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: 'monorail.proxy.rlwy.net', //localhost
-      port: 45372, //5432
+      port: 59586, //5432
       username: 'postgres',
-      password: 'AAG-Dcg5GE3g5dCE5D6e6Ga2bdBfD34g', //root
+      password: 'bgaFf443fC36*6bC6ECafCG13A5-d62g', //root
       database: 'railway', //tahams
       autoLoadEntities: true,
       synchronize: true,
