@@ -597,7 +597,7 @@ export class AdminService {
     const categories = subs.filter(cat => subCategoriesArray.includes(cat.id));
     console.log(categories, "594");
 
-    myDto.subCategories = [...categories];
+    myDto.subCategories = [...categories]; 
 
     const newProduct = this.productRepo.create({
       ...myDto
@@ -606,7 +606,7 @@ export class AdminService {
     const savedProduct = await this.productRepo.save(newProduct);
     return savedProduct;
   }
-
+ 
 
 
 
