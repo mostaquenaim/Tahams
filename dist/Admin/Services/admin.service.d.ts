@@ -56,6 +56,7 @@ export declare class AdminService {
     disableCoupon(id: any): Promise<void>;
     getAllCarts(email: any): Promise<CartsEntity[]>;
     viewAllBanners(): Promise<BannerEntity[]>;
+    viewColors(): Promise<ColorEntity[]>;
     viewProductCategories(): Promise<CategoryEntity[]>;
     viewAllProductSubSubCategories(): Promise<SubSubCategoryEntity[]>;
     viewAllProductSubCategories(): Promise<SubCategoryEntity[]>;
@@ -73,6 +74,7 @@ export declare class AdminService {
     getColorById(id: any): Promise<ColorEntity>;
     getCustomerById(id: any): Promise<CustomerEntity>;
     getCustomerByEmail(email: any): Promise<CustomerEntity>;
+    getColorByName(name: string): Promise<ColorEntity>;
     getDeliveryStatusById(id: any): Promise<DeliveryStatusEntity>;
     getCouponById(id: any): Promise<CouponEntity>;
     getBuyingHistoryById(token: any): Promise<BuyingHistoryEntity>;
@@ -92,8 +94,6 @@ export declare class AdminService {
     createNewCartObject(product: any, cartsData: any): Promise<boolean>;
     createNewWish(myDto: any): Promise<WishEntity[]>;
     createNewProduct(myDto: any): Promise<ProductEntity[]>;
-    createNewColorObject(product: any, colorsData: any): Promise<boolean>;
-    createNewSizeObject(color: any, sizesData: any): Promise<boolean>;
     createNewFileObject(product: any, filesData: any): Promise<boolean>;
     changeCategoryImage(id: any, myFile: any): Promise<CategoryEntity>;
     changeBannerImage(id: number, myFile: string): Promise<BannerEntity>;

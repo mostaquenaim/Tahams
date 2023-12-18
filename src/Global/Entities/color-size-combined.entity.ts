@@ -17,6 +17,6 @@ export class ColorSizeEntity {
     @Column()
     size: string
 
-    @ManyToOne(() => ColorEntity, (color) => color.colorsize)
-    color: ColorEntity
+    // @ManyToOne(() => ColorEntity, (color) => color.colorsize)
+    // color: ColorEntity
 }

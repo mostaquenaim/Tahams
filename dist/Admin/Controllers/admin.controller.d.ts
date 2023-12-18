@@ -22,6 +22,7 @@ export declare class AdminController {
     getAllCarts(email: string): Promise<import("../../Global/Entities/cart.entity").CartsEntity[]>;
     viewProductCategories(): Promise<import("../../Global/Entities/category.entity").CategoryEntity[]>;
     viewAllProductSubSubCategories(): Promise<import("../../Global/Entities/subSubCategory.entity").SubSubCategoryEntity[]>;
+    viewColors(): Promise<import("../../Global/Entities/colors.entity").ColorEntity[]>;
     viewAllProductSubCategories(): Promise<import("../../Global/Entities/subCategory.entity").SubCategoryEntity[]>;
     viewProductSubCategories(id: number): Promise<import("../../Global/Entities/subCategory.entity").SubCategoryEntity[]>;
     viewProductSubSubCategories(catId: number): Promise<import("../../Global/Entities/subSubCategory.entity").SubSubCategoryEntity[]>;

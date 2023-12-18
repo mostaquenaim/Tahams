@@ -12,7 +12,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ColorEntity = void 0;
 const typeorm_1 = require("typeorm");
 const product_entity_1 = require("./product.entity");
-const color_size_combined_entity_1 = require("./color-size-combined.entity");
 let ColorEntity = exports.ColorEntity = class ColorEntity {
 };
 __decorate([
@@ -32,13 +31,9 @@ __decorate([
     __metadata("design:type", Number)
 ], ColorEntity.prototype, "quantity", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => product_entity_1.ProductEntity, (product) => product.colors),
-    __metadata("design:type", product_entity_1.ProductEntity)
-], ColorEntity.prototype, "product", void 0);
-__decorate([
-    (0, typeorm_1.OneToMany)(() => color_size_combined_entity_1.ColorSizeEntity, (colorsize) => colorsize.color),
+    (0, typeorm_1.OneToMany)(() => product_entity_1.ProductEntity, (product) => product.color),
     __metadata("design:type", Array)
-], ColorEntity.prototype, "colorsize", void 0);
+], ColorEntity.prototype, "products", void 0);
 exports.ColorEntity = ColorEntity = __decorate([
     (0, typeorm_1.Entity)('colors')
 ], ColorEntity);

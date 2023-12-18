@@ -15,11 +15,11 @@ import { join } from 'path';
     EmployeeModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'monorail.proxy.rlwy.net', //localhost
-      port: 59586, //5432
+      host: 'localhost', //localhost //monorail.proxy.rlwy.net
+      port: 5432, //5432 //59586
       username: 'postgres',
-      password: 'bgaFf443fC36*6bC6ECafCG13A5-d62g', //root
-      database: 'railway', //tahams
+      password: 'root', //root //bgaFf443fC36*6bC6ECafCG13A5-d62g
+      database: 'Tahams', //tahams //railway
       autoLoadEntities: true,
       synchronize: true,
     }),

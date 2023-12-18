@@ -197,6 +197,11 @@ let AdminService = exports.AdminService = class AdminService {
         const banners = await this.bannerRepo.find(options);
         return banners;
     }
+    async viewColors() {
+        const options = {};
+        const colors = await this.colorRepo.find(options);
+        return colors;
+    }
     async viewProductCategories() {
         const options = {};
         const categories = await this.categoryRepo.find(options);
@@ -267,6 +272,9 @@ let AdminService = exports.AdminService = class AdminService {
     async getCustomerByEmail(email) {
         return await this.customerRepo.findOneBy({ email: email });
     }
+    async getColorByName(name) {
+        return await this.colorRepo.findOneBy({ name: name });
+    }
     async getDeliveryStatusById(id) {
         return await this.deliveryStatusRepo.findOneBy({ id });
     }
@@ -284,6 +292,7 @@ let AdminService = exports.AdminService = class AdminService {
             const products = await this.productRepo
                 .createQueryBuilder('product')
                 .leftJoinAndSelect('product.subCategories', 'subCategory')
+                .leftJoinAndSelect('product.color', 'color')
                 .where('subCategory.id = :subCategoryId', { subCategoryId })
                 .getMany();
             return products;
@@ -420,34 +429,14 @@ let AdminService = exports.AdminService = class AdminService {
         const categories = subs.filter(cat => subCategoriesArray.includes(cat.id));
         console.log(categories, "594");
         myDto.subCategories = [...categories];
+        const selectedColor = await this.getColorByName(myDto.color);
+        console.log(selectedColor);
+        myDto.color = selectedColor;
         const newProduct = this.productRepo.create({
             ...myDto
         });
         const savedProduct = await this.productRepo.save(newProduct);
         return savedProduct;
-    }
-    async createNewColorObject(product, colorsData) {
-        for (const colorData of colorsData) {
-            const color = this.colorRepo.create({
-                colorCode: colorData.colorCode,
-                name: colorData.name,
-                quantity: colorData?.quantity || 1,
-                product: product,
-            });
-            await this.colorRepo.save(color);
-        }
-        return true;
-    }
-    async createNewSizeObject(color, sizesData) {
-        for (const sizeData of sizesData) {
-            const createdSize = this.colorSizeRepo.create({
-                size: sizeData.name,
-                quantity: sizeData.quantity,
-                color: color,
-            });
-            await this.colorSizeRepo.save(createdSize);
-        }
-        return true;
     }
     async createNewFileObject(product, filesData) {
         for (const fileData of filesData) {

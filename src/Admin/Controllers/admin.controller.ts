@@ -210,6 +210,13 @@ export class AdminController {
     return result;
   }
 
+  // view all sub sub category
+  @Get('view-colors')
+  async viewColors() {
+    const result = await this.adminService.viewColors();
+    return result;
+  }
+
   // view category
   @Get('view-product-sub-categories')
   async viewAllProductSubCategories() {

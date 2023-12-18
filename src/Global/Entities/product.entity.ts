@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany, ManyToMany, JoinTable } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany, ManyToMany, JoinTable, ManyToOne } from 'typeorm';
 import { ColorEntity } from './colors.entity';
 import { CartsEntity } from './cart.entity';
 import { WishEntity } from './wish.entity';
@@ -53,8 +53,11 @@ export class ProductEntity {
     @JoinTable()
     subCategories: SubSubCategoryEntity[]
 
-    @OneToMany(() => ColorEntity, (color) => color.product)
-    colors: ColorEntity[]
+    // @OneToMany(() => ColorEntity, (color) => color.product)
+    // colors: ColorEntity[]
+
+    @ManyToOne(() => ColorEntity, (color) => color.products)
+    color: ColorEntity
 
     @OneToMany(() => ProductPictureEntity, (productPicture) => productPicture.product)
     productPictures: ProductPictureEntity[]

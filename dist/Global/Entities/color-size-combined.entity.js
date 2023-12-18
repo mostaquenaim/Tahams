@@ -11,7 +11,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ColorSizeEntity = void 0;
 const typeorm_1 = require("typeorm");
-const colors_entity_1 = require("./colors.entity");
 let ColorSizeEntity = exports.ColorSizeEntity = class ColorSizeEntity {
 };
 __decorate([
@@ -26,10 +25,6 @@ __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
 ], ColorSizeEntity.prototype, "size", void 0);
-__decorate([
-    (0, typeorm_1.ManyToOne)(() => colors_entity_1.ColorEntity, (color) => color.colorsize),
-    __metadata("design:type", colors_entity_1.ColorEntity)
-], ColorSizeEntity.prototype, "color", void 0);
 exports.ColorSizeEntity = ColorSizeEntity = __decorate([
     (0, typeorm_1.Entity)('colors-size')
 ], ColorSizeEntity);

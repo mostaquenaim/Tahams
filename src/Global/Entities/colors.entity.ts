@@ -20,13 +20,13 @@ export class ColorEntity {
     @Column({default:1})
     quantity: number;
 
-    @ManyToOne(() => ProductEntity, (product) => product.colors)
-    product: ProductEntity
+    // @ManyToOne(() => ProductEntity, (product) => product.colors)
+    // product: ProductEntity
 
-    // @OneToMany(() => ProductPictureEntity, (productPicture) => productPicture.color)
-    // productPictures: ProductPictureEntity[]
+    @OneToMany(() => ProductEntity, (product) => product.color)
+    products: ProductEntity[]
 
-    @OneToMany(() => ColorSizeEntity, (colorsize) => colorsize.color)
-    colorsize: ColorSizeEntity[]
+    // @OneToMany(() => ColorSizeEntity, (colorsize) => colorsize.color)
+    // colorsize: ColorSizeEntity[]
 
 }

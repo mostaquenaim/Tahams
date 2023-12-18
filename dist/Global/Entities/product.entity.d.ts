@@ -18,7 +18,7 @@ export declare class ProductEntity {
     ifStock: boolean;
     filename: string;
     subCategories: SubSubCategoryEntity[];
-    colors: ColorEntity[];
+    color: ColorEntity;
     productPictures: ProductPictureEntity[];
     carts: CartsEntity[];
     wishes: WishEntity[];

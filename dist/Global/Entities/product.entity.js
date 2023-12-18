@@ -76,9 +76,9 @@ __decorate([
     __metadata("design:type", Array)
 ], ProductEntity.prototype, "subCategories", void 0);
 __decorate([
-    (0, typeorm_1.OneToMany)(() => colors_entity_1.ColorEntity, (color) => color.product),
-    __metadata("design:type", Array)
-], ProductEntity.prototype, "colors", void 0);
+    (0, typeorm_1.ManyToOne)(() => colors_entity_1.ColorEntity, (color) => color.products),
+    __metadata("design:type", colors_entity_1.ColorEntity)
+], ProductEntity.prototype, "color", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => product_pictures_entity_1.ProductPictureEntity, (productPicture) => productPicture.product),
     __metadata("design:type", Array)

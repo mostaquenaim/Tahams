@@ -86,6 +86,10 @@ let AdminController = exports.AdminController = class AdminController {
         const result = await this.adminService.viewAllProductSubSubCategories();
         return result;
     }
+    async viewColors() {
+        const result = await this.adminService.viewColors();
+        return result;
+    }
     async viewAllProductSubCategories() {
         const result = await this.adminService.viewAllProductSubCategories();
         return result;
@@ -339,6 +343,12 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "viewAllProductSubSubCategories", null);
+__decorate([
+    (0, common_1.Get)('view-colors'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "viewColors", null);
 __decorate([
     (0, common_1.Get)('view-product-sub-categories'),
     __metadata("design:type", Function),
