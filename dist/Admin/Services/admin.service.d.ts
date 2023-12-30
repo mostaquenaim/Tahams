@@ -18,6 +18,7 @@ import { DeliveryStatusEntity } from 'src/Global/Entities/deliveryStatus.entity'
 import { PaymentMethodEntity } from 'src/Global/Entities/paymentMethod.entity';
 import { SubSubCategoryEntity } from 'src/Global/Entities/subSubCategory.entity';
 import { ColorSizeEntity } from 'src/Global/Entities/color-size-combined.entity';
+import { PaymentInfo } from 'src/Global/Entities/paymentInfo.entity';
 export declare class AdminService {
     private adminRepo;
     private mailerService;
@@ -25,6 +26,7 @@ export declare class AdminService {
     private productRepo;
     private productPicRepo;
     private bannerRepo;
+    private paymentInfoRepo;
     private categoryRepo;
     private couponRepo;
     private colorRepo;
@@ -37,8 +39,9 @@ export declare class AdminService {
     private deliveryStatusRepo;
     private paymentMethodRepo;
     private colorSizeRepo;
-    constructor(adminRepo: Repository<AdminEntity>, mailerService: MailerService, customerRepo: Repository<CustomerEntity>, productRepo: Repository<ProductEntity>, productPicRepo: Repository<ProductPictureEntity>, bannerRepo: Repository<BannerEntity>, categoryRepo: Repository<CategoryEntity>, couponRepo: Repository<CouponEntity>, colorRepo: Repository<ColorEntity>, subCategoryRepo: Repository<SubCategoryEntity>, subSubCategoryRepo: Repository<SubSubCategoryEntity>, sizeRepo: Repository<SizeEntity>, wishRepo: Repository<WishEntity>, cartRepo: Repository<CartsEntity>, buyingHistoryRepo: Repository<BuyingHistoryEntity>, deliveryStatusRepo: Repository<DeliveryStatusEntity>, paymentMethodRepo: Repository<PaymentMethodEntity>, colorSizeRepo: Repository<ColorSizeEntity>);
+    constructor(adminRepo: Repository<AdminEntity>, mailerService: MailerService, customerRepo: Repository<CustomerEntity>, productRepo: Repository<ProductEntity>, productPicRepo: Repository<ProductPictureEntity>, bannerRepo: Repository<BannerEntity>, paymentInfoRepo: Repository<PaymentInfo>, categoryRepo: Repository<CategoryEntity>, couponRepo: Repository<CouponEntity>, colorRepo: Repository<ColorEntity>, subCategoryRepo: Repository<SubCategoryEntity>, subSubCategoryRepo: Repository<SubSubCategoryEntity>, sizeRepo: Repository<SizeEntity>, wishRepo: Repository<WishEntity>, cartRepo: Repository<CartsEntity>, buyingHistoryRepo: Repository<BuyingHistoryEntity>, deliveryStatusRepo: Repository<DeliveryStatusEntity>, paymentMethodRepo: Repository<PaymentMethodEntity>, colorSizeRepo: Repository<ColorSizeEntity>);
     addBanner(myDto: any): Promise<any>;
+    addPaymentInfo(myDto: any): Promise<any>;
     createUser(myDto: any): Promise<any>;
     sendEmail(mydto: any): Promise<SentMessageInfo>;
     signIn(myDto: any): Promise<boolean | 0>;
@@ -69,7 +72,7 @@ export declare class AdminService {
     getBannerById(id: any): Promise<BannerEntity>;
     getSizeById(id: any): Promise<SizeEntity>;
     getCartById(id: any): Promise<CartsEntity>;
-    getProductById(id: any): Promise<ProductEntity>;
+    getProductById(id: number): Promise<ProductEntity>;
     getPaymentMethodById(id: any): Promise<PaymentMethodEntity>;
     getColorById(id: any): Promise<ColorEntity>;
     getCustomerById(id: any): Promise<CustomerEntity>;
@@ -77,8 +80,8 @@ export declare class AdminService {
     getColorByName(name: string): Promise<ColorEntity>;
     getDeliveryStatusById(id: any): Promise<DeliveryStatusEntity>;
     getCouponById(id: any): Promise<CouponEntity>;
-    getBuyingHistoryById(token: any): Promise<BuyingHistoryEntity>;
-    getProductByCatId(id: any): Promise<BuyingHistoryEntity>;
+    getBuyingHistoryByToken(token: any): Promise<BuyingHistoryEntity>;
+    getProductByCat(name: any): Promise<void>;
     getProductBySubSubCatId(subCategoryId: any): Promise<ProductEntity[]>;
     updateCategory(id: number, category: any): Promise<void>;
     updateBanner(id: number, bannerDto: any): Promise<void>;
@@ -90,6 +93,7 @@ export declare class AdminService {
     createNewSubCategory(myDto: any): Promise<SubCategoryEntity[]>;
     createNewSize(myDto: any): Promise<SizeEntity[]>;
     createNewBuy(myDto: any): Promise<BuyingHistoryEntity[]>;
+    customerLogin(myDto: any): Promise<any>;
     createNewCart(myDto: any): Promise<CartsEntity[]>;
     createNewCartObject(product: any, cartsData: any): Promise<boolean>;
     createNewWish(myDto: any): Promise<WishEntity[]>;

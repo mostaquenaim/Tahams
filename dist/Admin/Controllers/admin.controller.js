@@ -54,19 +54,30 @@ let AdminController = exports.AdminController = class AdminController {
         return this.adminService.changeBannerImage(id, file.filename);
     }
     createNewBuy(myDto) {
+        console.log("134", myDto);
         return this.adminService.createNewBuy(myDto);
     }
     updateBuyingHistory(id, email, details) {
         return this.adminService.updateBuyingHistory(id, details, email);
     }
-    getBuyingHistoryById(id) {
-        return this.adminService.getBuyingHistoryById(id);
+    getBuyingHistoryByToken(id) {
+        return this.adminService.getBuyingHistoryByToken(id);
+    }
+    addPaymentInfo(PaymentDetails) {
+        return this.adminService.addPaymentInfo(PaymentDetails);
     }
     getAllBuyingHistories(email) {
         return this.adminService.getAllBuyingHistories(email);
     }
-    createNewCart(myDto) {
-        return this.adminService.createNewCart(myDto);
+    async createNewCart(myDto) {
+        const response = await this.adminService.createNewCart(myDto);
+        console.log(response);
+        return response;
+    }
+    async customerLogin(myDto) {
+        const response = await this.adminService.customerLogin(myDto);
+        console.log(response);
+        return response;
     }
     deleteCartItem(id, email) {
         return this.adminService.deleteCartItem(id);
@@ -75,6 +86,7 @@ let AdminController = exports.AdminController = class AdminController {
         return this.adminService.deleteCarts(cartArray, email);
     }
     getAllCarts(email) {
+        console.log(email, "209");
         return this.adminService.getAllCarts(email);
     }
     async viewProductCategories() {
@@ -109,8 +121,8 @@ let AdminController = exports.AdminController = class AdminController {
     getCategoryById(id) {
         return this.adminService.getCategoryById(id);
     }
-    getProductByCatId(id) {
-        return this.adminService.getProductByCatId(id);
+    getProductByCat(name) {
+        return this.adminService.getProductByCat(name);
     }
     getProductBySubSubCatId(id) {
         return this.adminService.getProductBySubSubCatId(id);
@@ -287,12 +299,19 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "updateBuyingHistory", null);
 __decorate([
-    (0, common_1.Get)('get-buying-history-by-id/:token'),
+    (0, common_1.Get)('get-buying-history-by-token/:token'),
     __param(0, (0, common_1.Param)('token')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
-], AdminController.prototype, "getBuyingHistoryById", null);
+], AdminController.prototype, "getBuyingHistoryByToken", null);
+__decorate([
+    (0, common_1.Post)('/add-payment'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "addPaymentInfo", null);
 __decorate([
     (0, common_1.Get)('get-all-buying-history'),
     __param(0, (0, common_1.Query)('email')),
@@ -306,8 +325,16 @@ __decorate([
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], AdminController.prototype, "createNewCart", null);
+__decorate([
+    (0, common_1.Post)('customer-login'),
+    (0, common_1.UsePipes)(common_1.ValidationPipe),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "customerLogin", null);
 __decorate([
     (0, common_1.Delete)('delete-cart/:uniqueId'),
     __param(0, (0, common_1.Param)('token')),
@@ -392,13 +419,13 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "getCategoryById", null);
 __decorate([
-    (0, common_1.Get)('getProductByCat/:id'),
+    (0, common_1.Get)('get-product-by-cat/:name'),
     (0, common_1.UsePipes)(common_1.ValidationPipe),
-    __param(0, (0, common_1.Param)('id')),
+    __param(0, (0, common_1.Param)('name')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
-], AdminController.prototype, "getProductByCatId", null);
+], AdminController.prototype, "getProductByCat", null);
 __decorate([
     (0, common_1.Get)('get-product-by-sub-sub-cat/:id'),
     (0, common_1.UsePipes)(common_1.ValidationPipe),
@@ -557,7 +584,7 @@ __decorate([
     (0, common_1.Post)('/add-product'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('myfile', {
         fileFilter: (req, file, cb) => {
-            if (file.originalname.match(/^.*\.(jpg|webp|png|jpeg)$/))
+            if (file.originalname.match(/^.*\.(jpg|webp|png|jpeg|gif)$/))
                 cb(null, true);
             else {
                 cb(new multer_1.MulterError('LIMIT_UNEXPECTED_FILE', 'myfile'), false);

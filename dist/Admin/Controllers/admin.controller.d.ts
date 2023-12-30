@@ -14,9 +14,11 @@ export declare class AdminController {
     changeBannerImage(id: any, file: Express.Multer.File): object;
     createNewBuy(myDto: any): Promise<import("../../Global/Entities/buyingHistory.entity").BuyingHistoryEntity[]>;
     updateBuyingHistory(id: any, email: string, details: any): Promise<import("../../Global/Entities/buyingHistory.entity").BuyingHistoryEntity>;
-    getBuyingHistoryById(id: any): Promise<import("../../Global/Entities/buyingHistory.entity").BuyingHistoryEntity>;
+    getBuyingHistoryByToken(id: any): Promise<import("../../Global/Entities/buyingHistory.entity").BuyingHistoryEntity>;
+    addPaymentInfo(PaymentDetails: any): Promise<any>;
     getAllBuyingHistories(email: string): Promise<unknown[]>;
     createNewCart(myDto: any): Promise<import("../../Global/Entities/cart.entity").CartsEntity[]>;
+    customerLogin(myDto: any): Promise<any>;
     deleteCartItem(id: any, email: any): Promise<import("typeorm").DeleteResult>;
     deleteCarts(email: any, cartArray: any): Promise<import("../../Global/Entities/cart.entity").CartsEntity[]>;
     getAllCarts(email: string): Promise<import("../../Global/Entities/cart.entity").CartsEntity[]>;
@@ -29,7 +31,7 @@ export declare class AdminController {
     getSubCatById(id: number): Promise<import("../../Global/Entities/subSubCategory.entity").SubSubCategoryEntity>;
     getProductFtImage(id: number): Promise<import("../../Global/Entities/product-pictures.entity").ProductPictureEntity>;
     getCategoryById(id: any): Promise<import("../../Global/Entities/category.entity").CategoryEntity>;
-    getProductByCatId(id: any): Promise<import("../../Global/Entities/buyingHistory.entity").BuyingHistoryEntity>;
+    getProductByCat(name: any): Promise<void>;
     getProductBySubSubCatId(id: any): Promise<import("../../Global/Entities/product.entity").ProductEntity[]>;
     updateCategory(id: number, myDto: any): Promise<void>;
     createNewCategory(myDto: any): Promise<import("../../Global/Entities/category.entity").CategoryEntity[]>;

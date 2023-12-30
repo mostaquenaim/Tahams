@@ -34,6 +34,10 @@ __decorate([
     __metadata("design:type", String)
 ], CartsEntity.prototype, "ProductName", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ default: () => 'CURRENT_TIMESTAMP' }),
+    __metadata("design:type", Date)
+], CartsEntity.prototype, "created_at", void 0);
+__decorate([
     (0, typeorm_1.Column)({ default: false }),
     __metadata("design:type", Boolean)
 ], CartsEntity.prototype, "isBought", void 0);

@@ -37,14 +37,16 @@ const paymentMethod_entity_1 = require("../../Global/Entities/paymentMethod.enti
 const uuid_1 = require("uuid");
 const subSubCategory_entity_1 = require("../../Global/Entities/subSubCategory.entity");
 const color_size_combined_entity_1 = require("../../Global/Entities/color-size-combined.entity");
+const paymentInfo_entity_1 = require("../../Global/Entities/paymentInfo.entity");
 let AdminService = exports.AdminService = class AdminService {
-    constructor(adminRepo, mailerService, customerRepo, productRepo, productPicRepo, bannerRepo, categoryRepo, couponRepo, colorRepo, subCategoryRepo, subSubCategoryRepo, sizeRepo, wishRepo, cartRepo, buyingHistoryRepo, deliveryStatusRepo, paymentMethodRepo, colorSizeRepo) {
+    constructor(adminRepo, mailerService, customerRepo, productRepo, productPicRepo, bannerRepo, paymentInfoRepo, categoryRepo, couponRepo, colorRepo, subCategoryRepo, subSubCategoryRepo, sizeRepo, wishRepo, cartRepo, buyingHistoryRepo, deliveryStatusRepo, paymentMethodRepo, colorSizeRepo) {
         this.adminRepo = adminRepo;
         this.mailerService = mailerService;
         this.customerRepo = customerRepo;
         this.productRepo = productRepo;
         this.productPicRepo = productPicRepo;
         this.bannerRepo = bannerRepo;
+        this.paymentInfoRepo = paymentInfoRepo;
         this.categoryRepo = categoryRepo;
         this.couponRepo = couponRepo;
         this.colorRepo = colorRepo;
@@ -60,6 +62,9 @@ let AdminService = exports.AdminService = class AdminService {
     }
     async addBanner(myDto) {
         return this.bannerRepo.save(myDto);
+    }
+    async addPaymentInfo(myDto) {
+        return this.paymentInfoRepo.save(myDto);
     }
     async createUser(myDto) {
         const salt = await bcrypt.genSalt();
@@ -182,12 +187,15 @@ let AdminService = exports.AdminService = class AdminService {
         await this.couponRepo.save(coupon);
     }
     async getAllCarts(email) {
+        console.log(email, "252");
         if (email) {
             const cartsWithHistory = await this.cartRepo.find({
                 where: {
                     customer: { email: email },
                 },
+                relations: ['product', 'coupon']
             });
+            console.log(cartsWithHistory, "259");
             return cartsWithHistory;
         }
         throw new common_1.HttpException('Forbidden', common_1.HttpStatus.FORBIDDEN);
@@ -258,7 +266,10 @@ let AdminService = exports.AdminService = class AdminService {
         return await this.cartRepo.findOneBy({ id });
     }
     async getProductById(id) {
-        return await this.productRepo.findOneBy({ id });
+        return await this.productRepo.findOne({
+            where: { id },
+            relations: ['color']
+        });
     }
     async getPaymentMethodById(id) {
         return await this.paymentMethodRepo.findOneBy({ id });
@@ -281,11 +292,10 @@ let AdminService = exports.AdminService = class AdminService {
     async getCouponById(id) {
         return await this.couponRepo.findOneBy({ id });
     }
-    async getBuyingHistoryById(token) {
+    async getBuyingHistoryByToken(token) {
         return await this.buyingHistoryRepo.findOneBy({ trackingToken: token });
     }
-    async getProductByCatId(id) {
-        return await this.buyingHistoryRepo.findOneBy({ id });
+    async getProductByCat(name) {
     }
     async getProductBySubSubCatId(subCategoryId) {
         try {
@@ -378,6 +388,7 @@ let AdminService = exports.AdminService = class AdminService {
         return this.sizeRepo.save(newSize);
     }
     async createNewBuy(myDto) {
+        console.log(myDto, "544");
         myDto.deliveryStatus = await this.getDeliveryStatusById(myDto?.deliveryStatusId || 1);
         myDto.paymentMethod = await this.getPaymentMethodById(myDto?.paymentMethodId || 1);
         myDto.trackingToken = (0, uuid_1.v4)();
@@ -388,12 +399,28 @@ let AdminService = exports.AdminService = class AdminService {
         this.createNewCartObject(savedProduct, myDto.carts);
         return savedProduct;
     }
+    async customerLogin(myDto) {
+        try {
+            const existingCustomer = await this.customerRepo.findOne({
+                where: { email: myDto.email },
+            });
+            if (!existingCustomer) {
+                const newCustomer = this.createUser(myDto);
+                return newCustomer;
+            }
+            return true;
+        }
+        catch (error) {
+            throw new Error('Authentication failed');
+        }
+    }
     async createNewCart(myDto) {
+        console.log(myDto);
         const selectedProduct = await this.getProductById(myDto.productId);
         myDto.product = selectedProduct;
         myDto.uniqueId = (0, uuid_1.v4)();
-        myDto.customer = await this.getCustomerById(myDto.customerId);
-        myDto.coupon = await this.getCouponById(myDto.couponId);
+        myDto.customer = myDto?.customerEmail && await this.getCustomerByEmail(myDto?.customerEmail);
+        myDto.coupon = myDto?.couponId && await this.getCouponById(myDto?.couponId);
         const selectedColor = await this.getColorById(myDto.colorId);
         myDto.ProductName = selectedColor.name + " " + selectedProduct.name;
         const newCart = this.cartRepo.create({
@@ -474,20 +501,22 @@ exports.AdminService = AdminService = __decorate([
     __param(3, (0, typeorm_1.InjectRepository)(product_entity_1.ProductEntity)),
     __param(4, (0, typeorm_1.InjectRepository)(product_pictures_entity_1.ProductPictureEntity)),
     __param(5, (0, typeorm_1.InjectRepository)(banner_entity_1.BannerEntity)),
-    __param(6, (0, typeorm_1.InjectRepository)(category_entity_1.CategoryEntity)),
-    __param(7, (0, typeorm_1.InjectRepository)(coupon_entity_1.CouponEntity)),
-    __param(8, (0, typeorm_1.InjectRepository)(colors_entity_1.ColorEntity)),
-    __param(9, (0, typeorm_1.InjectRepository)(subCategory_entity_1.SubCategoryEntity)),
-    __param(10, (0, typeorm_1.InjectRepository)(subSubCategory_entity_1.SubSubCategoryEntity)),
-    __param(11, (0, typeorm_1.InjectRepository)(size_entity_1.SizeEntity)),
-    __param(12, (0, typeorm_1.InjectRepository)(wish_entity_1.WishEntity)),
-    __param(13, (0, typeorm_1.InjectRepository)(cart_entity_1.CartsEntity)),
-    __param(14, (0, typeorm_1.InjectRepository)(buyingHistory_entity_1.BuyingHistoryEntity)),
-    __param(15, (0, typeorm_1.InjectRepository)(deliveryStatus_entity_1.DeliveryStatusEntity)),
-    __param(16, (0, typeorm_1.InjectRepository)(paymentMethod_entity_1.PaymentMethodEntity)),
-    __param(17, (0, typeorm_1.InjectRepository)(color_size_combined_entity_1.ColorSizeEntity)),
+    __param(6, (0, typeorm_1.InjectRepository)(paymentInfo_entity_1.PaymentInfo)),
+    __param(7, (0, typeorm_1.InjectRepository)(category_entity_1.CategoryEntity)),
+    __param(8, (0, typeorm_1.InjectRepository)(coupon_entity_1.CouponEntity)),
+    __param(9, (0, typeorm_1.InjectRepository)(colors_entity_1.ColorEntity)),
+    __param(10, (0, typeorm_1.InjectRepository)(subCategory_entity_1.SubCategoryEntity)),
+    __param(11, (0, typeorm_1.InjectRepository)(subSubCategory_entity_1.SubSubCategoryEntity)),
+    __param(12, (0, typeorm_1.InjectRepository)(size_entity_1.SizeEntity)),
+    __param(13, (0, typeorm_1.InjectRepository)(wish_entity_1.WishEntity)),
+    __param(14, (0, typeorm_1.InjectRepository)(cart_entity_1.CartsEntity)),
+    __param(15, (0, typeorm_1.InjectRepository)(buyingHistory_entity_1.BuyingHistoryEntity)),
+    __param(16, (0, typeorm_1.InjectRepository)(deliveryStatus_entity_1.DeliveryStatusEntity)),
+    __param(17, (0, typeorm_1.InjectRepository)(paymentMethod_entity_1.PaymentMethodEntity)),
+    __param(18, (0, typeorm_1.InjectRepository)(color_size_combined_entity_1.ColorSizeEntity)),
     __metadata("design:paramtypes", [typeorm_3.Repository,
         dist_1.MailerService,
+        typeorm_3.Repository,
         typeorm_3.Repository,
         typeorm_3.Repository,
         typeorm_3.Repository,

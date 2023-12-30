@@ -24,6 +24,7 @@ import { PaymentMethodEntity } from 'src/Global/Entities/paymentMethod.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { SubSubCategoryEntity } from 'src/Global/Entities/subSubCategory.entity';
 import { ColorSizeEntity } from 'src/Global/Entities/color-size-combined.entity';
+import { PaymentInfo } from 'src/Global/Entities/paymentInfo.entity';
 
 @Injectable()
 export class AdminService {
@@ -44,6 +45,9 @@ export class AdminService {
 
     @InjectRepository(BannerEntity)
     private bannerRepo: Repository<BannerEntity>,
+
+    @InjectRepository(PaymentInfo)
+    private paymentInfoRepo: Repository<PaymentInfo>,
 
     @InjectRepository(CategoryEntity)
     private categoryRepo: Repository<CategoryEntity>,
@@ -86,6 +90,13 @@ export class AdminService {
 
   async addBanner(myDto) {
     return this.bannerRepo.save(myDto);
+  }
+
+  // add payment info 
+  async addPaymentInfo(
+    // token,
+    myDto) {
+    return this.paymentInfoRepo.save(myDto);
   }
 
 
@@ -249,12 +260,15 @@ export class AdminService {
 
   // view all carts 
   async getAllCarts(email) {
+    console.log(email, "252");
     if (email) {
       const cartsWithHistory = await this.cartRepo.find({
         where: {
           customer: { email: email },
         },
+        relations: ['product', 'coupon']
       });
+      console.log(cartsWithHistory, "259");
       return cartsWithHistory;
     }
     throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
@@ -355,10 +369,14 @@ export class AdminService {
     return await this.cartRepo.findOneBy({ id });
   }
 
-  // get Product by id 
-  async getProductById(id) {
-    return await this.productRepo.findOneBy({ id });
+  // ProductService
+  async getProductById(id: number) {
+    return await this.productRepo.findOne({
+      where: { id },
+      relations: ['color']
+    });
   }
+
 
   // get Product by id 
   async getPaymentMethodById(id) {
@@ -396,13 +414,18 @@ export class AdminService {
   }
 
   // get history by id 
-  async getBuyingHistoryById(token) {
+  async getBuyingHistoryByToken(token) {
     return await this.buyingHistoryRepo.findOneBy({ trackingToken: token });
   }
 
   // get Product by category id 
-  async getProductByCatId(id) {
-    return await this.buyingHistoryRepo.findOneBy({ id });
+  async getProductByCat(name) {
+    //get all the products where category name == name
+    // const products = await this.productRepo.find({
+    //   where: {
+    //     subCategories
+    //   }
+    // })
   }
 
   // get Product by sub sub category id 
@@ -534,27 +557,48 @@ export class AdminService {
 
   // create new buy 
   async createNewBuy(myDto) {
+    console.log(myDto, "544");
 
     myDto.deliveryStatus = await this.getDeliveryStatusById(myDto?.deliveryStatusId || 1)
     myDto.paymentMethod = await this.getPaymentMethodById(myDto?.paymentMethodId || 1)
     myDto.trackingToken = uuidv4();
     const newProduct = this.buyingHistoryRepo.create({
       ...myDto
-    });
+    })
 
     const savedProduct = await this.buyingHistoryRepo.save(newProduct);
     this.createNewCartObject(savedProduct, myDto.carts)
     return savedProduct;
   }
 
+  async customerLogin(myDto) {
+    try {
+      // Check if there is a customer with the provided email
+      const existingCustomer = await this.customerRepo.findOne({
+        where: { email: myDto.email },
+      });
+
+      if (!existingCustomer) {
+        const newCustomer = this.createUser(myDto);
+        return newCustomer
+      }
+
+      return true
+    } catch (error) {
+      // Handle authentication errors
+      throw new Error('Authentication failed');
+    }
+  }
+
   // create new cart 
   async createNewCart(myDto) {
+    console.log(myDto);
 
     const selectedProduct = await this.getProductById(myDto.productId)
     myDto.product = selectedProduct
     myDto.uniqueId = uuidv4()
-    myDto.customer = await this.getCustomerById(myDto.customerId)
-    myDto.coupon = await this.getCouponById(myDto.couponId)
+    myDto.customer = myDto?.customerEmail && await this.getCustomerByEmail(myDto?.customerEmail)
+    myDto.coupon = myDto?.couponId && await this.getCouponById(myDto?.couponId)
     const selectedColor = await this.getColorById(myDto.colorId)
     myDto.ProductName = selectedColor.name + " " + selectedProduct.name
     const newCart = this.cartRepo.create({

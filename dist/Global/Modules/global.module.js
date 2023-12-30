@@ -26,6 +26,7 @@ const coupon_entity_1 = require("../Entities/coupon.entity");
 const paymentMethod_entity_1 = require("../Entities/paymentMethod.entity");
 const subSubCategory_entity_1 = require("../Entities/subSubCategory.entity");
 const color_size_combined_entity_1 = require("../Entities/color-size-combined.entity");
+const paymentInfo_entity_1 = require("../Entities/paymentInfo.entity");
 let GlobalModule = exports.GlobalModule = class GlobalModule {
 };
 exports.GlobalModule = GlobalModule = __decorate([
@@ -43,7 +44,7 @@ exports.GlobalModule = GlobalModule = __decorate([
                     },
                 }
             }),
-            typeorm_1.TypeOrmModule.forFeature([banner_entity_1.BannerEntity, buyingHistory_entity_1.BuyingHistoryEntity, category_entity_1.CategoryEntity, colors_entity_1.ColorEntity, cart_entity_1.CartsEntity, color_size_combined_entity_1.ColorSizeEntity, coupon_entity_1.CouponEntity, deliveryStatus_entity_1.DeliveryStatusEntity, paymentMethod_entity_1.PaymentMethodEntity, product_pictures_entity_1.ProductPictureEntity, product_entity_1.ProductEntity, partner_entity_1.PartnerEntity, size_entity_1.SizeEntity, subCategory_entity_1.SubCategoryEntity, subSubCategory_entity_1.SubSubCategoryEntity, wish_entity_1.WishEntity])
+            typeorm_1.TypeOrmModule.forFeature([banner_entity_1.BannerEntity, buyingHistory_entity_1.BuyingHistoryEntity, category_entity_1.CategoryEntity, colors_entity_1.ColorEntity, cart_entity_1.CartsEntity, color_size_combined_entity_1.ColorSizeEntity, coupon_entity_1.CouponEntity, deliveryStatus_entity_1.DeliveryStatusEntity, paymentInfo_entity_1.PaymentInfo, paymentMethod_entity_1.PaymentMethodEntity, product_pictures_entity_1.ProductPictureEntity, product_entity_1.ProductEntity, partner_entity_1.PartnerEntity, size_entity_1.SizeEntity, subCategory_entity_1.SubCategoryEntity, subSubCategory_entity_1.SubSubCategoryEntity, wish_entity_1.WishEntity])
         ],
         controllers: [],
         providers: [],

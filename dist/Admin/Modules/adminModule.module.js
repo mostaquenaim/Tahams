@@ -31,6 +31,7 @@ const employee_entity_1 = require("../../Employee/Entities/employee.entity");
 const paymentMethod_entity_1 = require("../../Global/Entities/paymentMethod.entity");
 const subSubCategory_entity_1 = require("../../Global/Entities/subSubCategory.entity");
 const color_size_combined_entity_1 = require("../../Global/Entities/color-size-combined.entity");
+const paymentInfo_entity_1 = require("../../Global/Entities/paymentInfo.entity");
 let AdminModule = exports.AdminModule = class AdminModule {
 };
 exports.AdminModule = AdminModule = __decorate([
@@ -48,7 +49,7 @@ exports.AdminModule = AdminModule = __decorate([
                     },
                 }
             }),
-            typeorm_1.TypeOrmModule.forFeature([admin_entity_1.AdminEntity, banner_entity_1.BannerEntity, buyingHistory_entity_1.BuyingHistoryEntity, category_entity_1.CategoryEntity, color_size_combined_entity_1.ColorSizeEntity, customer_entity_1.CustomerEntity, colors_entity_1.ColorEntity, cart_entity_1.CartsEntity, coupon_entity_1.CouponEntity, deliveryStatus_entity_1.DeliveryStatusEntity, employee_entity_1.EmployeeEntity, paymentMethod_entity_1.PaymentMethodEntity, product_pictures_entity_1.ProductPictureEntity, product_entity_1.ProductEntity, partner_entity_1.PartnerEntity, size_entity_1.SizeEntity, subCategory_entity_1.SubCategoryEntity, subSubCategory_entity_1.SubSubCategoryEntity, wish_entity_1.WishEntity])
+            typeorm_1.TypeOrmModule.forFeature([admin_entity_1.AdminEntity, banner_entity_1.BannerEntity, buyingHistory_entity_1.BuyingHistoryEntity, category_entity_1.CategoryEntity, color_size_combined_entity_1.ColorSizeEntity, customer_entity_1.CustomerEntity, colors_entity_1.ColorEntity, cart_entity_1.CartsEntity, coupon_entity_1.CouponEntity, deliveryStatus_entity_1.DeliveryStatusEntity, employee_entity_1.EmployeeEntity, paymentInfo_entity_1.PaymentInfo, paymentMethod_entity_1.PaymentMethodEntity, product_pictures_entity_1.ProductPictureEntity, product_entity_1.ProductEntity, partner_entity_1.PartnerEntity, size_entity_1.SizeEntity, subCategory_entity_1.SubCategoryEntity, subSubCategory_entity_1.SubSubCategoryEntity, wish_entity_1.WishEntity])
         ],
         controllers: [admin_controller_1.AdminController],
         providers: [admin_service_1.AdminService],

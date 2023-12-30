@@ -19,6 +19,9 @@ export class CartsEntity {
 
     @Column()
     ProductName: string
+    
+    @Column({ default: () => 'CURRENT_TIMESTAMP' })
+    created_at: Date;
 
     @Column({default:false})
     isBought: boolean

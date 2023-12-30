@@ -125,12 +125,13 @@ export class AdminController {
     return this.adminService.changeBannerImage(id, file.filename);
   }
 
-  // add new buying  
+  // add new buying   
   @Post('add-to-buy')
   @UsePipes(ValidationPipe)
   createNewBuy(
-    @Body() myDto,
+    @Body() myDto: any,
   ) {
+    console.log("134", myDto);
     return this.adminService.createNewBuy(myDto);
   }
 
@@ -145,11 +146,19 @@ export class AdminController {
   }
 
   // get buying histoy by id 
-  @Get('get-buying-history-by-id/:token')
-  getBuyingHistoryById(
+  @Get('get-buying-history-by-token/:token')
+  getBuyingHistoryByToken(
     @Param('token') id,
   ) {
-    return this.adminService.getBuyingHistoryById(id)
+    return this.adminService.getBuyingHistoryByToken(id)
+  }
+
+  // add payment info 
+  @Post('/add-payment')
+  addPaymentInfo(
+    // @Param('token') token: string,
+    @Body() PaymentDetails) {
+      return this.adminService.addPaymentInfo(PaymentDetails)
   }
 
   // get particular customer all buying history 
@@ -163,11 +172,25 @@ export class AdminController {
   // add new cart 
   @Post('add-to-cart')
   @UsePipes(ValidationPipe)
-  createNewCart(
+  async createNewCart(
     @Body() myDto,
   ) {
-    return this.adminService.createNewCart(myDto);
+    const response = await this.adminService.createNewCart(myDto);
+    console.log(response);
+    return response
   }
+
+  // customerlogin 
+  @Post('customer-login')
+  @UsePipes(ValidationPipe)
+  async customerLogin(
+    @Body() myDto,
+  ) {
+    const response = await this.adminService.customerLogin(myDto);
+    console.log(response);
+    return response
+  }
+
 
   // delete a cart 
   @Delete('delete-cart/:uniqueId')
@@ -192,6 +215,7 @@ export class AdminController {
   getAllCarts(
     @Query('email') email: string,
   ) {
+    console.log(email, "209");
     return this.adminService.getAllCarts(email)
   }
 
@@ -266,12 +290,12 @@ export class AdminController {
   }
 
   // get products by category id
-  @Get('getProductByCat/:id')
+  @Get('get-product-by-cat/:name')
   @UsePipes(ValidationPipe)
-  getProductByCatId(
-    @Param('id') id,
+  getProductByCat(
+    @Param('name') name,
   ) {
-    return this.adminService.getProductByCatId(id);
+    return this.adminService.getProductByCat(name);
   }
 
   // get products by sub sub category id
@@ -451,7 +475,7 @@ export class AdminController {
   @UseInterceptors(FileInterceptor('myfile',
     {
       fileFilter: (req, file, cb) => {
-        if (file.originalname.match(/^.*\.(jpg|webp|png|jpeg)$/))
+        if (file.originalname.match(/^.*\.(jpg|webp|png|jpeg|gif)$/))
           cb(null, true);
         else {
           cb(new MulterError('LIMIT_UNEXPECTED_FILE', 'myfile'), false);

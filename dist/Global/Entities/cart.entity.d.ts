@@ -7,6 +7,7 @@ export declare class CartsEntity {
     uniqueId: string;
     Quantity: number;
     ProductName: string;
+    created_at: Date;
     isBought: boolean;
     customer: CustomerEntity;
     product: ProductEntity;
