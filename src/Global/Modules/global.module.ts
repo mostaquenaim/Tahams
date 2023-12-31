@@ -1,8 +1,8 @@
 /* eslint-disable prettier/prettier */
-import { MailerModule } from "@nestjs-modules/mailer";
-import { Module } from "@nestjs/common";
-import { TypeOrmModule } from "@nestjs/typeorm";
-import { ProductEntity } from "../Entities/product.entity";
+import { MailerModule } from '@nestjs-modules/mailer';
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ProductEntity } from '../Entities/product.entity';
 import { PartnerEntity } from "../Entities/partner.entity";
 import { BannerEntity } from "../Entities/banner.entity";
 import { CategoryEntity } from "../Entities/category.entity";
@@ -31,15 +31,31 @@ import { PaymentInfo } from "../Entities/paymentInfo.entity";
                 secure: true,
                 auth: {
                     user: 'mostaquenaimislam@gmail.com',
-                    pass: '' 
+                    pass: ''
                 },
             }
-        }
-
-        ),
-        TypeOrmModule.forFeature([BannerEntity, BuyingHistoryEntity, CategoryEntity, ColorEntity, CartsEntity, ColorSizeEntity, CouponEntity, DeliveryStatusEntity, PaymentInfo, PaymentMethodEntity, ProductPictureEntity, ProductEntity, PartnerEntity, SizeEntity, SubCategoryEntity, SubSubCategoryEntity, WishEntity ])],
-    controllers: [],
-    providers: [],
+        }),
+        TypeOrmModule.forFeature([
+            BannerEntity,
+            BuyingHistoryEntity,
+            CategoryEntity,
+            ColorEntity,
+            CartsEntity,
+            ColorSizeEntity,
+            CouponEntity,
+            DeliveryStatusEntity,
+            PaymentInfo,
+            PaymentMethodEntity,
+            ProductPictureEntity,
+            ProductEntity,
+            PartnerEntity,
+            SizeEntity,
+            SubCategoryEntity,
+            SubSubCategoryEntity,
+            WishEntity,
+        ])],
+        controllers: [],
+        providers: [],
 })
 
-export class GlobalModule { }
+export class GlobalModule { } 
