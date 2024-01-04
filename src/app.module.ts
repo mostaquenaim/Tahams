@@ -16,11 +16,11 @@ import { join } from 'path';
     EmployeeModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: process.env.DB_HOST, //localhost //monorail.proxy.rlwy.net
+      host: 'localhost', //localhost //monorail.proxy.rlwy.net
       port: parseInt(process.env.DB_PORT), //5432 //59586
-      username: process.env.DB_USERNAME,
-      password: process.env.DB_PASSWORD, //root //bgaFf443fC36*6bC6ECafCG13A5-d62g
-      database: process.env.DB_NAME, //tahams //railway
+      username: 'postgres',
+      password: 'root', //root //bgaFf443fC36*6bC6ECafCG13A5-d62g
+      database: 'Tahams', //tahams //railway
       autoLoadEntities: true,
       synchronize: true,
     }),
