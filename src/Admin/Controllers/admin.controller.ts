@@ -52,6 +52,12 @@ export class AdminController {
     }
   }
 
+  // send mail 
+  @Post('sendemail')
+  sendEmail(@Body() mydata) {
+    return this.adminService.sendEmail(mydata);
+  }
+
   // add banner 
   @Post('add-banner')
   @UseInterceptors(FileInterceptor('filename',
@@ -397,12 +403,6 @@ export class AdminController {
   getAllPaymentMethod(
   ) {
     return this.adminService.getAllPaymentMethod()
-  }
-
-  // send mail 
-  @Post('sendemail')
-  sendEmail(@Body() mydata) {
-    return this.adminService.sendEmail(mydata);
   }
 
   //logout

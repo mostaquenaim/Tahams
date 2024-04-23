@@ -6,5 +6,6 @@ export default class CouponForm {
     @IsNotEmpty()
     name: string;
 
+    
 
 }
