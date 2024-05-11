@@ -269,7 +269,7 @@ let AdminService = exports.AdminService = class AdminService {
     async getProductById(id) {
         return await this.productRepo.findOne({
             where: { id },
-            relations: ['color']
+            relations: ['color', 'productPictures']
         });
     }
     async getPaymentMethodById(id) {

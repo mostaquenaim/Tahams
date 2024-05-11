@@ -374,7 +374,7 @@ export class AdminService {
   async getProductById(id: number) {
     return await this.productRepo.findOne({
       where: { id },
-      relations: ['color']
+      relations: ['color', 'productPictures']
     });
   }
 
