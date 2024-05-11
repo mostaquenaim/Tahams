@@ -38,6 +38,7 @@ const uuid_1 = require("uuid");
 const subSubCategory_entity_1 = require("../../Global/Entities/subSubCategory.entity");
 const color_size_combined_entity_1 = require("../../Global/Entities/color-size-combined.entity");
 const paymentInfo_entity_1 = require("../../Global/Entities/paymentInfo.entity");
+const typeorm_4 = require("typeorm");
 let AdminService = exports.AdminService = class AdminService {
     constructor(adminRepo, mailerService, customerRepo, productRepo, productPicRepo, bannerRepo, paymentInfoRepo, categoryRepo, couponRepo, colorRepo, subCategoryRepo, subSubCategoryRepo, sizeRepo, wishRepo, cartRepo, buyingHistoryRepo, deliveryStatusRepo, paymentMethodRepo, colorSizeRepo) {
         this.adminRepo = adminRepo;
@@ -449,21 +450,40 @@ let AdminService = exports.AdminService = class AdminService {
         return savedProduct;
     }
     async createNewProduct(myDto) {
-        console.log(myDto.subCategories, "588");
         const subCategoriesArray = typeof myDto.subCategories === 'string' ? myDto.subCategories.split(',').map(Number) : myDto.subCategories;
-        console.log(subCategoriesArray, "594");
         const subs = await this.viewAllProductSubSubCategories();
         const categories = subs.filter(cat => subCategoriesArray.includes(cat.id));
-        console.log(categories, "594");
         myDto.subCategories = [...categories];
         const selectedColor = await this.getColorByName(myDto.color);
-        console.log(selectedColor);
         myDto.color = selectedColor;
         const newProduct = this.productRepo.create({
             ...myDto
         });
         const savedProduct = await this.productRepo.save(newProduct);
         return savedProduct;
+    }
+    async addProductPictures(myDto) {
+        console.log(myDto, "666");
+        const latestProduct = await this.productRepo.findOne({
+            where: { id: (0, typeorm_4.MoreThan)(1) },
+            order: { id: 'DESC' },
+        });
+        console.log(latestProduct);
+        if (!latestProduct) {
+            throw new Error('No product found');
+        }
+        const filenames = myDto.filenames;
+        console.log(filenames, "676");
+        filenames.forEach(async (filename) => {
+            const productPicture = new product_pictures_entity_1.ProductPictureEntity();
+            productPicture.filename = filename;
+            productPicture.product = latestProduct;
+            await this.productPicRepo.save(productPicture);
+        });
+        return true;
+        console.log(latestProduct);
+        const updatedProduct = await this.productRepo.save(latestProduct);
+        return updatedProduct;
     }
     async createNewFileObject(product, filesData) {
         for (const fileData of filesData) {

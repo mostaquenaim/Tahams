@@ -1,6 +1,5 @@
 /* eslint-disable prettier/prettier */
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
-import { ColorEntity } from './colors.entity';
 import { ProductEntity } from './product.entity';
 
 @Entity('product-pictures')
@@ -21,5 +20,6 @@ export class ProductPictureEntity {
     // color: ColorEntity
 
     @ManyToOne(() => ProductEntity, (product) => product.productPictures)
-    product: [ProductEntity]
+    product: ProductEntity;
+
 }

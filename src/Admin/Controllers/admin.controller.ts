@@ -32,6 +32,7 @@ import { AnyFilesInterceptor, FileFieldsInterceptor, FileInterceptor, FilesInter
 import CouponForm from 'src/Global/DTOs/couponform.dto';
 import ProductForm from 'src/Global/DTOs/productForm.dto';
 import * as path from 'path';
+import { extname } from 'path';
 import * as fs from 'fs';
 
 @Controller('admin')
@@ -492,10 +493,40 @@ export class AdminController {
   ))
   @UsePipes(new ValidationPipe)
   addProductFunc(@Body() mydata, @UploadedFile() imageobj: Express.Multer.File) {
-    console.log(mydata);
+    console.log(mydata,"496");
+    console.log(imageobj,"523");
     console.log(imageobj.filename);
     mydata.filename = imageobj.filename;
     return this.adminService.createNewProduct(mydata);
+  }
+
+  @Post('/add-product-pictures')
+  @UseInterceptors(FilesInterceptor('myfiles', 10, {
+    fileFilter: (req, file, cb) => {
+      if (file.originalname.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Unsupported file type'), false);
+      }
+    },
+    storage: diskStorage({
+      destination: './uploads',
+      filename: (req, file, cb) => {
+        const randomName = Array(32)
+          .fill(null)
+          .map(() => Math.round(Math.random() * 16).toString(16))
+          .join('');
+        cb(null, `${randomName}${extname(file.originalname)}`);
+      },
+    }),
+  }))
+  async addProductPictures(@UploadedFiles() files, @Body() mydata) {
+    console.log(files,"523");
+    console.log(mydata); // Log other data sent with the request
+    const filenames = files.map(file => file.filename);
+    console.log(filenames,"525"); // Log filenames of uploaded files
+    mydata.filenames = filenames; // Assuming your service method expects an array of filenames
+    return this.adminService.addProductPictures(mydata);
   }
 
   // update admin profile  

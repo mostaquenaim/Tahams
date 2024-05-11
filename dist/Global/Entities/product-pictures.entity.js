@@ -32,7 +32,7 @@ __decorate([
 ], ProductPictureEntity.prototype, "isFeatured", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => product_entity_1.ProductEntity, (product) => product.productPictures),
-    __metadata("design:type", Array)
+    __metadata("design:type", product_entity_1.ProductEntity)
 ], ProductPictureEntity.prototype, "product", void 0);
 exports.ProductPictureEntity = ProductPictureEntity = __decorate([
     (0, typeorm_1.Entity)('product-pictures')

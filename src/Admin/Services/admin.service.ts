@@ -25,6 +25,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { SubSubCategoryEntity } from 'src/Global/Entities/subSubCategory.entity';
 import { ColorSizeEntity } from 'src/Global/Entities/color-size-combined.entity';
 import { PaymentInfo } from 'src/Global/Entities/paymentInfo.entity';
+import { MoreThan } from 'typeorm';
 
 @Injectable()
 export class AdminService {
@@ -639,22 +640,17 @@ export class AdminService {
 
   // create new product 
   async createNewProduct(myDto) {
-    console.log(myDto.subCategories, "588");
-
     // Convert myDto.subCategories to an array if it's a string
     const subCategoriesArray = typeof myDto.subCategories === 'string' ? myDto.subCategories.split(',').map(Number) : myDto.subCategories;
-    console.log(subCategoriesArray, "594");
 
     const subs = await this.viewAllProductSubSubCategories();
 
     // Filter the subs array to include only elements whose id is in subCategoriesArray
     const categories = subs.filter(cat => subCategoriesArray.includes(cat.id));
-    console.log(categories, "594");
 
     myDto.subCategories = [...categories];
 
     const selectedColor = await this.getColorByName(myDto.color)
-    console.log(selectedColor);
 
     myDto.color = selectedColor
 
@@ -665,6 +661,49 @@ export class AdminService {
     const savedProduct = await this.productRepo.save(newProduct);
     return savedProduct;
   }
+
+  // add product photos 
+  async addProductPictures(myDto: any) {
+    console.log(myDto, "666");
+    // Retrieve the latest added product based on the ID field
+    const latestProduct = await this.productRepo.findOne({
+      where: { id: MoreThan(1) },
+      order: { id: 'DESC' },
+    });
+
+
+    console.log(latestProduct);
+
+    if (!latestProduct) {
+      throw new Error('No product found');
+    }
+
+    // Update the product entity with the newly added pictures
+    const filenames: string[] = myDto.filenames;
+    console.log(filenames, "676");
+    // latestProduct.productPictures = filenames.map(filename => {
+    filenames.forEach(async filename => {
+      const productPicture = new ProductPictureEntity();
+      productPicture.filename = filename;
+      productPicture.product = latestProduct; // Assign the product
+      await this.productPicRepo.save(productPicture);
+    }
+    )
+
+    return true
+      // return productPicture;
+      // });
+      ;
+
+    console.log(latestProduct);
+
+    // Save the updated product entity back to the database
+    const updatedProduct = await this.productRepo.save(latestProduct);
+
+    return updatedProduct;
+  }
+
+
 
   // create new color object 
   // async createNewColorObject(product, colorsData) {

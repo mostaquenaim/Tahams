@@ -98,6 +98,7 @@ export declare class AdminService {
     createNewCartObject(product: any, cartsData: any): Promise<boolean>;
     createNewWish(myDto: any): Promise<WishEntity[]>;
     createNewProduct(myDto: any): Promise<ProductEntity[]>;
+    addProductPictures(myDto: any): Promise<true | ProductEntity>;
     createNewFileObject(product: any, filesData: any): Promise<boolean>;
     changeCategoryImage(id: any, myFile: any): Promise<CategoryEntity>;
     changeBannerImage(id: number, myFile: string): Promise<BannerEntity>;

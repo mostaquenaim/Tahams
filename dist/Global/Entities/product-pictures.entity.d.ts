@@ -4,5 +4,5 @@ export declare class ProductPictureEntity {
     filename: string;
     isThumbnail: boolean;
     isFeatured: boolean;
-    product: [ProductEntity];
+    product: ProductEntity;
 }

@@ -19,6 +19,7 @@ const adminform_dto_1 = require("../DTOs/adminform.dto");
 const multer_1 = require("multer");
 const platform_express_1 = require("@nestjs/platform-express");
 const couponform_dto_1 = require("../../Global/DTOs/couponform.dto");
+const path_1 = require("path");
 let AdminController = exports.AdminController = class AdminController {
     constructor(adminService) {
         this.adminService = adminService;
@@ -32,6 +33,9 @@ let AdminController = exports.AdminController = class AdminController {
         else {
             throw new common_1.UnauthorizedException({ message: "invalid" });
         }
+    }
+    sendEmail(mydata) {
+        return this.adminService.sendEmail(mydata);
     }
     addBanner(myDto, file) {
         myDto.filename = file.filename;
@@ -157,9 +161,6 @@ let AdminController = exports.AdminController = class AdminController {
     getAllPaymentMethod() {
         return this.adminService.getAllPaymentMethod();
     }
-    sendEmail(mydata) {
-        return this.adminService.sendEmail(mydata);
-    }
     logout(session) {
         if (session) {
             session.destroy();
@@ -191,10 +192,19 @@ let AdminController = exports.AdminController = class AdminController {
         return this.adminService.createNewSize(myDto);
     }
     addProductFunc(mydata, imageobj) {
-        console.log(mydata);
+        console.log(mydata, "496");
+        console.log(imageobj, "523");
         console.log(imageobj.filename);
         mydata.filename = imageobj.filename;
         return this.adminService.createNewProduct(mydata);
+    }
+    async addProductPictures(files, mydata) {
+        console.log(files, "523");
+        console.log(mydata);
+        const filenames = files.map(file => file.filename);
+        console.log(filenames, "525");
+        mydata.filenames = filenames;
+        return this.adminService.addProductPictures(mydata);
     }
     updateAdmin(myDto, file) {
         return this.adminService.updateAdmin(myDto, myDto.email);
@@ -215,6 +225,13 @@ __decorate([
     __metadata("design:paramtypes", [Object, adminform_dto_1.AdminForm]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "signIn", null);
+__decorate([
+    (0, common_1.Post)('sendemail'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "sendEmail", null);
 __decorate([
     (0, common_1.Post)('add-banner'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('filename', {
@@ -516,13 +533,6 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "getAllPaymentMethod", null);
 __decorate([
-    (0, common_1.Post)('sendemail'),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", void 0)
-], AdminController.prototype, "sendEmail", null);
-__decorate([
     (0, common_1.Get)('/logout'),
     __param(0, (0, common_1.Session)()),
     __metadata("design:type", Function),
@@ -605,6 +615,34 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "addProductFunc", null);
+__decorate([
+    (0, common_1.Post)('/add-product-pictures'),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FilesInterceptor)('myfiles', 10, {
+        fileFilter: (req, file, cb) => {
+            if (file.originalname.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
+                cb(null, true);
+            }
+            else {
+                cb(new Error('Unsupported file type'), false);
+            }
+        },
+        storage: (0, multer_1.diskStorage)({
+            destination: './uploads',
+            filename: (req, file, cb) => {
+                const randomName = Array(32)
+                    .fill(null)
+                    .map(() => Math.round(Math.random() * 16).toString(16))
+                    .join('');
+                cb(null, `${randomName}${(0, path_1.extname)(file.originalname)}`);
+            },
+        }),
+    })),
+    __param(0, (0, common_1.UploadedFiles)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "addProductPictures", null);
 __decorate([
     (0, common_1.Put)('/updateProfile'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('filename', {
