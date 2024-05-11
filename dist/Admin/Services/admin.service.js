@@ -303,6 +303,7 @@ let AdminService = exports.AdminService = class AdminService {
             const products = await this.productRepo
                 .createQueryBuilder('product')
                 .leftJoinAndSelect('product.subCategories', 'subCategory')
+                .leftJoinAndSelect('product.productPictures', 'productPicture')
                 .leftJoinAndSelect('product.color', 'color')
                 .where('subCategory.id = :subCategoryId', { subCategoryId })
                 .getMany();
@@ -481,9 +482,6 @@ let AdminService = exports.AdminService = class AdminService {
             await this.productPicRepo.save(productPicture);
         });
         return true;
-        console.log(latestProduct);
-        const updatedProduct = await this.productRepo.save(latestProduct);
-        return updatedProduct;
     }
     async createNewFileObject(product, filesData) {
         for (const fileData of filesData) {

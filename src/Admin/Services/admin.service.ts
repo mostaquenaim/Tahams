@@ -435,6 +435,7 @@ export class AdminService {
       const products = await this.productRepo
         .createQueryBuilder('product')
         .leftJoinAndSelect('product.subCategories', 'subCategory')
+        .leftJoinAndSelect('product.productPictures', 'productPicture')
         .leftJoinAndSelect('product.color', 'color') // Include color information
         .where('subCategory.id = :subCategoryId', { subCategoryId })
         .getMany();
@@ -691,16 +692,6 @@ export class AdminService {
     )
 
     return true
-      // return productPicture;
-      // });
-      ;
-
-    console.log(latestProduct);
-
-    // Save the updated product entity back to the database
-    const updatedProduct = await this.productRepo.save(latestProduct);
-
-    return updatedProduct;
   }
 
 
