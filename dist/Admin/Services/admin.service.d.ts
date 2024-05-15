@@ -43,6 +43,7 @@ export declare class AdminService {
     addBanner(myDto: any): Promise<any>;
     addPaymentInfo(myDto: any): Promise<any>;
     createUser(myDto: any): Promise<any>;
+    createCustomer(myDto: any): Promise<any>;
     sendEmail(mydto: any): Promise<SentMessageInfo>;
     signIn(myDto: any): Promise<boolean | 0>;
     updateAdmin(myDto: AdminForm, email: string): Promise<"Admin not found" | "Admin updated" | "Update failed">;

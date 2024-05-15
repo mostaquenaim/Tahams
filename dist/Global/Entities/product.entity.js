@@ -63,6 +63,10 @@ __decorate([
     __metadata("design:type", String)
 ], ProductEntity.prototype, "description", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], ProductEntity.prototype, "longDescription", void 0);
+__decorate([
     (0, typeorm_1.Column)({ default: true }),
     __metadata("design:type", Boolean)
 ], ProductEntity.prototype, "ifStock", void 0);

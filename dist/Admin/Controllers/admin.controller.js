@@ -74,13 +74,15 @@ let AdminController = exports.AdminController = class AdminController {
         return this.adminService.getAllBuyingHistories(email);
     }
     async createNewCart(myDto) {
+        console.log(myDto, "185");
         const response = await this.adminService.createNewCart(myDto);
         console.log(response);
         return response;
     }
     async customerLogin(myDto) {
+        console.log(myDto, "197");
         const response = await this.adminService.customerLogin(myDto);
-        console.log(response);
+        console.log(response, "198");
         return response;
     }
     deleteCartItem(id, email) {
@@ -95,7 +97,6 @@ let AdminController = exports.AdminController = class AdminController {
     }
     async viewProductCategories() {
         const result = await this.adminService.viewProductCategories();
-        console.log(result);
         return result;
     }
     async viewAllProductSubSubCategories() {
@@ -214,6 +215,7 @@ let AdminController = exports.AdminController = class AdminController {
         return this.adminService.createNewWish(myDto);
     }
     getImages(name, res) {
+        console.log(name, "568");
         res.sendFile(name, { root: './uploads' });
     }
 };

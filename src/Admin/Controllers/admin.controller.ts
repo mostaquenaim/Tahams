@@ -182,6 +182,7 @@ export class AdminController {
   async createNewCart(
     @Body() myDto,
   ) {
+    console.log(myDto,"185");
     const response = await this.adminService.createNewCart(myDto);
     console.log(response);
     return response
@@ -193,8 +194,9 @@ export class AdminController {
   async customerLogin(
     @Body() myDto,
   ) {
+    console.log(myDto,"197");
     const response = await this.adminService.customerLogin(myDto);
-    console.log(response);
+    console.log(response,"198");
     return response
   }
 
@@ -230,7 +232,6 @@ export class AdminController {
   @Get('view-product-categories')
   async viewProductCategories() {
     const result = await this.adminService.viewProductCategories();
-    console.log(result);
     return result;
   }
 
@@ -565,6 +566,7 @@ export class AdminController {
   // testing 
   @Get('/getimage/:name')
   getImages(@Param('name') name, @Res() res) {
+    console.log(name,"568");
     res.sendFile(name, { root: './uploads' })
   }
 

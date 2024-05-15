@@ -108,6 +108,13 @@ export class AdminService {
     return this.adminRepo.save(myDto);
   }
 
+  async createCustomer(myDto) {
+    const salt = await bcrypt.genSalt();
+    const hashedPass = await bcrypt.hash(myDto.password, salt);
+    myDto.password = hashedPass;
+    return this.customerRepo.save(myDto);
+  }
+
   // send email 
   async sendEmail(mydto) {
 
@@ -580,8 +587,10 @@ export class AdminService {
         where: { email: myDto.email },
       });
 
+      console.log(existingCustomer,"583");
       if (!existingCustomer) {
-        const newCustomer = this.createUser(myDto);
+        console.log("innnn");
+        const newCustomer = this.createCustomer(myDto);
         return newCustomer
       }
 

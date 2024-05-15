@@ -15,6 +15,7 @@ export declare class ProductEntity {
     sellingPrice: number;
     tags: string;
     description: string;
+    longDescription: string;
     ifStock: boolean;
     filename: string;
     subCategories: SubSubCategoryEntity[];

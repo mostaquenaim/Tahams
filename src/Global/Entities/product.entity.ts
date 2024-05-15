@@ -43,6 +43,9 @@ export class ProductEntity {
     @Column()
     description: string
 
+    @Column({nullable:true})
+    longDescription: string
+
     @Column({default:true})
     ifStock: boolean
 
