@@ -120,20 +120,18 @@ let AdminService = exports.AdminService = class AdminService {
     }
     async deleteCartItem(id) {
         const myData = await this.cartRepo.findOneBy({ uniqueId: id });
+        console.log(myData, "169");
         if (myData) {
-            return this.cartRepo.delete(myData);
+            console.log(myData, "171");
+            return this.cartRepo.delete(myData.id);
         }
         throw new common_1.NotFoundException(`Banner with ID ${id} not found.`);
         ;
     }
-    async deleteCarts(cartArray, email) {
+    async deleteCarts(cartArray) {
         try {
-            const cartsToDelete = await this.cartRepo.find({ where: { uniqueId: (0, typeorm_2.In)(cartArray), customer: { email: email } } });
-            if (cartsToDelete.length > 0) {
-                const deletionResult = await this.cartRepo.remove(cartsToDelete);
-                return deletionResult;
-            }
-            throw new common_1.NotFoundException(`No carts found with the provided unique IDs.`);
+            const deletionResult = await this.cartRepo.delete({ id: (0, typeorm_2.In)(cartArray) });
+            return deletionResult;
         }
         catch (error) {
             throw new common_1.NotFoundException(`Error deleting carts: ${error.message}`);
@@ -285,7 +283,7 @@ let AdminService = exports.AdminService = class AdminService {
         return await this.colorRepo.findOneBy({ id });
     }
     async getCustomerById(id) {
-        return await this.customerRepo.findOneBy({ id });
+        return await this.customerRepo.findOneBy({ uniqueId: id });
     }
     async getCustomerByEmail(email) {
         return await this.customerRepo.findOneBy({ email: email });
@@ -457,6 +455,12 @@ let AdminService = exports.AdminService = class AdminService {
         });
         const savedProduct = await this.wishRepo.save(newWish);
         return savedProduct;
+    }
+    getWishByUser(userId) {
+        return this.wishRepo.find({
+            where: { customer: { uniqueId: userId } },
+            relations: ['product', 'customer'],
+        });
     }
     async createNewProduct(myDto) {
         const subCategoriesArray = typeof myDto.subCategories === 'string' ? myDto.subCategories.split(',').map(Number) : myDto.subCategories;

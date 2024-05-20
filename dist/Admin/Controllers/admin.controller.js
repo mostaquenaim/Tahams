@@ -39,7 +39,6 @@ let AdminController = exports.AdminController = class AdminController {
     }
     addBanner(myDto, file) {
         myDto.filename = file.filename;
-        console.log(myDto);
         return this.adminService.addBanner(myDto);
     }
     viewAllBanners() {
@@ -58,7 +57,6 @@ let AdminController = exports.AdminController = class AdminController {
         return this.adminService.changeBannerImage(id, file.filename);
     }
     createNewBuy(myDto) {
-        console.log("134", myDto);
         return this.adminService.createNewBuy(myDto);
     }
     updateBuyingHistory(id, email, details) {
@@ -74,25 +72,20 @@ let AdminController = exports.AdminController = class AdminController {
         return this.adminService.getAllBuyingHistories(email);
     }
     async createNewCart(myDto) {
-        console.log(myDto, "185");
         const response = await this.adminService.createNewCart(myDto);
-        console.log(response);
         return response;
     }
     async customerLogin(myDto) {
-        console.log(myDto, "197");
         const response = await this.adminService.customerLogin(myDto);
-        console.log(response, "198");
         return response;
     }
     deleteCartItem(id, email) {
         return this.adminService.deleteCartItem(id);
     }
-    deleteCarts(email, cartArray) {
-        return this.adminService.deleteCarts(cartArray, email);
+    deleteCarts(myDto) {
+        return this.adminService.deleteCarts(myDto.checkedItems);
     }
     getAllCarts(email) {
-        console.log(email, "209");
         return this.adminService.getAllCarts(email);
     }
     async viewProductCategories() {
@@ -127,6 +120,7 @@ let AdminController = exports.AdminController = class AdminController {
         return this.adminService.getCategoryById(id);
     }
     getProductByCat(name) {
+        console.log(name);
         return this.adminService.getProductByCat(name);
     }
     getProductBySubSubCatId(id) {
@@ -193,17 +187,11 @@ let AdminController = exports.AdminController = class AdminController {
         return this.adminService.createNewSize(myDto);
     }
     addProductFunc(mydata, imageobj) {
-        console.log(mydata, "496");
-        console.log(imageobj, "523");
-        console.log(imageobj.filename);
         mydata.filename = imageobj.filename;
         return this.adminService.createNewProduct(mydata);
     }
     async addProductPictures(files, mydata) {
-        console.log(files, "523");
-        console.log(mydata);
         const filenames = files.map(file => file.filename);
-        console.log(filenames, "525");
         mydata.filenames = filenames;
         return this.adminService.addProductPictures(mydata);
     }
@@ -214,8 +202,13 @@ let AdminController = exports.AdminController = class AdminController {
         console.log("myDto", myDto);
         return this.adminService.createNewWish(myDto);
     }
+    async getWishByUser(userId) {
+        console.log(userId, "572");
+        const res = await this.adminService.getWishByUser(userId);
+        console.log(res, "574");
+        return res;
+    }
     getImages(name, res) {
-        console.log(name, "568");
         res.sendFile(name, { root: './uploads' });
     }
 };
@@ -356,7 +349,7 @@ __decorate([
 ], AdminController.prototype, "customerLogin", null);
 __decorate([
     (0, common_1.Delete)('delete-cart/:uniqueId'),
-    __param(0, (0, common_1.Param)('token')),
+    __param(0, (0, common_1.Param)('uniqueId')),
     __param(1, (0, common_1.Query)('email')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
@@ -364,10 +357,9 @@ __decorate([
 ], AdminController.prototype, "deleteCartItem", null);
 __decorate([
     (0, common_1.Delete)('delete-carts'),
-    __param(0, (0, common_1.Query)('email')),
-    __param(1, (0, common_1.Body)()),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "deleteCarts", null);
 __decorate([
@@ -667,13 +659,20 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "updateAdmin", null);
 __decorate([
-    (0, common_1.Post)('addWish'),
+    (0, common_1.Post)('add-Wish'),
     (0, common_1.UsePipes)(common_1.ValidationPipe),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "createNewWish", null);
+__decorate([
+    (0, common_1.Get)('get-wish-by-user/:userId'),
+    __param(0, (0, common_1.Param)('userId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getWishByUser", null);
 __decorate([
     (0, common_1.Get)('/getimage/:name'),
     __param(0, (0, common_1.Param)('name')),

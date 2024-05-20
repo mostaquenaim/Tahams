@@ -5,6 +5,7 @@ import { CouponEntity } from './coupon.entity';
 export declare class CartsEntity {
     id: number;
     uniqueId: string;
+    size: string;
     Quantity: number;
     ProductName: string;
     created_at: Date;

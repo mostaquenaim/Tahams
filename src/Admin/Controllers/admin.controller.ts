@@ -79,7 +79,7 @@ export class AdminController {
   }),) file: Express.Multer.File) {
 
     myDto.filename = file.filename;
-    console.log(myDto)
+    // console.log(myDto)
     return this.adminService.addBanner(myDto);
   }
 
@@ -138,7 +138,7 @@ export class AdminController {
   createNewBuy(
     @Body() myDto: any,
   ) {
-    console.log("134", myDto);
+    // console.log("134", myDto);
     return this.adminService.createNewBuy(myDto);
   }
 
@@ -165,7 +165,7 @@ export class AdminController {
   addPaymentInfo(
     // @Param('token') token: string,
     @Body() PaymentDetails) {
-      return this.adminService.addPaymentInfo(PaymentDetails)
+    return this.adminService.addPaymentInfo(PaymentDetails)
   }
 
   // get particular customer all buying history 
@@ -182,9 +182,9 @@ export class AdminController {
   async createNewCart(
     @Body() myDto,
   ) {
-    console.log(myDto,"185");
+    // console.log(myDto,"185");
     const response = await this.adminService.createNewCart(myDto);
-    console.log(response);
+    // console.log(response);
     return response
   }
 
@@ -194,9 +194,9 @@ export class AdminController {
   async customerLogin(
     @Body() myDto,
   ) {
-    console.log(myDto,"197");
+    // console.log(myDto,"197");
     const response = await this.adminService.customerLogin(myDto);
-    console.log(response,"198");
+    // console.log(response,"198");
     return response
   }
 
@@ -204,19 +204,20 @@ export class AdminController {
   // delete a cart 
   @Delete('delete-cart/:uniqueId')
   deleteCartItem(
-    @Param('token') id,
+    @Param('uniqueId') id,
     @Query('email') email,
   ) {
+    // console.log(id,"210");
     return this.adminService.deleteCartItem(id);
   }
 
   // delete carts 
   @Delete('delete-carts')
   deleteCarts(
-    @Query('email') email,
-    @Body() cartArray
+    @Body() myDto
   ) {
-    return this.adminService.deleteCarts(cartArray, email);
+    // console.log(myDto,"220");
+    return this.adminService.deleteCarts(myDto.checkedItems);
   }
 
   // get particular customer cart history 
@@ -224,7 +225,7 @@ export class AdminController {
   getAllCarts(
     @Query('email') email: string,
   ) {
-    console.log(email, "209");
+    // console.log(email, "209");
     return this.adminService.getAllCarts(email)
   }
 
@@ -303,6 +304,7 @@ export class AdminController {
   getProductByCat(
     @Param('name') name,
   ) {
+    console.log(name);
     return this.adminService.getProductByCat(name);
   }
 
@@ -494,9 +496,9 @@ export class AdminController {
   ))
   @UsePipes(new ValidationPipe)
   addProductFunc(@Body() mydata, @UploadedFile() imageobj: Express.Multer.File) {
-    console.log(mydata,"496");
-    console.log(imageobj,"523");
-    console.log(imageobj.filename);
+    // console.log(mydata,"496");
+    // console.log(imageobj,"523");
+    // console.log(imageobj.filename);
     mydata.filename = imageobj.filename;
     return this.adminService.createNewProduct(mydata);
   }
@@ -522,10 +524,10 @@ export class AdminController {
     }),
   }))
   async addProductPictures(@UploadedFiles() files, @Body() mydata) {
-    console.log(files,"523");
-    console.log(mydata); // Log other data sent with the request
+    // console.log(files,"523");
+    // console.log(mydata); // Log other data sent with the request
     const filenames = files.map(file => file.filename);
-    console.log(filenames,"525"); // Log filenames of uploaded files
+    // console.log(filenames,"525"); // Log filenames of uploaded files
     mydata.filenames = filenames; // Assuming your service method expects an array of filenames
     return this.adminService.addProductPictures(mydata);
   }
@@ -554,7 +556,7 @@ export class AdminController {
   }
 
   // add new wish 
-  @Post('addWish')
+  @Post('add-Wish')
   @UsePipes(ValidationPipe)
   createNewWish(
     // @Body('colors') colors,
@@ -563,10 +565,20 @@ export class AdminController {
     console.log("myDto", myDto)
     return this.adminService.createNewWish(myDto);
   }
+
+  // get wishlist 
+  @Get('get-wish-by-user/:userId')
+  async getWishByUser(@Param('userId') userId: string) {
+    console.log(userId,"572");
+    const res = await this.adminService.getWishByUser(userId);
+    console.log(res,"574");
+    return res
+  }
+
   // testing 
   @Get('/getimage/:name')
   getImages(@Param('name') name, @Res() res) {
-    console.log(name,"568");
+    // console.log(name,"568");
     res.sendFile(name, { root: './uploads' })
   }
 

@@ -21,7 +21,7 @@ export declare class AdminController {
     createNewCart(myDto: any): Promise<import("../../Global/Entities/cart.entity").CartsEntity[]>;
     customerLogin(myDto: any): Promise<any>;
     deleteCartItem(id: any, email: any): Promise<import("typeorm").DeleteResult>;
-    deleteCarts(email: any, cartArray: any): Promise<import("../../Global/Entities/cart.entity").CartsEntity[]>;
+    deleteCarts(myDto: any): Promise<import("typeorm").DeleteResult>;
     getAllCarts(email: string): Promise<import("../../Global/Entities/cart.entity").CartsEntity[]>;
     viewProductCategories(): Promise<import("../../Global/Entities/category.entity").CategoryEntity[]>;
     viewAllProductSubSubCategories(): Promise<import("../../Global/Entities/subSubCategory.entity").SubSubCategoryEntity[]>;
@@ -58,5 +58,6 @@ export declare class AdminController {
     addProductPictures(files: any, mydata: any): Promise<boolean>;
     updateAdmin(myDto: AdminForm, file: Express.Multer.File): Promise<"Admin not found" | "Admin updated" | "Update failed">;
     createNewWish(myDto: any): Promise<import("../../Global/Entities/wish.entity").WishEntity[]>;
+    getWishByUser(userId: string): Promise<import("../../Global/Entities/wish.entity").WishEntity[]>;
     getImages(name: any, res: any): void;
 }

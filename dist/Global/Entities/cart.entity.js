@@ -26,6 +26,10 @@ __decorate([
     __metadata("design:type", String)
 ], CartsEntity.prototype, "uniqueId", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], CartsEntity.prototype, "size", void 0);
+__decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", Number)
 ], CartsEntity.prototype, "Quantity", void 0);

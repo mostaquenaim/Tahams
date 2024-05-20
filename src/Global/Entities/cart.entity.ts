@@ -14,6 +14,9 @@ export class CartsEntity {
     @Column({nullable:true})
     uniqueId: string
 
+    @Column({nullable:true})
+    size: string
+
     @Column()
     Quantity: number
 

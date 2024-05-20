@@ -48,8 +48,8 @@ export declare class AdminService {
     signIn(myDto: any): Promise<boolean | 0>;
     updateAdmin(myDto: AdminForm, email: string): Promise<"Admin not found" | "Admin updated" | "Update failed">;
     deleteBanner(id: number): Promise<import("typeorm").DeleteResult>;
-    deleteCartItem(id: any): Promise<import("typeorm").DeleteResult>;
-    deleteCarts(cartArray: string[], email: string): Promise<CartsEntity[]>;
+    deleteCartItem(id: string): Promise<import("typeorm").DeleteResult>;
+    deleteCarts(cartArray: string[]): Promise<import("typeorm").DeleteResult>;
     addNewProduct(myDto: any): Promise<ProductEntity[]>;
     viewAllProduct(): Promise<ProductEntity[]>;
     getAllBuyingHistories(email: any): Promise<unknown[]>;
@@ -98,6 +98,7 @@ export declare class AdminService {
     createNewCart(myDto: any): Promise<CartsEntity[]>;
     createNewCartObject(product: any, cartsData: any): Promise<boolean>;
     createNewWish(myDto: any): Promise<WishEntity[]>;
+    getWishByUser(userId: string): Promise<WishEntity[]>;
     createNewProduct(myDto: any): Promise<ProductEntity[]>;
     addProductPictures(myDto: any): Promise<boolean>;
     createNewFileObject(product: any, filesData: any): Promise<boolean>;

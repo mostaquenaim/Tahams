@@ -164,27 +164,31 @@ export class AdminService {
   }
 
   // delete a cart item  
-  async deleteCartItem(id) {
+  async deleteCartItem(id: string) {
     const myData = await this.cartRepo.findOneBy({ uniqueId: id });
+    console.log(myData,"169");
     if (myData) {
-      return this.cartRepo.delete(myData);
+      console.log(myData,"171");
+      return this.cartRepo.delete(myData.id);
     }
     throw new NotFoundException(`Banner with ID ${id} not found.`);;
   }
 
   // delete carts  
-  async deleteCarts(cartArray: string[], email: string) {
+  async deleteCarts(cartArray: string[]) {
     try {
       // Find all carts with unique IDs in the provided array
-      const cartsToDelete = await this.cartRepo.find({ where: { uniqueId: In(cartArray), customer: { email: email } } });
+      // const cartsToDelete = await this.cartRepo.find({ where: { uniqueId: In(cartArray) }});
+      const deletionResult = await this.cartRepo.delete({ id: In(cartArray)})
+      return deletionResult;
 
-      if (cartsToDelete.length > 0) {
-        // Delete the found carts
-        const deletionResult = await this.cartRepo.remove(cartsToDelete);
-        return deletionResult;
-      }
+      // if (cartsToDelete.length > 0) {
+      //   // Delete the found carts
+      //   const deletionResult = await this.cartRepo.remove(cartsToDelete);
+      //   return deletionResult;
+      // }
 
-      throw new NotFoundException(`No carts found with the provided unique IDs.`);
+      // throw new NotFoundException(`No carts found with the provided unique IDs.`);
     } catch (error) {
       throw new NotFoundException(`Error deleting carts: ${error.message}`);
     }
@@ -398,7 +402,7 @@ export class AdminService {
 
   // get customer by id 
   async getCustomerById(id) {
-    return await this.customerRepo.findOneBy({ id });
+    return await this.customerRepo.findOneBy({ uniqueId:id });
   }
 
   // get customer by email 
@@ -636,7 +640,6 @@ export class AdminService {
 
   // create new wish 
   async createNewWish(myDto) {
-
     myDto.product = await this.getProductById(myDto.productId)
     myDto.customer = await this.getCustomerById(myDto.customerId)
 
@@ -646,6 +649,14 @@ export class AdminService {
 
     const savedProduct = await this.wishRepo.save(newWish);
     return savedProduct;
+  }
+
+  // get all wishlist of a customer 
+  getWishByUser(userId: string) {
+    return this.wishRepo.find({
+        where: { customer: { uniqueId: userId } },
+        relations: ['product', 'customer'],
+    });
   }
 
   // create new product 
