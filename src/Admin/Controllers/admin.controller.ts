@@ -334,6 +334,7 @@ export class AdminController {
   createNewCategory(
     @Body() myDto,
   ) {
+    console.log(myDto,"337");
     return this.adminService.createNewCategory(myDto);
   }
 

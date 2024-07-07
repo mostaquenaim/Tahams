@@ -18,8 +18,8 @@ async function bootstrap() {
     origin: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
-    });
-
+  });
+  app.setGlobalPrefix('api');
   await app.listen(3000);
 }
 bootstrap();

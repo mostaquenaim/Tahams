@@ -130,6 +130,7 @@ let AdminController = exports.AdminController = class AdminController {
         await this.adminService.updateCategory(id, myDto);
     }
     createNewCategory(myDto) {
+        console.log(myDto, "337");
         return this.adminService.createNewCategory(myDto);
     }
     createNewSubCategory(myDto) {
