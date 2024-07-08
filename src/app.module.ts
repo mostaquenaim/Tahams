@@ -18,7 +18,7 @@ import { join } from 'path';
       type: 'postgres',
       host: 'localhost', //localhost //monorail.proxy.rlwy.net
       port: 5432, //5432 //59586
-      username: 'postgres',
+      username: 'admin', //postgres
       password: 'root', //root //bgaFf443fC36*6bC6ECafCG13A5-d62g
       database: 'Tahams', //tahams //railway
       autoLoadEntities: true,
