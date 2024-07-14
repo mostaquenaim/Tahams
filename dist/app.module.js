@@ -15,6 +15,8 @@ const global_module_1 = require("./Global/Modules/global.module");
 const employeeModule_module_1 = require("./Employee/Modules/employeeModule.module");
 const serve_static_1 = require("@nestjs/serve-static");
 const path_1 = require("path");
+const dotenv = require("dotenv");
+dotenv.config();
 let AppModule = exports.AppModule = class AppModule {
 };
 exports.AppModule = AppModule = __decorate([
@@ -26,11 +28,11 @@ exports.AppModule = AppModule = __decorate([
             employeeModule_module_1.EmployeeModule,
             typeorm_1.TypeOrmModule.forRoot({
                 type: 'postgres',
-                host: 'localhost',
-                port: 5432,
-                username: 'postgres',
-                password: 'root',
-                database: 'Tahams',
+                host: process.env.DB_HOST,
+                port: parseInt(process.env.DB_PORT),
+                username: process.env.DB_USERNAME,
+                password: process.env.DB_PASSWORD,
+                database: process.env.DB_NAME,
                 autoLoadEntities: true,
                 synchronize: true,
             }),

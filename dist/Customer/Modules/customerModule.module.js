@@ -13,6 +13,8 @@ const typeorm_1 = require("@nestjs/typeorm");
 const customer_controller_1 = require("../Controllers/customer.controller");
 const customer_entity_1 = require("../Entities/customer.entity");
 const customer_service_1 = require("../Services/customer.service");
+const dotenv = require("dotenv");
+dotenv.config();
 let CustomerModule = exports.CustomerModule = class CustomerModule {
 };
 exports.CustomerModule = CustomerModule = __decorate([
@@ -25,8 +27,8 @@ exports.CustomerModule = CustomerModule = __decorate([
                     ignoreTLS: true,
                     secure: true,
                     auth: {
-                        user: 'mostaquenaimislam@gmail.com',
-                        pass: ''
+                        user: process.env.EMAIL_USER,
+                        pass: process.env.EMAIL_PASSWORD
                     },
                 }
             }),

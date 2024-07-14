@@ -7,6 +7,9 @@ import { GlobalModule } from './Global/Modules/global.module';
 import { EmployeeModule } from './Employee/Modules/employeeModule.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import * as dotenv from 'dotenv';
+// Load environment variables
+dotenv.config();
 
 @Module({
   imports: [
@@ -16,11 +19,11 @@ import { join } from 'path';
     EmployeeModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'localhost', //localhost //monorail.proxy.rlwy.net
-      port: 5432, //5432 //59586
-      username: 'admin', //postgres
-      password: 'root', //root //bgaFf443fC36*6bC6ECafCG13A5-d62g
-      database: 'Tahams', //tahams //railway
+      host: process.env.DB_HOST, 
+      port: parseInt(process.env.DB_PORT), 
+      username: process.env.DB_USERNAME, 
+      password: process.env.DB_PASSWORD , 
+      database: process.env.DB_NAME, 
       autoLoadEntities: true,
       synchronize: true,
     }),

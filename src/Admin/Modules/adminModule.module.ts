@@ -24,7 +24,9 @@ import { PaymentMethodEntity } from "src/Global/Entities/paymentMethod.entity";
 import { SubSubCategoryEntity } from "src/Global/Entities/subSubCategory.entity";
 import { ColorSizeEntity } from "src/Global/Entities/color-size-combined.entity";
 import { PaymentInfo } from "src/Global/Entities/paymentInfo.entity";
-
+import * as dotenv from 'dotenv';
+// Load environment variables
+dotenv.config();
 
 @Module({
     imports: [
@@ -35,8 +37,8 @@ import { PaymentInfo } from "src/Global/Entities/paymentInfo.entity";
                 ignoreTLS: true,
                 secure: true,
                 auth: {
-                    user: 'mostaquenaimislam@gmail.com',
-                    pass: '' //missing i
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASSWORD
                 },
             }
         }

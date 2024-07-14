@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const core_1 = require("@nestjs/core");
 const app_module_1 = require("./app.module");
 const session = require("express-session");
+const dotenv = require("dotenv");
+dotenv.config();
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     app.use(session({
@@ -10,8 +12,8 @@ async function bootstrap() {
         resave: true,
         saveUninitialized: false,
         cookie: {
-            maxAge: 300000
-        }
+            maxAge: parseInt(process.env.SESSION_MAX_AGE),
+        },
     }));
     app.enableCors({
         origin: true,

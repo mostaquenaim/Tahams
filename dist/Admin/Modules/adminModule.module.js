@@ -32,6 +32,8 @@ const paymentMethod_entity_1 = require("../../Global/Entities/paymentMethod.enti
 const subSubCategory_entity_1 = require("../../Global/Entities/subSubCategory.entity");
 const color_size_combined_entity_1 = require("../../Global/Entities/color-size-combined.entity");
 const paymentInfo_entity_1 = require("../../Global/Entities/paymentInfo.entity");
+const dotenv = require("dotenv");
+dotenv.config();
 let AdminModule = exports.AdminModule = class AdminModule {
 };
 exports.AdminModule = AdminModule = __decorate([
@@ -44,8 +46,8 @@ exports.AdminModule = AdminModule = __decorate([
                     ignoreTLS: true,
                     secure: true,
                     auth: {
-                        user: 'mostaquenaimislam@gmail.com',
-                        pass: ''
+                        user: process.env.EMAIL_USER,
+                        pass: process.env.EMAIL_PASSWORD
                     },
                 }
             }),

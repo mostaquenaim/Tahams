@@ -13,6 +13,8 @@ const typeorm_1 = require("@nestjs/typeorm");
 const employee_controller_1 = require("../Controllers/employee.controller");
 const employee_entity_1 = require("../Entities/employee.entity");
 const employee_service_1 = require("../Services/employee.service");
+const dotenv = require("dotenv");
+dotenv.config();
 let EmployeeModule = exports.EmployeeModule = class EmployeeModule {
 };
 exports.EmployeeModule = EmployeeModule = __decorate([
@@ -25,8 +27,8 @@ exports.EmployeeModule = EmployeeModule = __decorate([
                     ignoreTLS: true,
                     secure: true,
                     auth: {
-                        user: 'mostaquenaimislam@gmail.com',
-                        pass: ''
+                        user: process.env.EMAIL_USER,
+                        pass: process.env.EMAIL_PASSWORD
                     },
                 }
             }),
