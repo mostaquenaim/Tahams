@@ -546,6 +546,16 @@ export class AdminService {
     return this.couponRepo.save(newCoupon);
   }
 
+  // create new color 
+  async createNewColor(
+    myDto,
+  ) {
+    const newColor = this.colorRepo.create({
+      ...myDto
+    });
+    return this.colorRepo.save(newColor);
+  }
+
   // create new sub-category 
   async createNewSubCategory(
     myDto,

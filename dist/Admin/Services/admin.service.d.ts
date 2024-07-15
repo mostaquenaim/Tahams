@@ -91,6 +91,7 @@ export declare class AdminService {
     deleteSizeById(id: number): Promise<import("typeorm").DeleteResult>;
     createNewCategory(myDto: any): Promise<CategoryEntity[]>;
     createNewCoupon(myDto: any): Promise<CouponEntity[]>;
+    createNewColor(myDto: any): Promise<ColorEntity[]>;
     createNewSubCategory(myDto: any): Promise<SubCategoryEntity[]>;
     createNewSize(myDto: any): Promise<SizeEntity[]>;
     createNewBuy(myDto: any): Promise<BuyingHistoryEntity[]>;

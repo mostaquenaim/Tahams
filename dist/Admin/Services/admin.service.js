@@ -379,6 +379,12 @@ let AdminService = exports.AdminService = class AdminService {
         });
         return this.couponRepo.save(newCoupon);
     }
+    async createNewColor(myDto) {
+        const newColor = this.colorRepo.create({
+            ...myDto
+        });
+        return this.colorRepo.save(newColor);
+    }
     async createNewSubCategory(myDto) {
         const category = await this.getCategoryById(myDto.categoryId);
         myDto.category = category;

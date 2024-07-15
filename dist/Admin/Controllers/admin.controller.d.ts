@@ -39,7 +39,7 @@ export declare class AdminController {
     createNewSubCategory(myDto: any): Promise<import("../../Global/Entities/subCategory.entity").SubCategoryEntity[]>;
     changeCategoryImage(id: any, file: Express.Multer.File): object;
     createNewCoupon(myDto: CouponForm): Promise<import("../../Global/Entities/coupon.entity").CouponEntity[]>;
-    createNewColor(myDto: any): any;
+    createNewColor(myDto: any): Promise<import("../../Global/Entities/colors.entity").ColorEntity[]>;
     getAllCoupons(): Promise<import("../../Global/Entities/coupon.entity").CouponEntity[]>;
     getParticularCoupon(id: number): Promise<import("../../Global/Entities/coupon.entity").CouponEntity>;
     disableCoupon(id: number): Promise<void>;
