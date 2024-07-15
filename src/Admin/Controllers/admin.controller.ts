@@ -374,6 +374,15 @@ export class AdminController {
     return this.adminService.createNewCoupon(myDto);
   }
 
+  // add new color 
+  @Post('add-color')
+  @UsePipes(ValidationPipe)
+  createNewColor(
+    @Body() myDto,
+  ) {
+    return this.adminService.createNewColor(myDto);
+  }
+
   // get all coupons 
   @Get('get-coupons')
   getAllCoupons() {

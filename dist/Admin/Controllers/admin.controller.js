@@ -142,6 +142,9 @@ let AdminController = exports.AdminController = class AdminController {
     createNewCoupon(myDto) {
         return this.adminService.createNewCoupon(myDto);
     }
+    createNewColor(myDto) {
+        return this.adminService.createNewColor(myDto);
+    }
     getAllCoupons() {
         return this.adminService.getAllCoupons();
     }
@@ -495,6 +498,14 @@ __decorate([
     __metadata("design:paramtypes", [couponform_dto_1.default]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "createNewCoupon", null);
+__decorate([
+    (0, common_1.Post)('add-color'),
+    (0, common_1.UsePipes)(common_1.ValidationPipe),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "createNewColor", null);
 __decorate([
     (0, common_1.Get)('get-coupons'),
     __metadata("design:type", Function),
