@@ -19,6 +19,7 @@ import { PaymentMethodEntity } from 'src/Global/Entities/paymentMethod.entity';
 import { SubSubCategoryEntity } from 'src/Global/Entities/subSubCategory.entity';
 import { ColorSizeEntity } from 'src/Global/Entities/color-size-combined.entity';
 import { PaymentInfo } from 'src/Global/Entities/paymentInfo.entity';
+import { FabricEntity } from 'src/Global/Entities/fabrics.entity';
 export declare class AdminService {
     private adminRepo;
     private mailerService;
@@ -38,8 +39,9 @@ export declare class AdminService {
     private buyingHistoryRepo;
     private deliveryStatusRepo;
     private paymentMethodRepo;
+    private fabricRepo;
     private colorSizeRepo;
-    constructor(adminRepo: Repository<AdminEntity>, mailerService: MailerService, customerRepo: Repository<CustomerEntity>, productRepo: Repository<ProductEntity>, productPicRepo: Repository<ProductPictureEntity>, bannerRepo: Repository<BannerEntity>, paymentInfoRepo: Repository<PaymentInfo>, categoryRepo: Repository<CategoryEntity>, couponRepo: Repository<CouponEntity>, colorRepo: Repository<ColorEntity>, subCategoryRepo: Repository<SubCategoryEntity>, subSubCategoryRepo: Repository<SubSubCategoryEntity>, sizeRepo: Repository<SizeEntity>, wishRepo: Repository<WishEntity>, cartRepo: Repository<CartsEntity>, buyingHistoryRepo: Repository<BuyingHistoryEntity>, deliveryStatusRepo: Repository<DeliveryStatusEntity>, paymentMethodRepo: Repository<PaymentMethodEntity>, colorSizeRepo: Repository<ColorSizeEntity>);
+    constructor(adminRepo: Repository<AdminEntity>, mailerService: MailerService, customerRepo: Repository<CustomerEntity>, productRepo: Repository<ProductEntity>, productPicRepo: Repository<ProductPictureEntity>, bannerRepo: Repository<BannerEntity>, paymentInfoRepo: Repository<PaymentInfo>, categoryRepo: Repository<CategoryEntity>, couponRepo: Repository<CouponEntity>, colorRepo: Repository<ColorEntity>, subCategoryRepo: Repository<SubCategoryEntity>, subSubCategoryRepo: Repository<SubSubCategoryEntity>, sizeRepo: Repository<SizeEntity>, wishRepo: Repository<WishEntity>, cartRepo: Repository<CartsEntity>, buyingHistoryRepo: Repository<BuyingHistoryEntity>, deliveryStatusRepo: Repository<DeliveryStatusEntity>, paymentMethodRepo: Repository<PaymentMethodEntity>, fabricRepo: Repository<FabricEntity>, colorSizeRepo: Repository<ColorSizeEntity>);
     addBanner(myDto: any): Promise<any>;
     addPaymentInfo(myDto: any): Promise<any>;
     createUser(myDto: any): Promise<any>;
@@ -94,6 +96,7 @@ export declare class AdminService {
     createNewColor(myDto: any): Promise<ColorEntity[]>;
     createNewSubCategory(myDto: any): Promise<SubCategoryEntity[]>;
     createNewSize(myDto: any): Promise<SizeEntity[]>;
+    createNewFabric(myDto: any): Promise<FabricEntity[]>;
     createNewBuy(myDto: any): Promise<BuyingHistoryEntity[]>;
     customerLogin(myDto: any): Promise<any>;
     createNewCart(myDto: any): Promise<CartsEntity[]>;

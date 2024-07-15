@@ -39,8 +39,9 @@ const subSubCategory_entity_1 = require("../../Global/Entities/subSubCategory.en
 const color_size_combined_entity_1 = require("../../Global/Entities/color-size-combined.entity");
 const paymentInfo_entity_1 = require("../../Global/Entities/paymentInfo.entity");
 const typeorm_4 = require("typeorm");
+const fabrics_entity_1 = require("../../Global/Entities/fabrics.entity");
 let AdminService = exports.AdminService = class AdminService {
-    constructor(adminRepo, mailerService, customerRepo, productRepo, productPicRepo, bannerRepo, paymentInfoRepo, categoryRepo, couponRepo, colorRepo, subCategoryRepo, subSubCategoryRepo, sizeRepo, wishRepo, cartRepo, buyingHistoryRepo, deliveryStatusRepo, paymentMethodRepo, colorSizeRepo) {
+    constructor(adminRepo, mailerService, customerRepo, productRepo, productPicRepo, bannerRepo, paymentInfoRepo, categoryRepo, couponRepo, colorRepo, subCategoryRepo, subSubCategoryRepo, sizeRepo, wishRepo, cartRepo, buyingHistoryRepo, deliveryStatusRepo, paymentMethodRepo, fabricRepo, colorSizeRepo) {
         this.adminRepo = adminRepo;
         this.mailerService = mailerService;
         this.customerRepo = customerRepo;
@@ -59,6 +60,7 @@ let AdminService = exports.AdminService = class AdminService {
         this.buyingHistoryRepo = buyingHistoryRepo;
         this.deliveryStatusRepo = deliveryStatusRepo;
         this.paymentMethodRepo = paymentMethodRepo;
+        this.fabricRepo = fabricRepo;
         this.colorSizeRepo = colorSizeRepo;
     }
     async addBanner(myDto) {
@@ -399,6 +401,12 @@ let AdminService = exports.AdminService = class AdminService {
         });
         return this.sizeRepo.save(newSize);
     }
+    async createNewFabric(myDto) {
+        const newFabric = this.fabricRepo.create({
+            ...myDto
+        });
+        return this.fabricRepo.save(newFabric);
+    }
     async createNewBuy(myDto) {
         console.log(myDto, "544");
         myDto.deliveryStatus = await this.getDeliveryStatusById(myDto?.deliveryStatusId || 1);
@@ -549,9 +557,11 @@ exports.AdminService = AdminService = __decorate([
     __param(15, (0, typeorm_1.InjectRepository)(buyingHistory_entity_1.BuyingHistoryEntity)),
     __param(16, (0, typeorm_1.InjectRepository)(deliveryStatus_entity_1.DeliveryStatusEntity)),
     __param(17, (0, typeorm_1.InjectRepository)(paymentMethod_entity_1.PaymentMethodEntity)),
-    __param(18, (0, typeorm_1.InjectRepository)(color_size_combined_entity_1.ColorSizeEntity)),
+    __param(18, (0, typeorm_1.InjectRepository)(fabrics_entity_1.FabricEntity)),
+    __param(19, (0, typeorm_1.InjectRepository)(color_size_combined_entity_1.ColorSizeEntity)),
     __metadata("design:paramtypes", [typeorm_3.Repository,
         dist_1.MailerService,
+        typeorm_3.Repository,
         typeorm_3.Repository,
         typeorm_3.Repository,
         typeorm_3.Repository,

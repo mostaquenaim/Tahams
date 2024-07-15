@@ -187,8 +187,11 @@ let AdminController = exports.AdminController = class AdminController {
     async deleteSizeById(id) {
         return this.adminService.deleteSizeById(id);
     }
-    createNewSize(id, session, myDto) {
+    createNewSize(myDto) {
         return this.adminService.createNewSize(myDto);
+    }
+    createNewFabric(myDto) {
+        return this.adminService.createNewFabric(myDto);
     }
     addProductFunc(mydata, imageobj) {
         mydata.filename = imageobj.filename;
@@ -459,7 +462,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "updateCategory", null);
 __decorate([
-    (0, common_1.Post)('addCategory'),
+    (0, common_1.Post)('add-category'),
     (0, common_1.UsePipes)(common_1.ValidationPipe),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -587,15 +590,21 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "deleteSizeById", null);
 __decorate([
-    (0, common_1.Post)('addSize'),
+    (0, common_1.Post)('add-size'),
     (0, common_1.UsePipes)(common_1.ValidationPipe),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Session)()),
-    __param(2, (0, common_1.Body)()),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object, Object]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "createNewSize", null);
+__decorate([
+    (0, common_1.Post)('add-fabric'),
+    (0, common_1.UsePipes)(common_1.ValidationPipe),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "createNewFabric", null);
 __decorate([
     (0, common_1.Post)('/add-product'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('myfile', {

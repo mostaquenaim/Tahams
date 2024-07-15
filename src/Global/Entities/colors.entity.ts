@@ -1,9 +1,6 @@
 /* eslint-disable prettier/prettier */
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, ManyToMany, JoinTable } from 'typeorm';
 import { ProductEntity } from './product.entity';
-import { ProductPictureEntity } from './product-pictures.entity';
-import { SizeEntity } from './size.entity';
-import { ColorSizeEntity } from './color-size-combined.entity';
 
 @Entity('colors')
 export class ColorEntity {
@@ -17,8 +14,8 @@ export class ColorEntity {
     @Column()
     colorCode: string;
 
-    @Column({default:1})
-    quantity: number;
+    // @Column({default:1})
+    // quantity: number;
 
     // @ManyToOne(() => ProductEntity, (product) => product.colors)
     // product: ProductEntity

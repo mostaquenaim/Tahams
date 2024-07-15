@@ -26,6 +26,7 @@ import { SubSubCategoryEntity } from 'src/Global/Entities/subSubCategory.entity'
 import { ColorSizeEntity } from 'src/Global/Entities/color-size-combined.entity';
 import { PaymentInfo } from 'src/Global/Entities/paymentInfo.entity';
 import { MoreThan } from 'typeorm';
+import { FabricEntity } from 'src/Global/Entities/fabrics.entity';
 
 @Injectable()
 export class AdminService {
@@ -82,6 +83,9 @@ export class AdminService {
 
     @InjectRepository(PaymentMethodEntity)
     private paymentMethodRepo: Repository<PaymentMethodEntity>,
+
+    @InjectRepository(FabricEntity)
+    private fabricRepo: Repository<FabricEntity>,
 
     @InjectRepository(ColorSizeEntity)
     private colorSizeRepo: Repository<ColorSizeEntity>,
@@ -576,6 +580,16 @@ export class AdminService {
       ...myDto
     });
     return this.sizeRepo.save(newSize);
+  }
+
+  // create new fabric 
+  async createNewFabric(
+    myDto,
+  ) {
+    const newFabric = this.fabricRepo.create({
+      ...myDto
+    });
+    return this.fabricRepo.save(newFabric);
   }
 
   // create new buy 

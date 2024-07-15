@@ -9,28 +9,24 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ColorEntity = void 0;
+exports.FabricEntity = void 0;
 const typeorm_1 = require("typeorm");
 const product_entity_1 = require("./product.entity");
-let ColorEntity = exports.ColorEntity = class ColorEntity {
+let FabricEntity = exports.FabricEntity = class FabricEntity {
 };
 __decorate([
     (0, typeorm_1.PrimaryGeneratedColumn)(),
     __metadata("design:type", Number)
-], ColorEntity.prototype, "id", void 0);
+], FabricEntity.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
-], ColorEntity.prototype, "name", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], ColorEntity.prototype, "colorCode", void 0);
+], FabricEntity.prototype, "fabricName", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => product_entity_1.ProductEntity, (product) => product.color),
     __metadata("design:type", Array)
-], ColorEntity.prototype, "products", void 0);
-exports.ColorEntity = ColorEntity = __decorate([
-    (0, typeorm_1.Entity)('colors')
-], ColorEntity);
-//# sourceMappingURL=colors.entity.js.map
+], FabricEntity.prototype, "products", void 0);
+exports.FabricEntity = FabricEntity = __decorate([
+    (0, typeorm_1.Entity)('fabric')
+], FabricEntity);
+//# sourceMappingURL=fabrics.entity.js.map

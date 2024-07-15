@@ -329,7 +329,7 @@ export class AdminController {
   }
 
   // add new category 
-  @Post('addCategory')
+  @Post('add-category')
   @UsePipes(ValidationPipe)
   createNewCategory(
     @Body() myDto,
@@ -475,14 +475,21 @@ export class AdminController {
   }
 
   // add new size 
-  @Post('addSize')
+  @Post('add-size')
   @UsePipes(ValidationPipe)
   createNewSize(
-    @Param('id') id,
-    @Session() session,
     @Body() myDto,
   ) {
     return this.adminService.createNewSize(myDto);
+  }
+
+  // add new fabric 
+  @Post('add-fabric')
+  @UsePipes(ValidationPipe)
+  createNewFabric(
+    @Body() myDto,
+  ) {
+    return this.adminService.createNewFabric(myDto);
   }
 
   @Post('/add-product')

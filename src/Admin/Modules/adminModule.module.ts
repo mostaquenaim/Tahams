@@ -25,6 +25,7 @@ import { SubSubCategoryEntity } from "src/Global/Entities/subSubCategory.entity"
 import { ColorSizeEntity } from "src/Global/Entities/color-size-combined.entity";
 import { PaymentInfo } from "src/Global/Entities/paymentInfo.entity";
 import * as dotenv from 'dotenv';
+import { FabricEntity } from "src/Global/Entities/fabrics.entity";
 // Load environment variables
 dotenv.config();
 
@@ -40,11 +41,11 @@ dotenv.config();
                     user: process.env.EMAIL_USER,
                     pass: process.env.EMAIL_PASSWORD
                 },
-            }
+            } 
         }
 
         ),
-        TypeOrmModule.forFeature([AdminEntity, BannerEntity, BuyingHistoryEntity, CategoryEntity, ColorSizeEntity, CustomerEntity, ColorEntity, CartsEntity, CouponEntity, DeliveryStatusEntity, EmployeeEntity, PaymentInfo, PaymentMethodEntity, ProductPictureEntity, ProductEntity, PartnerEntity, SizeEntity, SubCategoryEntity, SubSubCategoryEntity, WishEntity])],
+        TypeOrmModule.forFeature([AdminEntity, BannerEntity, BuyingHistoryEntity, CategoryEntity, ColorSizeEntity, CustomerEntity, ColorEntity, CartsEntity, CouponEntity, DeliveryStatusEntity, EmployeeEntity, FabricEntity, PaymentInfo, PaymentMethodEntity, ProductPictureEntity, ProductEntity, PartnerEntity, SizeEntity, SubCategoryEntity, SubSubCategoryEntity, WishEntity])],
     controllers: [AdminController],
     providers: [AdminService],
 })
