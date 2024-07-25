@@ -11,8 +11,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SubSubCategoryEntity = void 0;
 const typeorm_1 = require("typeorm");
-const product_entity_1 = require("./product.entity");
 const subCategory_entity_1 = require("./subCategory.entity");
+const productSizeCategory_entity_1 = require("./productSizeCategory.entity");
 let SubSubCategoryEntity = exports.SubSubCategoryEntity = class SubSubCategoryEntity {
 };
 __decorate([
@@ -28,13 +28,13 @@ __decorate([
     __metadata("design:type", String)
 ], SubSubCategoryEntity.prototype, "filename", void 0);
 __decorate([
-    (0, typeorm_1.ManyToMany)(() => product_entity_1.ProductEntity, (product) => product.subCategories),
-    __metadata("design:type", Array)
-], SubSubCategoryEntity.prototype, "products", void 0);
-__decorate([
     (0, typeorm_1.ManyToOne)(() => subCategory_entity_1.SubCategoryEntity, (category) => category.subSubs),
     __metadata("design:type", subCategory_entity_1.SubCategoryEntity)
 ], SubSubCategoryEntity.prototype, "category", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => productSizeCategory_entity_1.ProductSizeCategoryEntity, (psc) => psc.category),
+    __metadata("design:type", Array)
+], SubSubCategoryEntity.prototype, "pscs", void 0);
 exports.SubSubCategoryEntity = SubSubCategoryEntity = __decorate([
     (0, typeorm_1.Entity)('sub-sub-category')
 ], SubSubCategoryEntity);

@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SizeEntity = void 0;
 const typeorm_1 = require("typeorm");
 const color_size_combined_entity_1 = require("./color-size-combined.entity");
+const productSizeCategory_entity_1 = require("./productSizeCategory.entity");
 let SizeEntity = exports.SizeEntity = class SizeEntity {
 };
 __decorate([
@@ -26,6 +27,10 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => color_size_combined_entity_1.ColorSizeEntity, (colorsize) => colorsize.size),
     __metadata("design:type", Array)
 ], SizeEntity.prototype, "colorsize", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => productSizeCategory_entity_1.ProductSizeCategoryEntity, (psc) => psc.size),
+    __metadata("design:type", Array)
+], SizeEntity.prototype, "pscs", void 0);
 exports.SizeEntity = SizeEntity = __decorate([
     (0, typeorm_1.Entity)('size')
 ], SizeEntity);

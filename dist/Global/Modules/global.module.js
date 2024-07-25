@@ -29,6 +29,7 @@ const color_size_combined_entity_1 = require("../Entities/color-size-combined.en
 const paymentInfo_entity_1 = require("../Entities/paymentInfo.entity");
 const dotenv = require("dotenv");
 const fabrics_entity_1 = require("../Entities/fabrics.entity");
+const productSizeCategory_entity_1 = require("../Entities/productSizeCategory.entity");
 dotenv.config();
 let GlobalModule = exports.GlobalModule = class GlobalModule {
 };
@@ -60,6 +61,7 @@ exports.GlobalModule = GlobalModule = __decorate([
                 paymentInfo_entity_1.PaymentInfo,
                 paymentMethod_entity_1.PaymentMethodEntity,
                 product_pictures_entity_1.ProductPictureEntity,
+                productSizeCategory_entity_1.ProductSizeCategoryEntity,
                 product_entity_1.ProductEntity,
                 partner_entity_1.PartnerEntity,
                 size_entity_1.SizeEntity,

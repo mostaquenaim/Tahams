@@ -56,7 +56,7 @@ export declare class AdminController {
     deleteSizeById(id: number): Promise<import("typeorm").DeleteResult>;
     createNewSize(myDto: any): Promise<import("../../Global/Entities/size.entity").SizeEntity[]>;
     createNewFabric(myDto: any): Promise<import("../../Global/Entities/fabrics.entity").FabricEntity[]>;
-    addProductFunc(mydata: any, imageobj: Express.Multer.File): Promise<import("../../Global/Entities/product.entity").ProductEntity[]>;
+    addProductFunc(mydata: any, imageobj: Express.Multer.File): Promise<any>;
     addProductPictures(files: any, mydata: any): Promise<boolean>;
     updateAdmin(myDto: AdminForm, file: Express.Multer.File): Promise<"Admin not found" | "Admin updated" | "Update failed">;
     createNewWish(myDto: any): Promise<import("../../Global/Entities/wish.entity").WishEntity[]>;

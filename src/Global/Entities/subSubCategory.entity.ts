@@ -3,6 +3,7 @@ import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, ManyToOne, OneToMan
 import { ProductEntity } from './product.entity';
 import { CategoryEntity } from './category.entity';
 import { SubCategoryEntity } from './subCategory.entity';
+import { ProductSizeCategoryEntity } from './productSizeCategory.entity';
 
 @Entity('sub-sub-category')
 export class SubSubCategoryEntity {
@@ -16,10 +17,12 @@ export class SubSubCategoryEntity {
     @Column({ nullable: true })
     filename: string;
 
-    @ManyToMany(() => ProductEntity, (product) => product.subCategories)
-    products: ProductEntity[]
+    // @ManyToMany(() => ProductEntity, (product) => product.subCategories)
+    // products: ProductEntity[]
 
     @ManyToOne(() => SubCategoryEntity, (category) => category.subSubs)
     category: SubCategoryEntity
 
+    @OneToMany(() => ProductSizeCategoryEntity, (psc) => psc.category)
+    pscs: ProductSizeCategoryEntity[]
 }

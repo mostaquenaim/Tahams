@@ -27,6 +27,7 @@ import { ColorSizeEntity } from 'src/Global/Entities/color-size-combined.entity'
 import { PaymentInfo } from 'src/Global/Entities/paymentInfo.entity';
 import { MoreThan } from 'typeorm';
 import { FabricEntity } from 'src/Global/Entities/fabrics.entity';
+import { ProductSizeCategoryEntity } from 'src/Global/Entities/productSizeCategory.entity';
 
 @Injectable()
 export class AdminService {
@@ -41,6 +42,9 @@ export class AdminService {
 
     @InjectRepository(ProductEntity)
     private productRepo: Repository<ProductEntity>,
+
+    @InjectRepository(ProductSizeCategoryEntity)
+    private productSizeCategoryRepo: Repository<ProductSizeCategoryEntity>,
 
     @InjectRepository(ProductPictureEntity)
     private productPicRepo: Repository<ProductPictureEntity>,
@@ -170,9 +174,9 @@ export class AdminService {
   // delete a cart item  
   async deleteCartItem(id: string) {
     const myData = await this.cartRepo.findOneBy({ uniqueId: id });
-    console.log(myData,"169");
+    console.log(myData, "169");
     if (myData) {
-      console.log(myData,"171");
+      console.log(myData, "171");
       return this.cartRepo.delete(myData.id);
     }
     throw new NotFoundException(`Banner with ID ${id} not found.`);;
@@ -183,7 +187,7 @@ export class AdminService {
     try {
       // Find all carts with unique IDs in the provided array
       // const cartsToDelete = await this.cartRepo.find({ where: { uniqueId: In(cartArray) }});
-      const deletionResult = await this.cartRepo.delete({ id: In(cartArray)})
+      const deletionResult = await this.cartRepo.delete({ id: In(cartArray) })
       return deletionResult;
 
       // if (cartsToDelete.length > 0) {
@@ -406,7 +410,7 @@ export class AdminService {
 
   // get customer by id 
   async getCustomerById(id) {
-    return await this.customerRepo.findOneBy({ uniqueId:id });
+    return await this.customerRepo.findOneBy({ uniqueId: id });
   }
 
   // get customer by email 
@@ -615,7 +619,7 @@ export class AdminService {
         where: { email: myDto.email },
       });
 
-      console.log(existingCustomer,"583");
+      console.log(existingCustomer, "583");
       if (!existingCustomer) {
         console.log("innnn");
         const newCustomer = this.createCustomer(myDto);
@@ -678,22 +682,22 @@ export class AdminService {
   // get all wishlist of a customer 
   getWishByUser(userId: string) {
     return this.wishRepo.find({
-        where: { customer: { uniqueId: userId } },
-        relations: ['product', 'customer'],
+      where: { customer: { uniqueId: userId } },
+      relations: ['product', 'customer'],
     });
   }
 
   // create new product 
   async createNewProduct(myDto) {
     // Convert myDto.subCategories to an array if it's a string
-    const subCategoriesArray = typeof myDto.subCategories === 'string' ? myDto.subCategories.split(',').map(Number) : myDto.subCategories;
+    // const subCategoriesArray = typeof myDto.subCategories === 'string' ? myDto.subCategories.split(',').map(Number) : myDto.subCategories;
 
-    const subs = await this.viewAllProductSubSubCategories();
+    // const subs = await this.viewAllProductSubSubCategories();
 
     // Filter the subs array to include only elements whose id is in subCategoriesArray
-    const categories = subs.filter(cat => subCategoriesArray.includes(cat.id));
+    // const categories = subs.filter(cat => subCategoriesArray.includes(cat.id));
 
-    myDto.subCategories = [...categories];
+    // myDto.subCategories = [...categories];
 
     const selectedColor = await this.getColorByName(myDto.color)
 
@@ -703,13 +707,81 @@ export class AdminService {
       ...myDto
     });
 
+    // console.log(newProduct,"7`0");
+
     const savedProduct = await this.productRepo.save(newProduct);
-    return savedProduct;
+
+    // console.log(savedProduct,"714");
+
+    return await this.createProductExtension(savedProduct, myDto.catsInfo);
+  }
+
+  async createProductExtension(product, catsInfo) {
+
+    // console.log(catsInfo, "723");
+
+    const catsInfoArray = JSON.parse(catsInfo)
+    console.log(catsInfoArray, "695");
+
+    const processedCatsInfo = [];
+    let previousCategory = null;
+
+    catsInfoArray.forEach(item => {
+      if (!Array.isArray(item)) {
+        previousCategory = { categoryId: item, sizes: [] };
+        processedCatsInfo.push(previousCategory);
+      } else {
+        const size = { sizeId: item[0], quantity: item[1] };
+        previousCategory.sizes.push(size);
+      }
+    });
+
+    // console.log(JSON.stringify(processedCatsInfo, null, 2));
+
+    processedCatsInfo.forEach(async item => {
+      const catInfoItem = new ProductSizeCategoryEntity();
+
+      catInfoItem.product = product;
+      catInfoItem.category = await this.subSubCategoryRepo.findOne({ where: { id: item.categoryId } });
+
+      if (item.sizes.length <= 0) {
+        await this.productSizeCategoryRepo.save(catInfoItem);
+      }
+      else {
+        item.sizes.forEach(async sizeItem => {
+          const sizeObject = await this.getSizeById(sizeItem.sizeId)
+          catInfoItem.size = sizeObject
+          catInfoItem.quantity = sizeItem.quantity
+          await this.productSizeCategoryRepo.save(catInfoItem);
+        });
+      }
+    })
+
+    // Create ProductSizeCategoryEntity objects
+    // for (const catInfo of processedCatsInfo) {
+    //   const category = await this.subSubCategoryRepo.findOne({ where: { id: catInfo.categoryId } });
+    //   for (const sizeInfo of catInfo.sizes) {
+    //     const size = await this.sizeRepo.findOne({ where: { id: sizeInfo.sizeId } });
+    //     const productSizeCategory = this.productSizeCategoryRepo.create({
+    //       product: savedProduct,
+    //       cat: category,
+    //       size: size,
+    //       quantity: sizeInfo.quantity
+    //     });
+    //     await this.productSizeCategoryRepo.save(productSizeCategory);
+    //   }
+    // }
+
+
+
+
+    return product
+
   }
 
   // add product photos 
   async addProductPictures(myDto: any) {
-    console.log(myDto, "666");
+    // console.log(myDto, "666");
     // Retrieve the latest added product based on the ID field
     const latestProduct = await this.productRepo.findOne({
       where: { id: MoreThan(1) },
@@ -717,7 +789,7 @@ export class AdminService {
     });
 
 
-    console.log(latestProduct);
+    console.log(latestProduct, "771");
 
     if (!latestProduct) {
       throw new Error('No product found');
@@ -725,7 +797,7 @@ export class AdminService {
 
     // Update the product entity with the newly added pictures
     const filenames: string[] = myDto.filenames;
-    console.log(filenames, "676");
+    // console.log(filenames, "676");
     // latestProduct.productPictures = filenames.map(filename => {
     filenames.forEach(async filename => {
       const productPicture = new ProductPictureEntity();
@@ -737,8 +809,6 @@ export class AdminService {
 
     return true
   }
-
-
 
   // create new color object 
   // async createNewColorObject(product, colorsData) {

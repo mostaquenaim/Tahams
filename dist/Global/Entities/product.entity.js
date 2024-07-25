@@ -14,8 +14,8 @@ const typeorm_1 = require("typeorm");
 const colors_entity_1 = require("./colors.entity");
 const cart_entity_1 = require("./cart.entity");
 const wish_entity_1 = require("./wish.entity");
-const subSubCategory_entity_1 = require("./subSubCategory.entity");
 const product_pictures_entity_1 = require("./product-pictures.entity");
+const productSizeCategory_entity_1 = require("./productSizeCategory.entity");
 let ProductEntity = exports.ProductEntity = class ProductEntity {
 };
 __decorate([
@@ -75,11 +75,6 @@ __decorate([
     __metadata("design:type", String)
 ], ProductEntity.prototype, "filename", void 0);
 __decorate([
-    (0, typeorm_1.ManyToMany)(() => subSubCategory_entity_1.SubSubCategoryEntity, (subCategory) => subCategory.products),
-    (0, typeorm_1.JoinTable)(),
-    __metadata("design:type", Array)
-], ProductEntity.prototype, "subCategories", void 0);
-__decorate([
     (0, typeorm_1.ManyToOne)(() => colors_entity_1.ColorEntity, (color) => color.products),
     __metadata("design:type", colors_entity_1.ColorEntity)
 ], ProductEntity.prototype, "color", void 0);
@@ -87,6 +82,10 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => product_pictures_entity_1.ProductPictureEntity, (productPicture) => productPicture.product),
     __metadata("design:type", Array)
 ], ProductEntity.prototype, "productPictures", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => productSizeCategory_entity_1.ProductSizeCategoryEntity, (psc) => psc.product),
+    __metadata("design:type", Array)
+], ProductEntity.prototype, "pscs", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => cart_entity_1.CartsEntity, (cart) => cart.product),
     __metadata("design:type", Array)

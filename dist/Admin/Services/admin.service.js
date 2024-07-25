@@ -40,12 +40,14 @@ const color_size_combined_entity_1 = require("../../Global/Entities/color-size-c
 const paymentInfo_entity_1 = require("../../Global/Entities/paymentInfo.entity");
 const typeorm_4 = require("typeorm");
 const fabrics_entity_1 = require("../../Global/Entities/fabrics.entity");
+const productSizeCategory_entity_1 = require("../../Global/Entities/productSizeCategory.entity");
 let AdminService = exports.AdminService = class AdminService {
-    constructor(adminRepo, mailerService, customerRepo, productRepo, productPicRepo, bannerRepo, paymentInfoRepo, categoryRepo, couponRepo, colorRepo, subCategoryRepo, subSubCategoryRepo, sizeRepo, wishRepo, cartRepo, buyingHistoryRepo, deliveryStatusRepo, paymentMethodRepo, fabricRepo, colorSizeRepo) {
+    constructor(adminRepo, mailerService, customerRepo, productRepo, productSizeCategoryRepo, productPicRepo, bannerRepo, paymentInfoRepo, categoryRepo, couponRepo, colorRepo, subCategoryRepo, subSubCategoryRepo, sizeRepo, wishRepo, cartRepo, buyingHistoryRepo, deliveryStatusRepo, paymentMethodRepo, fabricRepo, colorSizeRepo) {
         this.adminRepo = adminRepo;
         this.mailerService = mailerService;
         this.customerRepo = customerRepo;
         this.productRepo = productRepo;
+        this.productSizeCategoryRepo = productSizeCategoryRepo;
         this.productPicRepo = productPicRepo;
         this.bannerRepo = bannerRepo;
         this.paymentInfoRepo = paymentInfoRepo;
@@ -477,30 +479,57 @@ let AdminService = exports.AdminService = class AdminService {
         });
     }
     async createNewProduct(myDto) {
-        const subCategoriesArray = typeof myDto.subCategories === 'string' ? myDto.subCategories.split(',').map(Number) : myDto.subCategories;
-        const subs = await this.viewAllProductSubSubCategories();
-        const categories = subs.filter(cat => subCategoriesArray.includes(cat.id));
-        myDto.subCategories = [...categories];
         const selectedColor = await this.getColorByName(myDto.color);
         myDto.color = selectedColor;
         const newProduct = this.productRepo.create({
             ...myDto
         });
         const savedProduct = await this.productRepo.save(newProduct);
-        return savedProduct;
+        return await this.createProductExtension(savedProduct, myDto.catsInfo);
+    }
+    async createProductExtension(product, catsInfo) {
+        const catsInfoArray = JSON.parse(catsInfo);
+        console.log(catsInfoArray, "695");
+        const processedCatsInfo = [];
+        let previousCategory = null;
+        catsInfoArray.forEach(item => {
+            if (!Array.isArray(item)) {
+                previousCategory = { categoryId: item, sizes: [] };
+                processedCatsInfo.push(previousCategory);
+            }
+            else {
+                const size = { sizeId: item[0], quantity: item[1] };
+                previousCategory.sizes.push(size);
+            }
+        });
+        processedCatsInfo.forEach(async (item) => {
+            const catInfoItem = new productSizeCategory_entity_1.ProductSizeCategoryEntity();
+            catInfoItem.product = product;
+            catInfoItem.category = await this.subSubCategoryRepo.findOne({ where: { id: item.categoryId } });
+            if (item.sizes.length <= 0) {
+                await this.productSizeCategoryRepo.save(catInfoItem);
+            }
+            else {
+                item.sizes.forEach(async (sizeItem) => {
+                    const sizeObject = await this.getSizeById(sizeItem.sizeId);
+                    catInfoItem.size = sizeObject;
+                    catInfoItem.quantity = sizeItem.quantity;
+                    await this.productSizeCategoryRepo.save(catInfoItem);
+                });
+            }
+        });
+        return product;
     }
     async addProductPictures(myDto) {
-        console.log(myDto, "666");
         const latestProduct = await this.productRepo.findOne({
             where: { id: (0, typeorm_4.MoreThan)(1) },
             order: { id: 'DESC' },
         });
-        console.log(latestProduct);
+        console.log(latestProduct, "771");
         if (!latestProduct) {
             throw new Error('No product found');
         }
         const filenames = myDto.filenames;
-        console.log(filenames, "676");
         filenames.forEach(async (filename) => {
             const productPicture = new product_pictures_entity_1.ProductPictureEntity();
             productPicture.filename = filename;
@@ -543,24 +572,26 @@ exports.AdminService = AdminService = __decorate([
     __param(0, (0, typeorm_1.InjectRepository)(admin_entity_1.AdminEntity)),
     __param(2, (0, typeorm_1.InjectRepository)(customer_entity_1.CustomerEntity)),
     __param(3, (0, typeorm_1.InjectRepository)(product_entity_1.ProductEntity)),
-    __param(4, (0, typeorm_1.InjectRepository)(product_pictures_entity_1.ProductPictureEntity)),
-    __param(5, (0, typeorm_1.InjectRepository)(banner_entity_1.BannerEntity)),
-    __param(6, (0, typeorm_1.InjectRepository)(paymentInfo_entity_1.PaymentInfo)),
-    __param(7, (0, typeorm_1.InjectRepository)(category_entity_1.CategoryEntity)),
-    __param(8, (0, typeorm_1.InjectRepository)(coupon_entity_1.CouponEntity)),
-    __param(9, (0, typeorm_1.InjectRepository)(colors_entity_1.ColorEntity)),
-    __param(10, (0, typeorm_1.InjectRepository)(subCategory_entity_1.SubCategoryEntity)),
-    __param(11, (0, typeorm_1.InjectRepository)(subSubCategory_entity_1.SubSubCategoryEntity)),
-    __param(12, (0, typeorm_1.InjectRepository)(size_entity_1.SizeEntity)),
-    __param(13, (0, typeorm_1.InjectRepository)(wish_entity_1.WishEntity)),
-    __param(14, (0, typeorm_1.InjectRepository)(cart_entity_1.CartsEntity)),
-    __param(15, (0, typeorm_1.InjectRepository)(buyingHistory_entity_1.BuyingHistoryEntity)),
-    __param(16, (0, typeorm_1.InjectRepository)(deliveryStatus_entity_1.DeliveryStatusEntity)),
-    __param(17, (0, typeorm_1.InjectRepository)(paymentMethod_entity_1.PaymentMethodEntity)),
-    __param(18, (0, typeorm_1.InjectRepository)(fabrics_entity_1.FabricEntity)),
-    __param(19, (0, typeorm_1.InjectRepository)(color_size_combined_entity_1.ColorSizeEntity)),
+    __param(4, (0, typeorm_1.InjectRepository)(productSizeCategory_entity_1.ProductSizeCategoryEntity)),
+    __param(5, (0, typeorm_1.InjectRepository)(product_pictures_entity_1.ProductPictureEntity)),
+    __param(6, (0, typeorm_1.InjectRepository)(banner_entity_1.BannerEntity)),
+    __param(7, (0, typeorm_1.InjectRepository)(paymentInfo_entity_1.PaymentInfo)),
+    __param(8, (0, typeorm_1.InjectRepository)(category_entity_1.CategoryEntity)),
+    __param(9, (0, typeorm_1.InjectRepository)(coupon_entity_1.CouponEntity)),
+    __param(10, (0, typeorm_1.InjectRepository)(colors_entity_1.ColorEntity)),
+    __param(11, (0, typeorm_1.InjectRepository)(subCategory_entity_1.SubCategoryEntity)),
+    __param(12, (0, typeorm_1.InjectRepository)(subSubCategory_entity_1.SubSubCategoryEntity)),
+    __param(13, (0, typeorm_1.InjectRepository)(size_entity_1.SizeEntity)),
+    __param(14, (0, typeorm_1.InjectRepository)(wish_entity_1.WishEntity)),
+    __param(15, (0, typeorm_1.InjectRepository)(cart_entity_1.CartsEntity)),
+    __param(16, (0, typeorm_1.InjectRepository)(buyingHistory_entity_1.BuyingHistoryEntity)),
+    __param(17, (0, typeorm_1.InjectRepository)(deliveryStatus_entity_1.DeliveryStatusEntity)),
+    __param(18, (0, typeorm_1.InjectRepository)(paymentMethod_entity_1.PaymentMethodEntity)),
+    __param(19, (0, typeorm_1.InjectRepository)(fabrics_entity_1.FabricEntity)),
+    __param(20, (0, typeorm_1.InjectRepository)(color_size_combined_entity_1.ColorSizeEntity)),
     __metadata("design:paramtypes", [typeorm_3.Repository,
         dist_1.MailerService,
+        typeorm_3.Repository,
         typeorm_3.Repository,
         typeorm_3.Repository,
         typeorm_3.Repository,

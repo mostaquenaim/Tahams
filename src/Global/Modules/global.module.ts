@@ -21,6 +21,7 @@ import { ColorSizeEntity } from "../Entities/color-size-combined.entity";
 import { PaymentInfo } from "../Entities/paymentInfo.entity";
 import * as dotenv from 'dotenv';
 import { FabricEntity } from '../Entities/fabrics.entity';
+import { ProductSizeCategoryEntity } from '../Entities/productSizeCategory.entity';
 // Load environment variables
 dotenv.config();
 
@@ -51,6 +52,7 @@ dotenv.config();
             PaymentInfo,
             PaymentMethodEntity,
             ProductPictureEntity,
+            ProductSizeCategoryEntity,
             ProductEntity,
             PartnerEntity,
             SizeEntity,

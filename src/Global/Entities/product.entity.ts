@@ -5,6 +5,7 @@ import { CartsEntity } from './cart.entity';
 import { WishEntity } from './wish.entity';
 import { SubSubCategoryEntity } from './subSubCategory.entity';
 import { ProductPictureEntity } from './product-pictures.entity';
+import { ProductSizeCategoryEntity } from './productSizeCategory.entity';
 // import { CouponEntity } from './coupon.entity';
 
 @Entity('product')
@@ -52,9 +53,9 @@ export class ProductEntity {
     @Column({nullable:true})
     filename: string
 
-    @ManyToMany(() => SubSubCategoryEntity, (subCategory) => subCategory.products)
-    @JoinTable()
-    subCategories: SubSubCategoryEntity[]
+    // @ManyToMany(() => SubSubCategoryEntity, (subCategory) => subCategory.products)
+    // @JoinTable()
+    // subCategories: SubSubCategoryEntity[]
 
     // @OneToMany(() => ColorEntity, (color) => color.product)
     // colors: ColorEntity[]
@@ -64,6 +65,9 @@ export class ProductEntity {
 
     @OneToMany(() => ProductPictureEntity, (productPicture) => productPicture.product)
     productPictures: ProductPictureEntity[]
+
+    @OneToMany(() => ProductSizeCategoryEntity, (psc) => psc.product)
+    pscs: ProductSizeCategoryEntity[]
 
     @OneToMany(() => CartsEntity, (cart) => cart.product)
     carts: CartsEntity[]

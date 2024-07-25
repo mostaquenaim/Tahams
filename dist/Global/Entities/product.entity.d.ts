@@ -1,8 +1,8 @@
 import { ColorEntity } from './colors.entity';
 import { CartsEntity } from './cart.entity';
 import { WishEntity } from './wish.entity';
-import { SubSubCategoryEntity } from './subSubCategory.entity';
 import { ProductPictureEntity } from './product-pictures.entity';
+import { ProductSizeCategoryEntity } from './productSizeCategory.entity';
 export declare class ProductEntity {
     id: number;
     name: string;
@@ -18,9 +18,9 @@ export declare class ProductEntity {
     longDescription: string;
     ifStock: boolean;
     filename: string;
-    subCategories: SubSubCategoryEntity[];
     color: ColorEntity;
     productPictures: ProductPictureEntity[];
+    pscs: ProductSizeCategoryEntity[];
     carts: CartsEntity[];
     wishes: WishEntity[];
 }
