@@ -9,9 +9,8 @@ export class FabricEntity {
     id: number;
 
     @Column()
-    fabricName: string;
+    name: string;
 
-    @OneToMany(() => ProductEntity, (product) => product.color)
+    @OneToMany(() => ProductEntity, (product) => product.fabric)
     products: ProductEntity[]
-
 }

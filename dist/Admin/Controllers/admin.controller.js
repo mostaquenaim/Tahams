@@ -100,6 +100,10 @@ let AdminController = exports.AdminController = class AdminController {
         const result = await this.adminService.viewColors();
         return result;
     }
+    async viewFabrics() {
+        const result = await this.adminService.viewFabrics();
+        return result;
+    }
     async viewAllProductSubCategories() {
         const result = await this.adminService.viewAllProductSubCategories();
         return result;
@@ -117,7 +121,7 @@ let AdminController = exports.AdminController = class AdminController {
         return this.adminService.getProductFtImage(id);
     }
     getCategoryById(id) {
-        return this.adminService.getCategoryById(id);
+        return this.adminService.getCategoryByName(id);
     }
     getProductByCat(name) {
         console.log(name);
@@ -135,6 +139,9 @@ let AdminController = exports.AdminController = class AdminController {
     }
     createNewSubCategory(myDto) {
         return this.adminService.createNewSubCategory(myDto);
+    }
+    createNewSubSubCategory(myDto) {
+        return this.adminService.createNewSubSubCategory(myDto);
     }
     changeCategoryImage(id, file) {
         return this.adminService.changeCategoryImage(id, file.filename);
@@ -395,6 +402,12 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "viewColors", null);
 __decorate([
+    (0, common_1.Get)('view-fabrics'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "viewFabrics", null);
+__decorate([
     (0, common_1.Get)('view-product-sub-categories'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
@@ -470,13 +483,21 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "createNewCategory", null);
 __decorate([
-    (0, common_1.Post)('addSubCategory'),
+    (0, common_1.Post)('add-subCategory'),
     (0, common_1.UsePipes)(common_1.ValidationPipe),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "createNewSubCategory", null);
+__decorate([
+    (0, common_1.Post)('add-sub-subCategory'),
+    (0, common_1.UsePipes)(common_1.ValidationPipe),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "createNewSubSubCategory", null);
 __decorate([
     (0, common_1.Post)(('changeCategoryImage/:id')),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('filename', {

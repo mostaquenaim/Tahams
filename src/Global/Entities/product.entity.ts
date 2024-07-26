@@ -6,6 +6,7 @@ import { WishEntity } from './wish.entity';
 import { SubSubCategoryEntity } from './subSubCategory.entity';
 import { ProductPictureEntity } from './product-pictures.entity';
 import { ProductSizeCategoryEntity } from './productSizeCategory.entity';
+import { FabricEntity } from './fabrics.entity';
 // import { CouponEntity } from './coupon.entity';
 
 @Entity('product')
@@ -53,6 +54,9 @@ export class ProductEntity {
     @Column({nullable:true})
     filename: string
 
+    @Column({default:false})
+    publishable: boolean
+
     // @ManyToMany(() => SubSubCategoryEntity, (subCategory) => subCategory.products)
     // @JoinTable()
     // subCategories: SubSubCategoryEntity[]
@@ -62,6 +66,9 @@ export class ProductEntity {
 
     @ManyToOne(() => ColorEntity, (color) => color.products)
     color: ColorEntity
+
+    @ManyToOne(() => FabricEntity, (fabric) => fabric.products)
+    fabric: FabricEntity
 
     @OneToMany(() => ProductPictureEntity, (productPicture) => productPicture.product)
     productPictures: ProductPictureEntity[]

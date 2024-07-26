@@ -54,7 +54,6 @@ export declare class AdminService {
     deleteBanner(id: number): Promise<import("typeorm").DeleteResult>;
     deleteCartItem(id: string): Promise<import("typeorm").DeleteResult>;
     deleteCarts(cartArray: string[]): Promise<import("typeorm").DeleteResult>;
-    addNewProduct(myDto: any): Promise<ProductEntity[]>;
     viewAllProduct(): Promise<ProductEntity[]>;
     getAllBuyingHistories(email: any): Promise<unknown[]>;
     getAllCoupons(): Promise<CouponEntity[]>;
@@ -65,13 +64,15 @@ export declare class AdminService {
     getAllCarts(email: any): Promise<CartsEntity[]>;
     viewAllBanners(): Promise<BannerEntity[]>;
     viewColors(): Promise<ColorEntity[]>;
+    viewFabrics(): Promise<FabricEntity[]>;
     viewProductCategories(): Promise<CategoryEntity[]>;
     viewAllProductSubSubCategories(): Promise<SubSubCategoryEntity[]>;
     viewAllProductSubCategories(): Promise<SubCategoryEntity[]>;
     viewProductSubCategories(id: number): Promise<SubCategoryEntity[]>;
     viewProductSubSubCategories(id: number): Promise<SubSubCategoryEntity[]>;
     viewProductSizes(): Promise<SizeEntity[]>;
-    getCategoryById(id: any): Promise<CategoryEntity>;
+    getCategoryByName(name: any): Promise<CategoryEntity>;
+    getSubCategoryById(id: any): Promise<SubCategoryEntity>;
     getSubSubCategoryById(id: any): Promise<SubSubCategoryEntity>;
     getProductFtImage(productId: any): Promise<ProductPictureEntity>;
     getBannerById(id: any): Promise<BannerEntity>;
@@ -97,6 +98,7 @@ export declare class AdminService {
     createNewCoupon(myDto: any): Promise<CouponEntity[]>;
     createNewColor(myDto: any): Promise<ColorEntity[]>;
     createNewSubCategory(myDto: any): Promise<SubCategoryEntity[]>;
+    createNewSubSubCategory(myDto: any): Promise<SubSubCategoryEntity[]>;
     createNewSize(myDto: any): Promise<SizeEntity[]>;
     createNewFabric(myDto: any): Promise<FabricEntity[]>;
     createNewBuy(myDto: any): Promise<BuyingHistoryEntity[]>;

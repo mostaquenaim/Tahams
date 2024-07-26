@@ -22,7 +22,7 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
-], SubSubCategoryEntity.prototype, "categoryName", void 0);
+], SubSubCategoryEntity.prototype, "name", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)

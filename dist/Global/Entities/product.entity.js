@@ -16,6 +16,7 @@ const cart_entity_1 = require("./cart.entity");
 const wish_entity_1 = require("./wish.entity");
 const product_pictures_entity_1 = require("./product-pictures.entity");
 const productSizeCategory_entity_1 = require("./productSizeCategory.entity");
+const fabrics_entity_1 = require("./fabrics.entity");
 let ProductEntity = exports.ProductEntity = class ProductEntity {
 };
 __decorate([
@@ -75,9 +76,17 @@ __decorate([
     __metadata("design:type", String)
 ], ProductEntity.prototype, "filename", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ default: false }),
+    __metadata("design:type", Boolean)
+], ProductEntity.prototype, "publishable", void 0);
+__decorate([
     (0, typeorm_1.ManyToOne)(() => colors_entity_1.ColorEntity, (color) => color.products),
     __metadata("design:type", colors_entity_1.ColorEntity)
 ], ProductEntity.prototype, "color", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => fabrics_entity_1.FabricEntity, (fabric) => fabric.products),
+    __metadata("design:type", fabrics_entity_1.FabricEntity)
+], ProductEntity.prototype, "fabric", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => product_pictures_entity_1.ProductPictureEntity, (productPicture) => productPicture.product),
     __metadata("design:type", Array)

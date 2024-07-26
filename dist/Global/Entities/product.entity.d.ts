@@ -3,6 +3,7 @@ import { CartsEntity } from './cart.entity';
 import { WishEntity } from './wish.entity';
 import { ProductPictureEntity } from './product-pictures.entity';
 import { ProductSizeCategoryEntity } from './productSizeCategory.entity';
+import { FabricEntity } from './fabrics.entity';
 export declare class ProductEntity {
     id: number;
     name: string;
@@ -18,7 +19,9 @@ export declare class ProductEntity {
     longDescription: string;
     ifStock: boolean;
     filename: string;
+    publishable: boolean;
     color: ColorEntity;
+    fabric: FabricEntity;
     productPictures: ProductPictureEntity[];
     pscs: ProductSizeCategoryEntity[];
     carts: CartsEntity[];

@@ -21,9 +21,9 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
-], FabricEntity.prototype, "fabricName", void 0);
+], FabricEntity.prototype, "name", void 0);
 __decorate([
-    (0, typeorm_1.OneToMany)(() => product_entity_1.ProductEntity, (product) => product.color),
+    (0, typeorm_1.OneToMany)(() => product_entity_1.ProductEntity, (product) => product.fabric),
     __metadata("design:type", Array)
 ], FabricEntity.prototype, "products", void 0);
 exports.FabricEntity = FabricEntity = __decorate([

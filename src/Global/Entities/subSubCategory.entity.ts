@@ -12,13 +12,10 @@ export class SubSubCategoryEntity {
     id: number;
 
     @Column()
-    categoryName: string;
+    name: string;
 
     @Column({ nullable: true })
     filename: string;
-
-    // @ManyToMany(() => ProductEntity, (product) => product.subCategories)
-    // products: ProductEntity[]
 
     @ManyToOne(() => SubCategoryEntity, (category) => category.subSubs)
     category: SubCategoryEntity

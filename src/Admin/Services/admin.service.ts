@@ -202,18 +202,6 @@ export class AdminService {
     }
   }
 
-  // add new product 
-  async addNewProduct(myDto) {
-    const newCategory = await this.getCategoryById(myDto.categoryId)
-
-    const newProduct = this.productRepo.create({
-      ...myDto,
-      category: newCategory
-    });
-
-    return this.productRepo.save(newProduct);
-  }
-
   // view all product 
   async viewAllProduct() {
     const options: FindManyOptions<ProductEntity> = {};
@@ -301,11 +289,18 @@ export class AdminService {
     return banners;
   }
 
-  // view all product 
+  // view all colors 
   async viewColors() {
     const options: FindManyOptions<ColorEntity> = {};
     const colors = await this.colorRepo.find(options);
     return colors;
+  }
+
+  // view all fabrics 
+  async viewFabrics() {
+    const options: FindManyOptions<FabricEntity> = {};
+    const fabrics = await this.fabricRepo.find(options);
+    return fabrics;
   }
 
   // view product category 
@@ -326,8 +321,9 @@ export class AdminService {
 
   // view product sub category 
   async viewAllProductSubCategories() {
-    const options: FindManyOptions<SubCategoryEntity> = {};
-    const subCategories = await this.subCategoryRepo.find(options);
+    const subCategories = await this.subCategoryRepo.find({
+      relations: ['category'],
+    });
     return subCategories;
   }
 
@@ -350,9 +346,14 @@ export class AdminService {
     return sizes;
   }
 
-  // get category by id 
-  async getCategoryById(id) {
-    return await this.categoryRepo.findOneBy({ id });
+  // get category by name 
+  async getCategoryByName(name) {
+    return await this.categoryRepo.findOneBy({ name: name });
+  }
+
+  // get sub category by name 
+  async getSubCategoryById(id) {
+    return await this.subCategoryRepo.findOneBy({ id: id });
   }
 
   // get sub cat by id 
@@ -484,7 +485,6 @@ export class AdminService {
     await this.bannerRepo.update(id, { ...bannerDto });
   }
 
-
   // update buying by id 
   async updateBuyingHistory(token, details, email) {
     const history = await this.buyingHistoryRepo.findOneBy({ trackingToken: token });
@@ -499,7 +499,6 @@ export class AdminService {
     const result = await this.buyingHistoryRepo.save(history);
     return result
   }
-
 
   // delete product by id 
   async deleteProductById(id: number) {
@@ -568,12 +567,25 @@ export class AdminService {
   async createNewSubCategory(
     myDto,
   ) {
-    const category = await this.getCategoryById(myDto.categoryId)
+    const category = await this.getCategoryByName(myDto.categoryName)
     myDto.category = category
     const newCategory = this.subCategoryRepo.create({
       ...myDto
     });
     return this.subCategoryRepo.save(newCategory);
+  }
+
+  // create new sub-sub-category 
+  async createNewSubSubCategory(
+    myDto,
+  ) {
+    const category = await this.getSubCategoryById(myDto.categoryId)
+    console.log(category,583);
+    myDto.category = category
+    const newCategory = this.subSubCategoryRepo.create({
+      ...myDto
+    });
+    return this.subSubCategoryRepo.save(newCategory);
   }
 
   // create new size 
@@ -689,16 +701,6 @@ export class AdminService {
 
   // create new product 
   async createNewProduct(myDto) {
-    // Convert myDto.subCategories to an array if it's a string
-    // const subCategoriesArray = typeof myDto.subCategories === 'string' ? myDto.subCategories.split(',').map(Number) : myDto.subCategories;
-
-    // const subs = await this.viewAllProductSubSubCategories();
-
-    // Filter the subs array to include only elements whose id is in subCategoriesArray
-    // const categories = subs.filter(cat => subCategoriesArray.includes(cat.id));
-
-    // myDto.subCategories = [...categories];
-
     const selectedColor = await this.getColorByName(myDto.color)
 
     myDto.color = selectedColor
@@ -707,21 +709,13 @@ export class AdminService {
       ...myDto
     });
 
-    // console.log(newProduct,"7`0");
-
     const savedProduct = await this.productRepo.save(newProduct);
-
-    // console.log(savedProduct,"714");
 
     return await this.createProductExtension(savedProduct, myDto.catsInfo);
   }
 
   async createProductExtension(product, catsInfo) {
-
-    // console.log(catsInfo, "723");
-
     const catsInfoArray = JSON.parse(catsInfo)
-    console.log(catsInfoArray, "695");
 
     const processedCatsInfo = [];
     let previousCategory = null;
@@ -735,8 +729,6 @@ export class AdminService {
         previousCategory.sizes.push(size);
       }
     });
-
-    // console.log(JSON.stringify(processedCatsInfo, null, 2));
 
     processedCatsInfo.forEach(async item => {
       const catInfoItem = new ProductSizeCategoryEntity();
@@ -757,26 +749,7 @@ export class AdminService {
       }
     })
 
-    // Create ProductSizeCategoryEntity objects
-    // for (const catInfo of processedCatsInfo) {
-    //   const category = await this.subSubCategoryRepo.findOne({ where: { id: catInfo.categoryId } });
-    //   for (const sizeInfo of catInfo.sizes) {
-    //     const size = await this.sizeRepo.findOne({ where: { id: sizeInfo.sizeId } });
-    //     const productSizeCategory = this.productSizeCategoryRepo.create({
-    //       product: savedProduct,
-    //       cat: category,
-    //       size: size,
-    //       quantity: sizeInfo.quantity
-    //     });
-    //     await this.productSizeCategoryRepo.save(productSizeCategory);
-    //   }
-    // }
-
-
-
-
     return product
-
   }
 
   // add product photos 
@@ -787,9 +760,6 @@ export class AdminService {
       where: { id: MoreThan(1) },
       order: { id: 'DESC' },
     });
-
-
-    console.log(latestProduct, "771");
 
     if (!latestProduct) {
       throw new Error('No product found');
@@ -809,40 +779,6 @@ export class AdminService {
 
     return true
   }
-
-  // create new color object 
-  // async createNewColorObject(product, colorsData) {
-
-  //   for (const colorData of colorsData) {
-  //     const color = this.colorRepo.create({
-  //       colorCode: colorData.colorCode,
-  //       name: colorData.name,
-  //       quantity: colorData?.quantity || 1,
-  //       product: product,
-  //     });
-
-  //     await this.colorRepo.save(color);
-  //     // this.createNewSizeObject(savedColor, colorData?.sizes)
-  //     // this.createNewFileObject(savedColor, colorData?.files)
-
-  //   }
-  //   return true;
-  // }
-
-  // create new size object 
-  // async createNewSizeObject(color, sizesData) {
-
-  //   for (const sizeData of sizesData) {
-  //     const createdSize = this.colorSizeRepo.create({
-  //       size: sizeData.name,
-  //       quantity: sizeData.quantity,
-  //       color: color,
-  //     });
-
-  //     await this.colorSizeRepo.save(createdSize);
-  //   }
-  //   return true
-  // }
 
   // create new color object 
   async createNewFileObject(product, filesData) {

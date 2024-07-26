@@ -9,7 +9,7 @@ export class CategoryEntity {
     id: number;
 
     @Column()
-    categoryName: string
+    name: string
     
     @Column({nullable:true})
     filename: string

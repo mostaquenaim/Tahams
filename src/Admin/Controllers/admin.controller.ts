@@ -243,10 +243,17 @@ export class AdminController {
     return result;
   }
 
-  // view all sub sub category
+  // view all colors
   @Get('view-colors')
   async viewColors() {
     const result = await this.adminService.viewColors();
+    return result;
+  }
+
+  // view all fabrics
+  @Get('view-fabrics')
+  async viewFabrics() {
+    const result = await this.adminService.viewFabrics();
     return result;
   }
 
@@ -295,7 +302,7 @@ export class AdminController {
   getCategoryById(
     @Param('id') id,
   ) {
-    return this.adminService.getCategoryById(id);
+    return this.adminService.getCategoryByName(id);
   }
 
   // get products by category id
@@ -337,14 +344,23 @@ export class AdminController {
     console.log(myDto,"337");
     return this.adminService.createNewCategory(myDto);
   }
-
+ 
   // add new sub-category 
-  @Post('addSubCategory')
+  @Post('add-subCategory')
   @UsePipes(ValidationPipe)
   createNewSubCategory(
     @Body() myDto,
   ) {
     return this.adminService.createNewSubCategory(myDto);
+  }
+ 
+  // add new sub-sub-category 
+  @Post('add-sub-subCategory')
+  @UsePipes(ValidationPipe)
+  createNewSubSubCategory(
+    @Body() myDto,
+  ) {
+    return this.adminService.createNewSubSubCategory(myDto);
   }
 
   // change category image 

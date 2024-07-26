@@ -141,14 +141,6 @@ let AdminService = exports.AdminService = class AdminService {
             throw new common_1.NotFoundException(`Error deleting carts: ${error.message}`);
         }
     }
-    async addNewProduct(myDto) {
-        const newCategory = await this.getCategoryById(myDto.categoryId);
-        const newProduct = this.productRepo.create({
-            ...myDto,
-            category: newCategory
-        });
-        return this.productRepo.save(newProduct);
-    }
     async viewAllProduct() {
         const options = {};
         const products = await this.productRepo.find(options);
@@ -219,6 +211,11 @@ let AdminService = exports.AdminService = class AdminService {
         const colors = await this.colorRepo.find(options);
         return colors;
     }
+    async viewFabrics() {
+        const options = {};
+        const fabrics = await this.fabricRepo.find(options);
+        return fabrics;
+    }
     async viewProductCategories() {
         const options = {};
         const categories = await this.categoryRepo.find(options);
@@ -231,8 +228,9 @@ let AdminService = exports.AdminService = class AdminService {
         return subCategories;
     }
     async viewAllProductSubCategories() {
-        const options = {};
-        const subCategories = await this.subCategoryRepo.find(options);
+        const subCategories = await this.subCategoryRepo.find({
+            relations: ['category'],
+        });
         return subCategories;
     }
     async viewProductSubCategories(id) {
@@ -248,8 +246,11 @@ let AdminService = exports.AdminService = class AdminService {
         const sizes = await this.sizeRepo.find(options);
         return sizes;
     }
-    async getCategoryById(id) {
-        return await this.categoryRepo.findOneBy({ id });
+    async getCategoryByName(name) {
+        return await this.categoryRepo.findOneBy({ name: name });
+    }
+    async getSubCategoryById(id) {
+        return await this.subCategoryRepo.findOneBy({ id: id });
     }
     async getSubSubCategoryById(id) {
         return await this.subSubCategoryRepo.findOneBy({ id });
@@ -390,12 +391,21 @@ let AdminService = exports.AdminService = class AdminService {
         return this.colorRepo.save(newColor);
     }
     async createNewSubCategory(myDto) {
-        const category = await this.getCategoryById(myDto.categoryId);
+        const category = await this.getCategoryByName(myDto.categoryName);
         myDto.category = category;
         const newCategory = this.subCategoryRepo.create({
             ...myDto
         });
         return this.subCategoryRepo.save(newCategory);
+    }
+    async createNewSubSubCategory(myDto) {
+        const category = await this.getSubCategoryById(myDto.categoryId);
+        console.log(category, 583);
+        myDto.category = category;
+        const newCategory = this.subSubCategoryRepo.create({
+            ...myDto
+        });
+        return this.subSubCategoryRepo.save(newCategory);
     }
     async createNewSize(myDto) {
         const newSize = this.sizeRepo.create({
@@ -489,7 +499,6 @@ let AdminService = exports.AdminService = class AdminService {
     }
     async createProductExtension(product, catsInfo) {
         const catsInfoArray = JSON.parse(catsInfo);
-        console.log(catsInfoArray, "695");
         const processedCatsInfo = [];
         let previousCategory = null;
         catsInfoArray.forEach(item => {
@@ -525,7 +534,6 @@ let AdminService = exports.AdminService = class AdminService {
             where: { id: (0, typeorm_4.MoreThan)(1) },
             order: { id: 'DESC' },
         });
-        console.log(latestProduct, "771");
         if (!latestProduct) {
             throw new Error('No product found');
         }

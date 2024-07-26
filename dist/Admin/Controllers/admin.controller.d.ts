@@ -26,6 +26,7 @@ export declare class AdminController {
     viewProductCategories(): Promise<import("../../Global/Entities/category.entity").CategoryEntity[]>;
     viewAllProductSubSubCategories(): Promise<import("../../Global/Entities/subSubCategory.entity").SubSubCategoryEntity[]>;
     viewColors(): Promise<import("../../Global/Entities/colors.entity").ColorEntity[]>;
+    viewFabrics(): Promise<import("../../Global/Entities/fabrics.entity").FabricEntity[]>;
     viewAllProductSubCategories(): Promise<import("../../Global/Entities/subCategory.entity").SubCategoryEntity[]>;
     viewProductSubCategories(id: number): Promise<import("../../Global/Entities/subCategory.entity").SubCategoryEntity[]>;
     viewProductSubSubCategories(catId: number): Promise<import("../../Global/Entities/subSubCategory.entity").SubSubCategoryEntity[]>;
@@ -37,6 +38,7 @@ export declare class AdminController {
     updateCategory(id: number, myDto: any): Promise<void>;
     createNewCategory(myDto: any): Promise<import("../../Global/Entities/category.entity").CategoryEntity[]>;
     createNewSubCategory(myDto: any): Promise<import("../../Global/Entities/subCategory.entity").SubCategoryEntity[]>;
+    createNewSubSubCategory(myDto: any): Promise<import("../../Global/Entities/subSubCategory.entity").SubSubCategoryEntity[]>;
     changeCategoryImage(id: any, file: Express.Multer.File): object;
     createNewCoupon(myDto: CouponForm): Promise<import("../../Global/Entities/coupon.entity").CouponEntity[]>;
     createNewColor(myDto: any): Promise<import("../../Global/Entities/colors.entity").ColorEntity[]>;
