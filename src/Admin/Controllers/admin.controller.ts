@@ -114,6 +114,15 @@ export class AdminController {
     await this.adminService.updateBanner(id, myDto);
   }
 
+  // publish product 
+  @Put('publish-product/:id')
+  async publishProduct(
+    @Param('id') id: number,
+    @Body('publishable') publishable: boolean,
+  ): Promise<void> {
+    return this.adminService.publishProduct(id, publishable);
+  }
+
   // change banner image 
   @Post(('changeBannerImage/:id'))
   @UseInterceptors(FileInterceptor('filename',
@@ -321,7 +330,7 @@ export class AdminController {
   getProductBySubSubCatId(
     @Param('id') id,
   ) {
-    return this.adminService.getProductBySubSubCatId(id);
+    return this.adminService.getPublishableProductsBySubSubCatId(id);
   }
 
   //update category by id

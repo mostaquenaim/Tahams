@@ -12,6 +12,7 @@ export declare class AdminController {
     viewBannerById(id: number): Promise<import("../../Global/Entities/banner.entity").BannerEntity>;
     deleteBanner(id: number): Promise<import("typeorm").DeleteResult>;
     updateBanner(id: number, myDto: any): Promise<void>;
+    publishProduct(id: number, publishable: boolean): Promise<void>;
     changeBannerImage(id: any, file: Express.Multer.File): object;
     createNewBuy(myDto: any): Promise<import("../../Global/Entities/buyingHistory.entity").BuyingHistoryEntity[]>;
     updateBuyingHistory(id: any, email: string, details: any): Promise<import("../../Global/Entities/buyingHistory.entity").BuyingHistoryEntity>;

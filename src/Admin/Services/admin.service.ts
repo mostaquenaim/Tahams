@@ -163,6 +163,19 @@ export class AdminService {
     }
   }
 
+  // publish product 
+  async publishProduct(id: number, publishable: boolean): Promise<void> {
+    const product = await this.productRepo.findOneBy({ id });
+
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${id} not found.`);
+    }
+
+    product.publishable = publishable;
+    await this.productRepo.save(product);
+  }
+
+
   // delete banner  
   async deleteBanner(id: number) {
     const myData = await this.bannerRepo.findOneBy({ id });
@@ -204,9 +217,22 @@ export class AdminService {
 
   // view all product 
   async viewAllProduct() {
-    const options: FindManyOptions<ProductEntity> = {};
-    const products = await this.productRepo.find(options);
-    return products;
+    try {
+      const products = await this.productRepo
+        .createQueryBuilder('product')
+        .leftJoinAndSelect('product.color', 'color')
+        .leftJoinAndSelect('product.fabric', 'fabric')
+        .leftJoinAndSelect('product.productPictures', 'productPicture')
+        .leftJoinAndSelect('product.pscs', 'psc')
+        .leftJoinAndSelect('psc.category', 'subSubCategory')
+        .leftJoinAndSelect('psc.size', 'size')
+        .getMany();
+
+      return products;
+    } catch (error) {
+      console.error('Error finding products:', error);
+      throw error;
+    }
   }
 
   // view all buying histories 
@@ -449,15 +475,31 @@ export class AdminService {
     // })
   }
 
+  async getPublishableProductsBySubSubCatId(subCategoryId) {
+    try {
+      const products = await this.getProductBySubSubCatId(subCategoryId);
+      const publishableProducts = products.filter(product => product.publishable);
+
+      console.log(products, 'break', publishableProducts);
+      return publishableProducts;
+    } catch (error) {
+      console.error('Error finding publishable products:', error);
+      throw error;
+    }
+  }
+
   // get Product by sub sub category id 
   async getProductBySubSubCatId(subCategoryId) {
     try {
       const products = await this.productRepo
         .createQueryBuilder('product')
-        .leftJoinAndSelect('product.subCategories', 'subCategory')
+        .leftJoinAndSelect('product.color', 'color')
+        .leftJoinAndSelect('product.fabric', 'fabric')
         .leftJoinAndSelect('product.productPictures', 'productPicture')
-        .leftJoinAndSelect('product.color', 'color') // Include color information
-        .where('subCategory.id = :subCategoryId', { subCategoryId })
+        .leftJoinAndSelect('product.pscs', 'psc')
+        .leftJoinAndSelect('psc.category', 'subSubCategory')
+        .leftJoinAndSelect('psc.size', 'size')
+        .where('subSubCategory.id = :subCategoryId', { subCategoryId })
         .getMany();
 
       return products;
@@ -580,7 +622,7 @@ export class AdminService {
     myDto,
   ) {
     const category = await this.getSubCategoryById(myDto.categoryId)
-    console.log(category,583);
+    console.log(category, 583);
     myDto.category = category
     const newCategory = this.subSubCategoryRepo.create({
       ...myDto
@@ -701,6 +743,7 @@ export class AdminService {
 
   // create new product 
   async createNewProduct(myDto) {
+    console.log(myDto, 720);
     const selectedColor = await this.getColorByName(myDto.color)
 
     myDto.color = selectedColor
@@ -741,13 +784,17 @@ export class AdminService {
       }
       else {
         item.sizes.forEach(async sizeItem => {
-          const sizeObject = await this.getSizeById(sizeItem.sizeId)
-          catInfoItem.size = sizeObject
+          if (sizeItem.sizeId) {
+            const sizeObject = await this.getSizeById(sizeItem.sizeId)
+            catInfoItem.size = sizeObject
+          }
           catInfoItem.quantity = sizeItem.quantity
           await this.productSizeCategoryRepo.save(catInfoItem);
         });
       }
     })
+
+    console.log(processedCatsInfo, 771);
 
     return product
   }

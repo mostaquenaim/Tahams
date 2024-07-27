@@ -80,6 +80,14 @@ __decorate([
     __metadata("design:type", Boolean)
 ], ProductEntity.prototype, "publishable", void 0);
 __decorate([
+    (0, typeorm_1.CreateDateColumn)({ type: 'timestamp' }),
+    __metadata("design:type", Date)
+], ProductEntity.prototype, "createdAt", void 0);
+__decorate([
+    (0, typeorm_1.UpdateDateColumn)({ type: 'timestamp' }),
+    __metadata("design:type", Date)
+], ProductEntity.prototype, "updateAt", void 0);
+__decorate([
     (0, typeorm_1.ManyToOne)(() => colors_entity_1.ColorEntity, (color) => color.products),
     __metadata("design:type", colors_entity_1.ColorEntity)
 ], ProductEntity.prototype, "color", void 0);

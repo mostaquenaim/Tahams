@@ -53,6 +53,9 @@ let AdminController = exports.AdminController = class AdminController {
     async updateBanner(id, myDto) {
         await this.adminService.updateBanner(id, myDto);
     }
+    async publishProduct(id, publishable) {
+        return this.adminService.publishProduct(id, publishable);
+    }
     changeBannerImage(id, file) {
         return this.adminService.changeBannerImage(id, file.filename);
     }
@@ -128,7 +131,7 @@ let AdminController = exports.AdminController = class AdminController {
         return this.adminService.getProductByCat(name);
     }
     getProductBySubSubCatId(id) {
-        return this.adminService.getProductBySubSubCatId(id);
+        return this.adminService.getPublishableProductsBySubSubCatId(id);
     }
     async updateCategory(id, myDto) {
         await this.adminService.updateCategory(id, myDto);
@@ -291,6 +294,14 @@ __decorate([
     __metadata("design:paramtypes", [Number, Object]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "updateBanner", null);
+__decorate([
+    (0, common_1.Put)('publish-product/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)('publishable')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Boolean]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "publishProduct", null);
 __decorate([
     (0, common_1.Post)(('changeBannerImage/:id')),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('filename', {

@@ -20,6 +20,8 @@ export declare class ProductEntity {
     ifStock: boolean;
     filename: string;
     publishable: boolean;
+    createdAt: Date;
+    updateAt: Date;
     color: ColorEntity;
     fabric: FabricEntity;
     productPictures: ProductPictureEntity[];

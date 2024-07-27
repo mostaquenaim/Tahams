@@ -23,9 +23,4 @@ export class ProductSizeCategoryEntity {
 
     @Column({default: 0})
     quantity: number
-
-    // @OneToMany(() => ProductPictureEntity, (productPicture) => productPicture.product)
-    // productPictures: ProductPictureEntity[]
-
-
 }

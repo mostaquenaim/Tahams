@@ -1,9 +1,18 @@
 /* eslint-disable prettier/prettier */
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany, ManyToMany, JoinTable, ManyToOne } from 'typeorm';
+import {
+    Entity,
+    Column,
+    PrimaryGeneratedColumn,
+    OneToMany,
+    ManyToMany,
+    JoinTable,
+    ManyToOne,
+    CreateDateColumn,
+    UpdateDateColumn
+} from 'typeorm';
 import { ColorEntity } from './colors.entity';
 import { CartsEntity } from './cart.entity';
 import { WishEntity } from './wish.entity';
-import { SubSubCategoryEntity } from './subSubCategory.entity';
 import { ProductPictureEntity } from './product-pictures.entity';
 import { ProductSizeCategoryEntity } from './productSizeCategory.entity';
 import { FabricEntity } from './fabrics.entity';
@@ -16,27 +25,27 @@ export class ProductEntity {
     id: number;
 
     @Column()
-    name: string 
+    name: string
 
     @Column()
     serialNo: string
 
-    @Column({nullable:true})
+    @Column({ nullable: true })
     note: string
 
-    @Column({nullable:true})
+    @Column({ nullable: true })
     purchaseDate: Date
 
-    @Column({default:0})
+    @Column({ default: 0 })
     vatPercentage: number
 
-    @Column({default:0})
+    @Column({ default: 0 })
     discountPercentage: number
 
-    @Column({default:0})
+    @Column({ default: 0 })
     buyingPrice: number
 
-    @Column({default:0})
+    @Column({ default: 0 })
     sellingPrice: number
 
     @Column({ nullable: true })
@@ -45,25 +54,29 @@ export class ProductEntity {
     @Column()
     description: string
 
-    @Column({nullable:true})
+    @Column({ nullable: true })
     longDescription: string
 
-    @Column({default:true})
+    @Column({ default: true })
     ifStock: boolean
 
-    @Column({nullable:true})
+    @Column({ nullable: true })
     filename: string
 
-    @Column({default:false})
+    @Column({ default: false })
     publishable: boolean
 
-    // @ManyToMany(() => SubSubCategoryEntity, (subCategory) => subCategory.products)
-    // @JoinTable()
-    // subCategories: SubSubCategoryEntity[]
+    // Timestamp columns
+    @CreateDateColumn({ type: 'timestamp' })
+    createdAt: Date;
 
-    // @OneToMany(() => ColorEntity, (color) => color.product)
-    // colors: ColorEntity[]
+    @UpdateDateColumn({ type: 'timestamp' })
+    updateAt: Date;
 
+
+    // relations 
+    // relations 
+    // relations 
     @ManyToOne(() => ColorEntity, (color) => color.products)
     color: ColorEntity
 

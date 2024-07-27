@@ -115,6 +115,14 @@ let AdminService = exports.AdminService = class AdminService {
             return 'Update failed';
         }
     }
+    async publishProduct(id, publishable) {
+        const product = await this.productRepo.findOneBy({ id });
+        if (!product) {
+            throw new common_1.NotFoundException(`Product with ID ${id} not found.`);
+        }
+        product.publishable = publishable;
+        await this.productRepo.save(product);
+    }
     async deleteBanner(id) {
         const myData = await this.bannerRepo.findOneBy({ id });
         if (myData)
@@ -142,9 +150,22 @@ let AdminService = exports.AdminService = class AdminService {
         }
     }
     async viewAllProduct() {
-        const options = {};
-        const products = await this.productRepo.find(options);
-        return products;
+        try {
+            const products = await this.productRepo
+                .createQueryBuilder('product')
+                .leftJoinAndSelect('product.color', 'color')
+                .leftJoinAndSelect('product.fabric', 'fabric')
+                .leftJoinAndSelect('product.productPictures', 'productPicture')
+                .leftJoinAndSelect('product.pscs', 'psc')
+                .leftJoinAndSelect('psc.category', 'subSubCategory')
+                .leftJoinAndSelect('psc.size', 'size')
+                .getMany();
+            return products;
+        }
+        catch (error) {
+            console.error('Error finding products:', error);
+            throw error;
+        }
     }
     async getAllBuyingHistories(email) {
         if (email) {
@@ -307,14 +328,29 @@ let AdminService = exports.AdminService = class AdminService {
     }
     async getProductByCat(name) {
     }
+    async getPublishableProductsBySubSubCatId(subCategoryId) {
+        try {
+            const products = await this.getProductBySubSubCatId(subCategoryId);
+            const publishableProducts = products.filter(product => product.publishable);
+            console.log(products, 'break', publishableProducts);
+            return publishableProducts;
+        }
+        catch (error) {
+            console.error('Error finding publishable products:', error);
+            throw error;
+        }
+    }
     async getProductBySubSubCatId(subCategoryId) {
         try {
             const products = await this.productRepo
                 .createQueryBuilder('product')
-                .leftJoinAndSelect('product.subCategories', 'subCategory')
-                .leftJoinAndSelect('product.productPictures', 'productPicture')
                 .leftJoinAndSelect('product.color', 'color')
-                .where('subCategory.id = :subCategoryId', { subCategoryId })
+                .leftJoinAndSelect('product.fabric', 'fabric')
+                .leftJoinAndSelect('product.productPictures', 'productPicture')
+                .leftJoinAndSelect('product.pscs', 'psc')
+                .leftJoinAndSelect('psc.category', 'subSubCategory')
+                .leftJoinAndSelect('psc.size', 'size')
+                .where('subSubCategory.id = :subCategoryId', { subCategoryId })
                 .getMany();
             return products;
         }
@@ -489,6 +525,7 @@ let AdminService = exports.AdminService = class AdminService {
         });
     }
     async createNewProduct(myDto) {
+        console.log(myDto, 720);
         const selectedColor = await this.getColorByName(myDto.color);
         myDto.color = selectedColor;
         const newProduct = this.productRepo.create({
@@ -520,13 +557,16 @@ let AdminService = exports.AdminService = class AdminService {
             }
             else {
                 item.sizes.forEach(async (sizeItem) => {
-                    const sizeObject = await this.getSizeById(sizeItem.sizeId);
-                    catInfoItem.size = sizeObject;
+                    if (sizeItem.sizeId) {
+                        const sizeObject = await this.getSizeById(sizeItem.sizeId);
+                        catInfoItem.size = sizeObject;
+                    }
                     catInfoItem.quantity = sizeItem.quantity;
                     await this.productSizeCategoryRepo.save(catInfoItem);
                 });
             }
         });
+        console.log(processedCatsInfo, 771);
         return product;
     }
     async addProductPictures(myDto) {

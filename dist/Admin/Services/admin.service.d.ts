@@ -51,6 +51,7 @@ export declare class AdminService {
     sendEmail(mydto: any): Promise<SentMessageInfo>;
     signIn(myDto: any): Promise<boolean | 0>;
     updateAdmin(myDto: AdminForm, email: string): Promise<"Admin not found" | "Admin updated" | "Update failed">;
+    publishProduct(id: number, publishable: boolean): Promise<void>;
     deleteBanner(id: number): Promise<import("typeorm").DeleteResult>;
     deleteCartItem(id: string): Promise<import("typeorm").DeleteResult>;
     deleteCarts(cartArray: string[]): Promise<import("typeorm").DeleteResult>;
@@ -88,6 +89,7 @@ export declare class AdminService {
     getCouponById(id: any): Promise<CouponEntity>;
     getBuyingHistoryByToken(token: any): Promise<BuyingHistoryEntity>;
     getProductByCat(name: any): Promise<void>;
+    getPublishableProductsBySubSubCatId(subCategoryId: any): Promise<ProductEntity[]>;
     getProductBySubSubCatId(subCategoryId: any): Promise<ProductEntity[]>;
     updateCategory(id: number, category: any): Promise<void>;
     updateBanner(id: number, bannerDto: any): Promise<void>;
