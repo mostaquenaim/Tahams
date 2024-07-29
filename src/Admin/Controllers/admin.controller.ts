@@ -41,22 +41,60 @@ export class AdminController {
 
   //Login to admin account 
   @Post('/signin')
-  async signIn(@Session() session, @Body() myDto: AdminForm) {
+  async signIn(@Session() session, @Body() myDto) {
 
     const res = await (this.adminService.signIn(myDto));
-    if (res == true) {
-      session.email = myDto.email;
-      return (session.email);
-    }
-    else {
-      throw new UnauthorizedException({ message: "invalid" });
-    }
+    return res
+    // if (res.status === 'success') {
+    //   session.email = myDto.email;
+    //   return res.data
+    // }
+    // else {
+    //   throw new UnauthorizedException({ message: "invalid" });
+    // }
+  }
+
+  // customerlogin 
+  @Post('customer-login')
+  @UsePipes(ValidationPipe)
+  async customerLogin(
+    @Body() myDto,
+  ) {
+    // console.log(myDto,"197");
+    const response = await this.adminService.customerLogin(myDto);
+    // console.log(response,"198");
+    return response
   }
 
   // send mail 
   @Post('sendemail')
   sendEmail(@Body() mydata) {
     return this.adminService.sendEmail(mydata);
+  }
+
+  // otp
+  @Post('send-otp')
+  @UsePipes(ValidationPipe)
+  async sendOtp(@Body() sendOtpDto) {
+    // try {
+    const result = await this.adminService.checkEmailAndSendOTP(sendOtpDto.email);
+    console.log(result);
+    return result
+    //   return { success: true, message: 'OTP sent successfully' };
+    // } catch (error) {
+    //   throw new BadRequestException('Error sending OTP');
+    // }
+  }
+
+  @Post('verify-otp')
+  @UsePipes(ValidationPipe)
+  async verifyOtp(@Body() verifyOtpDto) {
+    // try {
+    return await this.adminService.verifyOtp(verifyOtpDto.email, verifyOtpDto.otp);
+    //   return { success: true, message: 'OTP verified successfully' };
+    // } catch (error) {
+    //   throw new BadRequestException('Invalid or expired OTP');
+    // }
   }
 
   // add banner 
@@ -197,19 +235,6 @@ export class AdminController {
     return response
   }
 
-  // customerlogin 
-  @Post('customer-login')
-  @UsePipes(ValidationPipe)
-  async customerLogin(
-    @Body() myDto,
-  ) {
-    // console.log(myDto,"197");
-    const response = await this.adminService.customerLogin(myDto);
-    // console.log(response,"198");
-    return response
-  }
-
-
   // delete a cart 
   @Delete('delete-cart/:uniqueId')
   deleteCartItem(
@@ -320,7 +345,7 @@ export class AdminController {
   getProductByCat(
     @Param('name') name,
   ) {
-    console.log(name);
+    // console.log(name);
     return this.adminService.getProductByCat(name);
   }
 
@@ -350,10 +375,10 @@ export class AdminController {
   createNewCategory(
     @Body() myDto,
   ) {
-    console.log(myDto,"337");
+    // console.log(myDto,"337");
     return this.adminService.createNewCategory(myDto);
   }
- 
+
   // add new sub-category 
   @Post('add-subCategory')
   @UsePipes(ValidationPipe)
@@ -362,7 +387,7 @@ export class AdminController {
   ) {
     return this.adminService.createNewSubCategory(myDto);
   }
- 
+
   // add new sub-sub-category 
   @Post('add-sub-subCategory')
   @UsePipes(ValidationPipe)
@@ -460,8 +485,8 @@ export class AdminController {
 
   // create new account 
   @Post('create')
-  createUser(@Body() createUser: AdminForm) {
-    return this.adminService.createUser(createUser);
+  createUser(@Body() myDto) {
+    return this.adminService.createUser(myDto);
   }
 
   // view all product 
@@ -604,16 +629,16 @@ export class AdminController {
     // @Body('colors') colors,
     @Body() myDto,
   ) {
-    console.log("myDto", myDto)
+    // console.log("myDto", myDto)
     return this.adminService.createNewWish(myDto);
   }
 
   // get wishlist 
   @Get('get-wish-by-user/:userId')
   async getWishByUser(@Param('userId') userId: string) {
-    console.log(userId,"572");
+    // console.log(userId,"572");
     const res = await this.adminService.getWishByUser(userId);
-    console.log(res,"574");
+    // console.log(res,"574");
     return res
   }
 

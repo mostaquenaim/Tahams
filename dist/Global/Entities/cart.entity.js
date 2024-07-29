@@ -11,7 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CartsEntity = void 0;
 const typeorm_1 = require("typeorm");
-const customer_entity_1 = require("../../Customer/Entities/customer.entity");
+const user_entity_1 = require("./user.entity");
 const product_entity_1 = require("./product.entity");
 const buyingHistory_entity_1 = require("./buyingHistory.entity");
 const coupon_entity_1 = require("./coupon.entity");
@@ -46,8 +46,8 @@ __decorate([
     __metadata("design:type", Boolean)
 ], CartsEntity.prototype, "isBought", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => customer_entity_1.CustomerEntity, (customer) => customer.carts),
-    __metadata("design:type", customer_entity_1.CustomerEntity)
+    (0, typeorm_1.ManyToOne)(() => user_entity_1.UserEntity, (customer) => customer.carts),
+    __metadata("design:type", user_entity_1.UserEntity)
 ], CartsEntity.prototype, "customer", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => product_entity_1.ProductEntity, (product) => product.carts),

@@ -3,8 +3,8 @@ import { CartsEntity } from 'src/Global/Entities/cart.entity';
 import { WishEntity } from 'src/Global/Entities/wish.entity';
 import { Entity, Column, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity('customer')
-export class CustomerEntity {
+@Entity('users')
+export class UserEntity {
     @PrimaryGeneratedColumn()
     id: number;
 
@@ -19,6 +19,9 @@ export class CustomerEntity {
 
     @Column({ unique: true })
     email: string;
+
+    @Column({ default: 'customer' })
+    role: string;
 
     @Column({ nullable: true })
     mbl_no: string;
@@ -50,6 +53,8 @@ export class CustomerEntity {
     @Column({ default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
     updated_at: Date;
 
+    // relationships 
+    // relationships 
     // relationships 
     @OneToMany(() => CartsEntity, (cart) => cart.customer)
     carts: CartsEntity[];

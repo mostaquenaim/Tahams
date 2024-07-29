@@ -1,8 +1,8 @@
 import CustomerForm from '../DTOs/customerform.dto';
 import { Repository } from 'typeorm';
-import { CustomerEntity } from '../Entities/customer.entity';
+import { UserEntity } from '../../Global/Entities/user.entity';
 export declare class CustomerService {
     private userRepository;
-    constructor(userRepository: Repository<CustomerEntity>);
-    createUser(myDto: CustomerForm): Promise<CustomerForm & CustomerEntity>;
+    constructor(userRepository: Repository<UserEntity>);
+    createUser(myDto: CustomerForm): Promise<CustomerForm & UserEntity>;
 }

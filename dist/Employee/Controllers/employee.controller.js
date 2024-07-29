@@ -26,7 +26,6 @@ let EmployeeController = exports.EmployeeController = class EmployeeController {
         return this.appService.getHello();
     }
     createUser(createUser) {
-        console.log(createUser);
         return this.appService.createUser(createUser);
     }
     getName() {
@@ -36,7 +35,6 @@ let EmployeeController = exports.EmployeeController = class EmployeeController {
         return `This action returns a #${xd} cat`;
     }
     uploadFile(file) {
-        console.log(file);
         return file.filename;
     }
     getImages(name, res) {

@@ -3,7 +3,7 @@ import { MailerModule } from "@nestjs-modules/mailer";
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { CustomerController } from "../Controllers/customer.controller"
-import { CustomerEntity } from "../Entities/customer.entity";
+import { UserEntity } from "src/Global/Entities/user.entity";
 import { CustomerService } from "../Services/customer.service"
 import * as dotenv from 'dotenv';
 // Load environment variables
@@ -25,7 +25,7 @@ dotenv.config();
         }
 
         ),
-        TypeOrmModule.forFeature([CustomerEntity])],
+        TypeOrmModule.forFeature([UserEntity])],
     controllers: [CustomerController],
     providers: [CustomerService],
 })

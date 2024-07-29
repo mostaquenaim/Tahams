@@ -5,7 +5,7 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { AdminController } from "../Controllers/admin.controller"
 import { AdminEntity } from "../Entities/admin.entity";
 import { AdminService } from "../Services/admin.service"
-import { CustomerEntity } from "src/Customer/Entities/customer.entity";
+import { UserEntity } from "src/Global/Entities/user.entity";
 import { ProductEntity } from "src/Global/Entities/product.entity";
 import { BannerEntity } from "src/Global/Entities/banner.entity";
 import { CategoryEntity } from "src/Global/Entities/category.entity";
@@ -27,6 +27,7 @@ import { PaymentInfo } from "src/Global/Entities/paymentInfo.entity";
 import * as dotenv from 'dotenv';
 import { FabricEntity } from "src/Global/Entities/fabrics.entity";
 import { ProductSizeCategoryEntity } from "src/Global/Entities/productSizeCategory.entity";
+import { OtpEntity } from "src/Global/Entities/otp.entity";
 // Load environment variables
 dotenv.config();
 
@@ -46,7 +47,7 @@ dotenv.config();
         }
 
         ),
-        TypeOrmModule.forFeature([AdminEntity, BannerEntity, BuyingHistoryEntity, CategoryEntity, ColorSizeEntity, CustomerEntity, ColorEntity, CartsEntity, CouponEntity, DeliveryStatusEntity, EmployeeEntity, FabricEntity, PaymentInfo, PaymentMethodEntity, ProductPictureEntity, ProductEntity, ProductSizeCategoryEntity, PartnerEntity, SizeEntity, SubCategoryEntity, SubSubCategoryEntity, WishEntity])],
+        TypeOrmModule.forFeature([AdminEntity, BannerEntity, BuyingHistoryEntity, CategoryEntity, ColorSizeEntity, ColorEntity, CartsEntity, CouponEntity, DeliveryStatusEntity, EmployeeEntity, FabricEntity, OtpEntity, PaymentInfo, PaymentMethodEntity, ProductPictureEntity, ProductEntity, ProductSizeCategoryEntity, PartnerEntity, SizeEntity, SubCategoryEntity, SubSubCategoryEntity, UserEntity, WishEntity])],
     controllers: [AdminController],
     providers: [AdminService],
 })

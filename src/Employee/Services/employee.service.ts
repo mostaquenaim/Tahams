@@ -21,7 +21,7 @@ export class EmployeeService {
   }
 
   createUser(createUserDto: EmployeeForm) {
-    console.log(createUserDto)
+    // console.log(createUserDto)
     // Logic to create a user using the provided data
     return createUserDto;
   }

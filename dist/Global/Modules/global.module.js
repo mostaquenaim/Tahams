@@ -30,6 +30,7 @@ const paymentInfo_entity_1 = require("../Entities/paymentInfo.entity");
 const dotenv = require("dotenv");
 const fabrics_entity_1 = require("../Entities/fabrics.entity");
 const productSizeCategory_entity_1 = require("../Entities/productSizeCategory.entity");
+const otp_entity_1 = require("../Entities/otp.entity");
 dotenv.config();
 let GlobalModule = exports.GlobalModule = class GlobalModule {
 };
@@ -58,6 +59,7 @@ exports.GlobalModule = GlobalModule = __decorate([
                 coupon_entity_1.CouponEntity,
                 deliveryStatus_entity_1.DeliveryStatusEntity,
                 fabrics_entity_1.FabricEntity,
+                otp_entity_1.OtpEntity,
                 paymentInfo_entity_1.PaymentInfo,
                 paymentMethod_entity_1.PaymentMethodEntity,
                 product_pictures_entity_1.ProductPictureEntity,

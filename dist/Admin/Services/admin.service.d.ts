@@ -1,7 +1,8 @@
+import { HttpStatus } from '@nestjs/common';
 import { AdminForm } from '../DTOs/adminform.dto';
 import { Repository } from 'typeorm';
 import { AdminEntity } from '../Entities/admin.entity';
-import { CustomerEntity } from 'src/Customer/Entities/customer.entity';
+import { UserEntity } from 'src/Global/Entities/user.entity';
 import { ProductEntity } from 'src/Global/Entities/product.entity';
 import { BannerEntity } from 'src/Global/Entities/banner.entity';
 import { MailerService } from "@nestjs-modules/mailer/dist";
@@ -21,10 +22,11 @@ import { ColorSizeEntity } from 'src/Global/Entities/color-size-combined.entity'
 import { PaymentInfo } from 'src/Global/Entities/paymentInfo.entity';
 import { FabricEntity } from 'src/Global/Entities/fabrics.entity';
 import { ProductSizeCategoryEntity } from 'src/Global/Entities/productSizeCategory.entity';
+import { OtpEntity } from 'src/Global/Entities/otp.entity';
 export declare class AdminService {
     private adminRepo;
     private mailerService;
-    private customerRepo;
+    private userRepo;
     private productRepo;
     private productSizeCategoryRepo;
     private productPicRepo;
@@ -33,6 +35,7 @@ export declare class AdminService {
     private categoryRepo;
     private couponRepo;
     private colorRepo;
+    private otpRepository;
     private subCategoryRepo;
     private subSubCategoryRepo;
     private sizeRepo;
@@ -43,13 +46,59 @@ export declare class AdminService {
     private paymentMethodRepo;
     private fabricRepo;
     private colorSizeRepo;
-    constructor(adminRepo: Repository<AdminEntity>, mailerService: MailerService, customerRepo: Repository<CustomerEntity>, productRepo: Repository<ProductEntity>, productSizeCategoryRepo: Repository<ProductSizeCategoryEntity>, productPicRepo: Repository<ProductPictureEntity>, bannerRepo: Repository<BannerEntity>, paymentInfoRepo: Repository<PaymentInfo>, categoryRepo: Repository<CategoryEntity>, couponRepo: Repository<CouponEntity>, colorRepo: Repository<ColorEntity>, subCategoryRepo: Repository<SubCategoryEntity>, subSubCategoryRepo: Repository<SubSubCategoryEntity>, sizeRepo: Repository<SizeEntity>, wishRepo: Repository<WishEntity>, cartRepo: Repository<CartsEntity>, buyingHistoryRepo: Repository<BuyingHistoryEntity>, deliveryStatusRepo: Repository<DeliveryStatusEntity>, paymentMethodRepo: Repository<PaymentMethodEntity>, fabricRepo: Repository<FabricEntity>, colorSizeRepo: Repository<ColorSizeEntity>);
+    constructor(adminRepo: Repository<AdminEntity>, mailerService: MailerService, userRepo: Repository<UserEntity>, productRepo: Repository<ProductEntity>, productSizeCategoryRepo: Repository<ProductSizeCategoryEntity>, productPicRepo: Repository<ProductPictureEntity>, bannerRepo: Repository<BannerEntity>, paymentInfoRepo: Repository<PaymentInfo>, categoryRepo: Repository<CategoryEntity>, couponRepo: Repository<CouponEntity>, colorRepo: Repository<ColorEntity>, otpRepository: Repository<OtpEntity>, subCategoryRepo: Repository<SubCategoryEntity>, subSubCategoryRepo: Repository<SubSubCategoryEntity>, sizeRepo: Repository<SizeEntity>, wishRepo: Repository<WishEntity>, cartRepo: Repository<CartsEntity>, buyingHistoryRepo: Repository<BuyingHistoryEntity>, deliveryStatusRepo: Repository<DeliveryStatusEntity>, paymentMethodRepo: Repository<PaymentMethodEntity>, fabricRepo: Repository<FabricEntity>, colorSizeRepo: Repository<ColorSizeEntity>);
     addBanner(myDto: any): Promise<any>;
     addPaymentInfo(myDto: any): Promise<any>;
-    createUser(myDto: any): Promise<any>;
+    createUser(myDto: any): Promise<{
+        status: HttpStatus;
+        message: string;
+        data?: undefined;
+        error?: undefined;
+    } | {
+        status: HttpStatus;
+        message: string;
+        data: any;
+        error?: undefined;
+    } | {
+        status: HttpStatus;
+        message: string;
+        error: any;
+        data?: undefined;
+    }>;
     createCustomer(myDto: any): Promise<any>;
-    sendEmail(mydto: any): Promise<SentMessageInfo>;
-    signIn(myDto: any): Promise<boolean | 0>;
+    sendEmail(myDto: any): Promise<void>;
+    checkEmailAndSendOTP(email: string): Promise<{
+        success: boolean;
+        message: string;
+    } | {
+        status: HttpStatus;
+        message: string;
+        data: any;
+    }>;
+    sendOtp(email: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    verifyOtp(email: string, otp: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    signIn(myDto: any): Promise<{
+        status: HttpStatus;
+        message: string;
+        data?: undefined;
+        error?: undefined;
+    } | {
+        status: HttpStatus;
+        message: string;
+        data: UserEntity;
+        error?: undefined;
+    } | {
+        status: HttpStatus;
+        message: string;
+        error: any;
+        data?: undefined;
+    }>;
     updateAdmin(myDto: AdminForm, email: string): Promise<"Admin not found" | "Admin updated" | "Update failed">;
     publishProduct(id: number, publishable: boolean): Promise<void>;
     deleteBanner(id: number): Promise<import("typeorm").DeleteResult>;
@@ -82,8 +131,8 @@ export declare class AdminService {
     getProductById(id: number): Promise<ProductEntity>;
     getPaymentMethodById(id: any): Promise<PaymentMethodEntity>;
     getColorById(id: any): Promise<ColorEntity>;
-    getCustomerById(id: any): Promise<CustomerEntity>;
-    getCustomerByEmail(email: any): Promise<CustomerEntity>;
+    getCustomerById(id: any): Promise<UserEntity>;
+    getUserByEmail(email: any): Promise<UserEntity>;
     getColorByName(name: string): Promise<ColorEntity>;
     getDeliveryStatusById(id: any): Promise<DeliveryStatusEntity>;
     getCouponById(id: any): Promise<CouponEntity>;

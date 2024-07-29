@@ -9,81 +9,85 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CustomerEntity = void 0;
-const cart_entity_1 = require("../../Global/Entities/cart.entity");
-const wish_entity_1 = require("../../Global/Entities/wish.entity");
+exports.UserEntity = void 0;
+const cart_entity_1 = require("./cart.entity");
+const wish_entity_1 = require("./wish.entity");
 const typeorm_1 = require("typeorm");
-let CustomerEntity = exports.CustomerEntity = class CustomerEntity {
+let UserEntity = exports.UserEntity = class UserEntity {
 };
 __decorate([
     (0, typeorm_1.PrimaryGeneratedColumn)(),
     __metadata("design:type", Number)
-], CustomerEntity.prototype, "id", void 0);
+], UserEntity.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
-], CustomerEntity.prototype, "name", void 0);
+], UserEntity.prototype, "name", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], CustomerEntity.prototype, "uniqueId", void 0);
+], UserEntity.prototype, "uniqueId", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
-], CustomerEntity.prototype, "password", void 0);
+], UserEntity.prototype, "password", void 0);
 __decorate([
     (0, typeorm_1.Column)({ unique: true }),
     __metadata("design:type", String)
-], CustomerEntity.prototype, "email", void 0);
+], UserEntity.prototype, "email", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: 'customer' }),
+    __metadata("design:type", String)
+], UserEntity.prototype, "role", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], CustomerEntity.prototype, "mbl_no", void 0);
+], UserEntity.prototype, "mbl_no", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], CustomerEntity.prototype, "filename", void 0);
+], UserEntity.prototype, "filename", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], CustomerEntity.prototype, "address", void 0);
+], UserEntity.prototype, "address", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], CustomerEntity.prototype, "city", void 0);
+], UserEntity.prototype, "city", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], CustomerEntity.prototype, "state", void 0);
+], UserEntity.prototype, "state", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], CustomerEntity.prototype, "postal_code", void 0);
+], UserEntity.prototype, "postal_code", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Date)
-], CustomerEntity.prototype, "date_of_birth", void 0);
+], UserEntity.prototype, "date_of_birth", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], CustomerEntity.prototype, "gender", void 0);
+], UserEntity.prototype, "gender", void 0);
 __decorate([
     (0, typeorm_1.Column)({ default: () => 'CURRENT_TIMESTAMP' }),
     __metadata("design:type", Date)
-], CustomerEntity.prototype, "created_at", void 0);
+], UserEntity.prototype, "created_at", void 0);
 __decorate([
     (0, typeorm_1.Column)({ default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' }),
     __metadata("design:type", Date)
-], CustomerEntity.prototype, "updated_at", void 0);
+], UserEntity.prototype, "updated_at", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => cart_entity_1.CartsEntity, (cart) => cart.customer),
     __metadata("design:type", Array)
-], CustomerEntity.prototype, "carts", void 0);
+], UserEntity.prototype, "carts", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => wish_entity_1.WishEntity, (wish) => wish.customer),
     __metadata("design:type", Array)
-], CustomerEntity.prototype, "wishes", void 0);
-exports.CustomerEntity = CustomerEntity = __decorate([
-    (0, typeorm_1.Entity)('customer')
-], CustomerEntity);
-//# sourceMappingURL=customer.entity.js.map
+], UserEntity.prototype, "wishes", void 0);
+exports.UserEntity = UserEntity = __decorate([
+    (0, typeorm_1.Entity)('users')
+], UserEntity);
+//# sourceMappingURL=user.entity.js.map

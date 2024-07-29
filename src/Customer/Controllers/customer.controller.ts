@@ -19,7 +19,7 @@ export class CustomerController {
   @Post('create')
   @UsePipes(new ValidationPipe({ transform: true }))
   createUser(@Body() createUser: CustomerForm) {
-    console.log(createUser);
+    // console.log(createUser);
     return this.appService.createUser(createUser);
   }
 

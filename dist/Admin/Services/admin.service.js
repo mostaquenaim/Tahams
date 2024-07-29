@@ -18,7 +18,7 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const typeorm_3 = require("typeorm");
 const admin_entity_1 = require("../Entities/admin.entity");
-const customer_entity_1 = require("../../Customer/Entities/customer.entity");
+const user_entity_1 = require("../../Global/Entities/user.entity");
 const product_entity_1 = require("../../Global/Entities/product.entity");
 const banner_entity_1 = require("../../Global/Entities/banner.entity");
 const bcrypt = require("bcrypt");
@@ -41,11 +41,12 @@ const paymentInfo_entity_1 = require("../../Global/Entities/paymentInfo.entity")
 const typeorm_4 = require("typeorm");
 const fabrics_entity_1 = require("../../Global/Entities/fabrics.entity");
 const productSizeCategory_entity_1 = require("../../Global/Entities/productSizeCategory.entity");
+const otp_entity_1 = require("../../Global/Entities/otp.entity");
 let AdminService = exports.AdminService = class AdminService {
-    constructor(adminRepo, mailerService, customerRepo, productRepo, productSizeCategoryRepo, productPicRepo, bannerRepo, paymentInfoRepo, categoryRepo, couponRepo, colorRepo, subCategoryRepo, subSubCategoryRepo, sizeRepo, wishRepo, cartRepo, buyingHistoryRepo, deliveryStatusRepo, paymentMethodRepo, fabricRepo, colorSizeRepo) {
+    constructor(adminRepo, mailerService, userRepo, productRepo, productSizeCategoryRepo, productPicRepo, bannerRepo, paymentInfoRepo, categoryRepo, couponRepo, colorRepo, otpRepository, subCategoryRepo, subSubCategoryRepo, sizeRepo, wishRepo, cartRepo, buyingHistoryRepo, deliveryStatusRepo, paymentMethodRepo, fabricRepo, colorSizeRepo) {
         this.adminRepo = adminRepo;
         this.mailerService = mailerService;
-        this.customerRepo = customerRepo;
+        this.userRepo = userRepo;
         this.productRepo = productRepo;
         this.productSizeCategoryRepo = productSizeCategoryRepo;
         this.productPicRepo = productPicRepo;
@@ -54,6 +55,7 @@ let AdminService = exports.AdminService = class AdminService {
         this.categoryRepo = categoryRepo;
         this.couponRepo = couponRepo;
         this.colorRepo = colorRepo;
+        this.otpRepository = otpRepository;
         this.subCategoryRepo = subCategoryRepo;
         this.subSubCategoryRepo = subSubCategoryRepo;
         this.sizeRepo = sizeRepo;
@@ -72,33 +74,108 @@ let AdminService = exports.AdminService = class AdminService {
         return this.paymentInfoRepo.save(myDto);
     }
     async createUser(myDto) {
-        const salt = await bcrypt.genSalt();
-        const hashedPass = await bcrypt.hash(myDto.password, salt);
-        myDto.password = hashedPass;
-        return this.adminRepo.save(myDto);
+        try {
+            const existingUser = await this.userRepo.findOne({ where: { email: myDto.email } });
+            if (existingUser) {
+                return {
+                    status: common_1.HttpStatus.CONFLICT,
+                    message: 'Email is already in use',
+                };
+            }
+            const salt = await bcrypt.genSalt();
+            const hashedPass = await bcrypt.hash(myDto.password, salt);
+            myDto.password = hashedPass;
+            const savedUser = await this.userRepo.save(myDto);
+            return {
+                status: common_1.HttpStatus.CREATED,
+                message: 'User created successfully',
+                data: savedUser,
+            };
+        }
+        catch (error) {
+            return {
+                status: common_1.HttpStatus.INTERNAL_SERVER_ERROR,
+                message: 'An error occurred while creating the user',
+                error: error.message,
+            };
+        }
     }
     async createCustomer(myDto) {
         const salt = await bcrypt.genSalt();
         const hashedPass = await bcrypt.hash(myDto.password, salt);
         myDto.password = hashedPass;
-        return this.customerRepo.save(myDto);
+        return this.userRepo.save(myDto);
     }
-    async sendEmail(mydto) {
-        return await this.mailerService.sendMail({
-            to: mydto.email,
-            subject: mydto.subject,
-            text: mydto.text,
+    async sendEmail(myDto) {
+        try {
+            await this.mailerService.sendMail({
+                to: myDto.email,
+                subject: myDto.subject,
+                text: myDto.text,
+            });
+        }
+        catch (error) {
+            throw new common_1.BadRequestException('Failed to send email');
+        }
+    }
+    async checkEmailAndSendOTP(email) {
+        const user = await this.getUserByEmail(email);
+        console.log(user);
+        if (!user) {
+            const result = await this.sendOtp(email);
+            return result;
+        }
+        else {
+            return { status: common_1.HttpStatus.BAD_REQUEST, message: 'Email already exists', data: null };
+        }
+    }
+    async sendOtp(email) {
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+        const otpEntity = this.otpRepository.create({ email, otp });
+        await this.otpRepository.save(otpEntity);
+        await this.sendEmail({
+            email,
+            subject: 'Your OTP Code',
+            text: `Your OTP code is ${otp}. It is valid for 10 minutes.`,
         });
+        return { success: true, message: 'OTP sent' };
+    }
+    async verifyOtp(email, otp) {
+        const otpData = await this.otpRepository.findOne({ where: { email, otp } });
+        if (!otpData) {
+            throw new common_1.NotFoundException('Invalid or expired OTP');
+        }
+        const currentTime = new Date();
+        const otpCreationTime = new Date(otpData.createdAt);
+        const timeDifference = (currentTime.getTime() - otpCreationTime.getTime()) / (1000 * 60);
+        if (otpData.otp !== otp || timeDifference > 10) {
+            throw new common_1.BadRequestException('Invalid or expired OTP');
+        }
+        await this.otpRepository.delete({ email });
+        return { success: true, message: 'OTP verified successfully' };
     }
     async signIn(myDto) {
-        const myData = await this.adminRepo.findOneBy({ email: myDto.email });
-        if (!myData) {
-            return 0;
+        try {
+            const myData = await this.userRepo.findOne({ where: { email: myDto.email } });
+            if (!myData) {
+                return { status: common_1.HttpStatus.NOT_FOUND, message: 'User not found' };
+            }
+            const isPasswordValid = await bcrypt.compare(myDto.password, myData.password);
+            if (isPasswordValid) {
+                console.log('valid');
+                return { status: common_1.HttpStatus.OK, message: 'Login successful', data: myData };
+            }
+            return { status: common_1.HttpStatus.UNAUTHORIZED, message: 'Invalid password' };
         }
-        if (myDto.password == myData.password) {
-            return true;
+        catch (error) {
+            return {
+                status: common_1.HttpStatus.INTERNAL_SERVER_ERROR,
+                message: 'An error occurred during login',
+                error: error.message,
+            };
         }
-        return false;
     }
     async updateAdmin(myDto, email) {
         try {
@@ -132,9 +209,7 @@ let AdminService = exports.AdminService = class AdminService {
     }
     async deleteCartItem(id) {
         const myData = await this.cartRepo.findOneBy({ uniqueId: id });
-        console.log(myData, "169");
         if (myData) {
-            console.log(myData, "171");
             return this.cartRepo.delete(myData.id);
         }
         throw new common_1.NotFoundException(`Banner with ID ${id} not found.`);
@@ -209,7 +284,6 @@ let AdminService = exports.AdminService = class AdminService {
         await this.couponRepo.save(coupon);
     }
     async getAllCarts(email) {
-        console.log(email, "252");
         if (email) {
             const cartsWithHistory = await this.cartRepo.find({
                 where: {
@@ -217,7 +291,6 @@ let AdminService = exports.AdminService = class AdminService {
                 },
                 relations: ['product', 'coupon']
             });
-            console.log(cartsWithHistory, "259");
             return cartsWithHistory;
         }
         throw new common_1.HttpException('Forbidden', common_1.HttpStatus.FORBIDDEN);
@@ -309,10 +382,10 @@ let AdminService = exports.AdminService = class AdminService {
         return await this.colorRepo.findOneBy({ id });
     }
     async getCustomerById(id) {
-        return await this.customerRepo.findOneBy({ uniqueId: id });
+        return await this.userRepo.findOneBy({ uniqueId: id });
     }
-    async getCustomerByEmail(email) {
-        return await this.customerRepo.findOneBy({ email: email });
+    async getUserByEmail(email) {
+        return await this.userRepo.findOneBy({ email: email });
     }
     async getColorByName(name) {
         return await this.colorRepo.findOneBy({ name: name });
@@ -332,7 +405,6 @@ let AdminService = exports.AdminService = class AdminService {
         try {
             const products = await this.getProductBySubSubCatId(subCategoryId);
             const publishableProducts = products.filter(product => product.publishable);
-            console.log(products, 'break', publishableProducts);
             return publishableProducts;
         }
         catch (error) {
@@ -436,7 +508,6 @@ let AdminService = exports.AdminService = class AdminService {
     }
     async createNewSubSubCategory(myDto) {
         const category = await this.getSubCategoryById(myDto.categoryId);
-        console.log(category, 583);
         myDto.category = category;
         const newCategory = this.subSubCategoryRepo.create({
             ...myDto
@@ -456,7 +527,6 @@ let AdminService = exports.AdminService = class AdminService {
         return this.fabricRepo.save(newFabric);
     }
     async createNewBuy(myDto) {
-        console.log(myDto, "544");
         myDto.deliveryStatus = await this.getDeliveryStatusById(myDto?.deliveryStatusId || 1);
         myDto.paymentMethod = await this.getPaymentMethodById(myDto?.paymentMethodId || 1);
         myDto.trackingToken = (0, uuid_1.v4)();
@@ -469,12 +539,10 @@ let AdminService = exports.AdminService = class AdminService {
     }
     async customerLogin(myDto) {
         try {
-            const existingCustomer = await this.customerRepo.findOne({
+            const existingCustomer = await this.userRepo.findOne({
                 where: { email: myDto.email },
             });
-            console.log(existingCustomer, "583");
             if (!existingCustomer) {
-                console.log("innnn");
                 const newCustomer = this.createCustomer(myDto);
                 return newCustomer;
             }
@@ -485,11 +553,10 @@ let AdminService = exports.AdminService = class AdminService {
         }
     }
     async createNewCart(myDto) {
-        console.log(myDto);
         const selectedProduct = await this.getProductById(myDto.productId);
         myDto.product = selectedProduct;
         myDto.uniqueId = (0, uuid_1.v4)();
-        myDto.customer = myDto?.customerEmail && await this.getCustomerByEmail(myDto?.customerEmail);
+        myDto.customer = myDto?.customerEmail && await this.getUserByEmail(myDto?.customerEmail);
         myDto.coupon = myDto?.couponId && await this.getCouponById(myDto?.couponId);
         const selectedColor = await this.getColorById(myDto.colorId);
         myDto.ProductName = selectedColor.name + " " + selectedProduct.name;
@@ -525,7 +592,6 @@ let AdminService = exports.AdminService = class AdminService {
         });
     }
     async createNewProduct(myDto) {
-        console.log(myDto, 720);
         const selectedColor = await this.getColorByName(myDto.color);
         myDto.color = selectedColor;
         const newProduct = this.productRepo.create({
@@ -566,7 +632,6 @@ let AdminService = exports.AdminService = class AdminService {
                 });
             }
         });
-        console.log(processedCatsInfo, 771);
         return product;
     }
     async addProductPictures(myDto) {
@@ -618,7 +683,7 @@ let AdminService = exports.AdminService = class AdminService {
 exports.AdminService = AdminService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(admin_entity_1.AdminEntity)),
-    __param(2, (0, typeorm_1.InjectRepository)(customer_entity_1.CustomerEntity)),
+    __param(2, (0, typeorm_1.InjectRepository)(user_entity_1.UserEntity)),
     __param(3, (0, typeorm_1.InjectRepository)(product_entity_1.ProductEntity)),
     __param(4, (0, typeorm_1.InjectRepository)(productSizeCategory_entity_1.ProductSizeCategoryEntity)),
     __param(5, (0, typeorm_1.InjectRepository)(product_pictures_entity_1.ProductPictureEntity)),
@@ -627,18 +692,20 @@ exports.AdminService = AdminService = __decorate([
     __param(8, (0, typeorm_1.InjectRepository)(category_entity_1.CategoryEntity)),
     __param(9, (0, typeorm_1.InjectRepository)(coupon_entity_1.CouponEntity)),
     __param(10, (0, typeorm_1.InjectRepository)(colors_entity_1.ColorEntity)),
-    __param(11, (0, typeorm_1.InjectRepository)(subCategory_entity_1.SubCategoryEntity)),
-    __param(12, (0, typeorm_1.InjectRepository)(subSubCategory_entity_1.SubSubCategoryEntity)),
-    __param(13, (0, typeorm_1.InjectRepository)(size_entity_1.SizeEntity)),
-    __param(14, (0, typeorm_1.InjectRepository)(wish_entity_1.WishEntity)),
-    __param(15, (0, typeorm_1.InjectRepository)(cart_entity_1.CartsEntity)),
-    __param(16, (0, typeorm_1.InjectRepository)(buyingHistory_entity_1.BuyingHistoryEntity)),
-    __param(17, (0, typeorm_1.InjectRepository)(deliveryStatus_entity_1.DeliveryStatusEntity)),
-    __param(18, (0, typeorm_1.InjectRepository)(paymentMethod_entity_1.PaymentMethodEntity)),
-    __param(19, (0, typeorm_1.InjectRepository)(fabrics_entity_1.FabricEntity)),
-    __param(20, (0, typeorm_1.InjectRepository)(color_size_combined_entity_1.ColorSizeEntity)),
+    __param(11, (0, typeorm_1.InjectRepository)(otp_entity_1.OtpEntity)),
+    __param(12, (0, typeorm_1.InjectRepository)(subCategory_entity_1.SubCategoryEntity)),
+    __param(13, (0, typeorm_1.InjectRepository)(subSubCategory_entity_1.SubSubCategoryEntity)),
+    __param(14, (0, typeorm_1.InjectRepository)(size_entity_1.SizeEntity)),
+    __param(15, (0, typeorm_1.InjectRepository)(wish_entity_1.WishEntity)),
+    __param(16, (0, typeorm_1.InjectRepository)(cart_entity_1.CartsEntity)),
+    __param(17, (0, typeorm_1.InjectRepository)(buyingHistory_entity_1.BuyingHistoryEntity)),
+    __param(18, (0, typeorm_1.InjectRepository)(deliveryStatus_entity_1.DeliveryStatusEntity)),
+    __param(19, (0, typeorm_1.InjectRepository)(paymentMethod_entity_1.PaymentMethodEntity)),
+    __param(20, (0, typeorm_1.InjectRepository)(fabrics_entity_1.FabricEntity)),
+    __param(21, (0, typeorm_1.InjectRepository)(color_size_combined_entity_1.ColorSizeEntity)),
     __metadata("design:paramtypes", [typeorm_3.Repository,
         dist_1.MailerService,
+        typeorm_3.Repository,
         typeorm_3.Repository,
         typeorm_3.Repository,
         typeorm_3.Repository,

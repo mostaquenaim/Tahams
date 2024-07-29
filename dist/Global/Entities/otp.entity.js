@@ -9,25 +9,27 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.WishEntity = void 0;
+exports.OtpEntity = void 0;
 const typeorm_1 = require("typeorm");
-const product_entity_1 = require("./product.entity");
-const user_entity_1 = require("./user.entity");
-let WishEntity = exports.WishEntity = class WishEntity {
+let OtpEntity = exports.OtpEntity = class OtpEntity {
 };
 __decorate([
     (0, typeorm_1.PrimaryGeneratedColumn)(),
     __metadata("design:type", Number)
-], WishEntity.prototype, "id", void 0);
+], OtpEntity.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => product_entity_1.ProductEntity, (product) => product.wishes),
-    __metadata("design:type", product_entity_1.ProductEntity)
-], WishEntity.prototype, "product", void 0);
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], OtpEntity.prototype, "email", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => user_entity_1.UserEntity, (customer) => customer.wishes),
-    __metadata("design:type", user_entity_1.UserEntity)
-], WishEntity.prototype, "customer", void 0);
-exports.WishEntity = WishEntity = __decorate([
-    (0, typeorm_1.Entity)('wish-list')
-], WishEntity);
-//# sourceMappingURL=wish.entity.js.map
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], OtpEntity.prototype, "otp", void 0);
+__decorate([
+    (0, typeorm_1.CreateDateColumn)(),
+    __metadata("design:type", Date)
+], OtpEntity.prototype, "createdAt", void 0);
+exports.OtpEntity = OtpEntity = __decorate([
+    (0, typeorm_1.Entity)('otp')
+], OtpEntity);
+//# sourceMappingURL=otp.entity.js.map

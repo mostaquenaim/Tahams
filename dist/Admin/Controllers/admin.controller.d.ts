@@ -1,12 +1,41 @@
 /// <reference types="multer" />
+import { HttpStatus } from '@nestjs/common';
 import { AdminService } from '../Services/admin.service';
 import { AdminForm } from '../DTOs/adminform.dto';
 import CouponForm from 'src/Global/DTOs/couponform.dto';
 export declare class AdminController {
     private readonly adminService;
     constructor(adminService: AdminService);
-    signIn(session: any, myDto: AdminForm): Promise<any>;
-    sendEmail(mydata: any): Promise<SentMessageInfo>;
+    signIn(session: any, myDto: any): Promise<{
+        status: HttpStatus;
+        message: string;
+        data?: undefined;
+        error?: undefined;
+    } | {
+        status: HttpStatus;
+        message: string;
+        data: import("../../Global/Entities/user.entity").UserEntity;
+        error?: undefined;
+    } | {
+        status: HttpStatus;
+        message: string;
+        error: any;
+        data?: undefined;
+    }>;
+    customerLogin(myDto: any): Promise<any>;
+    sendEmail(mydata: any): Promise<void>;
+    sendOtp(sendOtpDto: any): Promise<{
+        success: boolean;
+        message: string;
+    } | {
+        status: HttpStatus;
+        message: string;
+        data: any;
+    }>;
+    verifyOtp(verifyOtpDto: any): Promise<{
+        success: boolean;
+        message: string;
+    }>;
     addBanner(myDto: any, file: Express.Multer.File): Promise<any>;
     viewAllBanners(): Promise<import("../../Global/Entities/banner.entity").BannerEntity[]>;
     viewBannerById(id: number): Promise<import("../../Global/Entities/banner.entity").BannerEntity>;
@@ -20,7 +49,6 @@ export declare class AdminController {
     addPaymentInfo(PaymentDetails: any): Promise<any>;
     getAllBuyingHistories(email: string): Promise<unknown[]>;
     createNewCart(myDto: any): Promise<import("../../Global/Entities/cart.entity").CartsEntity[]>;
-    customerLogin(myDto: any): Promise<any>;
     deleteCartItem(id: any, email: any): Promise<import("typeorm").DeleteResult>;
     deleteCarts(myDto: any): Promise<import("typeorm").DeleteResult>;
     getAllCarts(email: string): Promise<import("../../Global/Entities/cart.entity").CartsEntity[]>;
@@ -51,7 +79,22 @@ export declare class AdminController {
     logout(session: any): {
         message: string;
     };
-    createUser(createUser: AdminForm): Promise<any>;
+    createUser(myDto: any): Promise<{
+        status: HttpStatus;
+        message: string;
+        data?: undefined;
+        error?: undefined;
+    } | {
+        status: HttpStatus;
+        message: string;
+        data: any;
+        error?: undefined;
+    } | {
+        status: HttpStatus;
+        message: string;
+        error: any;
+        data?: undefined;
+    }>;
     viewAllProduct(): Promise<import("../../Global/Entities/product.entity").ProductEntity[]>;
     viewProductSizes(): Promise<import("../../Global/Entities/size.entity").SizeEntity[]>;
     getProductById(id: any): Promise<import("../../Global/Entities/product.entity").ProductEntity>;

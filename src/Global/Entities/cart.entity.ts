@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne} from 'typeorm';
-import { CustomerEntity } from 'src/Customer/Entities/customer.entity';
+import { UserEntity } from './user.entity';
 import { ProductEntity } from './product.entity';
 import { BuyingHistoryEntity } from './buyingHistory.entity';
 import { CouponEntity } from './coupon.entity';
@@ -29,8 +29,8 @@ export class CartsEntity {
     @Column({default:false})
     isBought: boolean
 
-    @ManyToOne(() => CustomerEntity, (customer) => customer.carts)
-    customer: CustomerEntity
+    @ManyToOne(() => UserEntity, (customer) => customer.carts)
+    customer: UserEntity
 
     @ManyToOne(() => ProductEntity, (product) => product.carts)
     product: ProductEntity

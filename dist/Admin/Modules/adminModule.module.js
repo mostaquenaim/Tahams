@@ -13,7 +13,7 @@ const typeorm_1 = require("@nestjs/typeorm");
 const admin_controller_1 = require("../Controllers/admin.controller");
 const admin_entity_1 = require("../Entities/admin.entity");
 const admin_service_1 = require("../Services/admin.service");
-const customer_entity_1 = require("../../Customer/Entities/customer.entity");
+const user_entity_1 = require("../../Global/Entities/user.entity");
 const product_entity_1 = require("../../Global/Entities/product.entity");
 const banner_entity_1 = require("../../Global/Entities/banner.entity");
 const category_entity_1 = require("../../Global/Entities/category.entity");
@@ -35,6 +35,7 @@ const paymentInfo_entity_1 = require("../../Global/Entities/paymentInfo.entity")
 const dotenv = require("dotenv");
 const fabrics_entity_1 = require("../../Global/Entities/fabrics.entity");
 const productSizeCategory_entity_1 = require("../../Global/Entities/productSizeCategory.entity");
+const otp_entity_1 = require("../../Global/Entities/otp.entity");
 dotenv.config();
 let AdminModule = exports.AdminModule = class AdminModule {
 };
@@ -53,7 +54,7 @@ exports.AdminModule = AdminModule = __decorate([
                     },
                 }
             }),
-            typeorm_1.TypeOrmModule.forFeature([admin_entity_1.AdminEntity, banner_entity_1.BannerEntity, buyingHistory_entity_1.BuyingHistoryEntity, category_entity_1.CategoryEntity, color_size_combined_entity_1.ColorSizeEntity, customer_entity_1.CustomerEntity, colors_entity_1.ColorEntity, cart_entity_1.CartsEntity, coupon_entity_1.CouponEntity, deliveryStatus_entity_1.DeliveryStatusEntity, employee_entity_1.EmployeeEntity, fabrics_entity_1.FabricEntity, paymentInfo_entity_1.PaymentInfo, paymentMethod_entity_1.PaymentMethodEntity, product_pictures_entity_1.ProductPictureEntity, product_entity_1.ProductEntity, productSizeCategory_entity_1.ProductSizeCategoryEntity, partner_entity_1.PartnerEntity, size_entity_1.SizeEntity, subCategory_entity_1.SubCategoryEntity, subSubCategory_entity_1.SubSubCategoryEntity, wish_entity_1.WishEntity])
+            typeorm_1.TypeOrmModule.forFeature([admin_entity_1.AdminEntity, banner_entity_1.BannerEntity, buyingHistory_entity_1.BuyingHistoryEntity, category_entity_1.CategoryEntity, color_size_combined_entity_1.ColorSizeEntity, colors_entity_1.ColorEntity, cart_entity_1.CartsEntity, coupon_entity_1.CouponEntity, deliveryStatus_entity_1.DeliveryStatusEntity, employee_entity_1.EmployeeEntity, fabrics_entity_1.FabricEntity, otp_entity_1.OtpEntity, paymentInfo_entity_1.PaymentInfo, paymentMethod_entity_1.PaymentMethodEntity, product_pictures_entity_1.ProductPictureEntity, product_entity_1.ProductEntity, productSizeCategory_entity_1.ProductSizeCategoryEntity, partner_entity_1.PartnerEntity, size_entity_1.SizeEntity, subCategory_entity_1.SubCategoryEntity, subSubCategory_entity_1.SubSubCategoryEntity, user_entity_1.UserEntity, wish_entity_1.WishEntity])
         ],
         controllers: [admin_controller_1.AdminController],
         providers: [admin_service_1.AdminService],

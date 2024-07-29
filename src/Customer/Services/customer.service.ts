@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import CustomerForm from '../DTOs/customerform.dto';
 import { Repository } from 'typeorm';
-import { CustomerEntity } from '../Entities/customer.entity';
+import { UserEntity } from '../../Global/Entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -11,8 +11,8 @@ import { v4 as uuidv4 } from 'uuid';
 export class CustomerService {
 
   constructor(
-    @InjectRepository(CustomerEntity)
-    private userRepository: Repository<CustomerEntity>,
+    @InjectRepository(UserEntity)
+    private userRepository: Repository<UserEntity>,
   ) { }
 
   async createUser(myDto: CustomerForm) {

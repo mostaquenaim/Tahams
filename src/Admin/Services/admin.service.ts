@@ -1,11 +1,11 @@
 /* eslint-disable prettier/prettier */
-import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In } from 'typeorm';
 import { AdminForm } from '../DTOs/adminform.dto';
 import { Repository, FindManyOptions } from 'typeorm';
 import { AdminEntity } from '../Entities/admin.entity';
-import { CustomerEntity } from 'src/Customer/Entities/customer.entity';
+import { UserEntity } from 'src/Global/Entities/user.entity';
 import { ProductEntity } from 'src/Global/Entities/product.entity';
 import { BannerEntity } from 'src/Global/Entities/banner.entity';
 import * as bcrypt from 'bcrypt';
@@ -28,6 +28,7 @@ import { PaymentInfo } from 'src/Global/Entities/paymentInfo.entity';
 import { MoreThan } from 'typeorm';
 import { FabricEntity } from 'src/Global/Entities/fabrics.entity';
 import { ProductSizeCategoryEntity } from 'src/Global/Entities/productSizeCategory.entity';
+import { OtpEntity } from 'src/Global/Entities/otp.entity';
 
 @Injectable()
 export class AdminService {
@@ -37,8 +38,8 @@ export class AdminService {
     private adminRepo: Repository<AdminEntity>,
     private mailerService: MailerService,
 
-    @InjectRepository(CustomerEntity)
-    private customerRepo: Repository<CustomerEntity>,
+    @InjectRepository(UserEntity)
+    private userRepo: Repository<UserEntity>,
 
     @InjectRepository(ProductEntity)
     private productRepo: Repository<ProductEntity>,
@@ -63,6 +64,9 @@ export class AdminService {
 
     @InjectRepository(ColorEntity)
     private colorRepo: Repository<ColorEntity>,
+
+    @InjectRepository(OtpEntity)
+    private otpRepository: Repository<OtpEntity>,
 
     @InjectRepository(SubCategoryEntity)
     private subCategoryRepo: Repository<SubCategoryEntity>,
@@ -93,8 +97,6 @@ export class AdminService {
 
     @InjectRepository(ColorSizeEntity)
     private colorSizeRepo: Repository<ColorSizeEntity>,
-    // @InjectRepository(UserEntity)
-    // private userRepo:Repository<UserEntity>,
   ) { }
 
   async addBanner(myDto) {
@@ -108,43 +110,137 @@ export class AdminService {
     return this.paymentInfoRepo.save(myDto);
   }
 
-
+  // create user 
   async createUser(myDto) {
-    const salt = await bcrypt.genSalt();
-    const hashedPass = await bcrypt.hash(myDto.password, salt);
-    myDto.password = hashedPass;
-    return this.adminRepo.save(myDto);
+    try {
+      // Check if email is already in use
+      const existingUser = await this.userRepo.findOne({ where: { email: myDto.email } });
+      if (existingUser) {
+        return {
+          status: HttpStatus.CONFLICT,
+          message: 'Email is already in use',
+        };
+      }
+
+      // Hash the password
+      const salt = await bcrypt.genSalt();
+      const hashedPass = await bcrypt.hash(myDto.password, salt);
+      myDto.password = hashedPass;
+
+      // Save the new user
+      const savedUser = await this.userRepo.save(myDto);
+
+      return {
+        status: HttpStatus.CREATED,
+        message: 'User created successfully',
+        data: savedUser,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: 'An error occurred while creating the user',
+        error: error.message,
+      };
+    }
   }
 
   async createCustomer(myDto) {
     const salt = await bcrypt.genSalt();
     const hashedPass = await bcrypt.hash(myDto.password, salt);
     myDto.password = hashedPass;
-    return this.customerRepo.save(myDto);
+    return this.userRepo.save(myDto);
   }
 
-  // send email 
-  async sendEmail(mydto) {
+  // Method to send email
+  async sendEmail(myDto) {
+    try {
+      await this.mailerService.sendMail({
+        to: myDto.email,
+        subject: myDto.subject,
+        text: myDto.text,
+      });
+    } catch (error) {
+      throw new BadRequestException('Failed to send email');
+    }
+  }
 
-    return await this.mailerService.sendMail({
-      to: mydto.email,
-      subject: mydto.subject,
-      text: mydto.text,
+  async checkEmailAndSendOTP(email: string) {
+    const user = await this.getUserByEmail(email)
+    console.log(user);
+    if (!user) {
+      const result = await this.sendOtp(email)
+      return result
+    }
+    else {
+      return { status: HttpStatus.BAD_REQUEST, message: 'Email already exists', data: null }
+    }
+
+  }
+  // send otp 
+  async sendOtp(email: string) {
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 10); // OTP valid for 10 minutes
+
+    // Save OTP to database
+    const otpEntity = this.otpRepository.create({ email, otp });
+    await this.otpRepository.save(otpEntity);
+
+    // Send OTP email
+    await this.sendEmail({
+      email,
+      subject: 'Your OTP Code',
+      text: `Your OTP code is ${otp}. It is valid for 10 minutes.`,
     });
+
+    return { success: true, message: 'OTP sent' }
   }
+
+  // verify otp 
+  async verifyOtp(email: string, otp: string) {
+    const otpData = await this.otpRepository.findOne({ where: { email, otp } });
+
+    if (!otpData) {
+      throw new NotFoundException('Invalid or expired OTP');
+    }
+
+    const currentTime = new Date();
+    const otpCreationTime = new Date(otpData.createdAt);
+    const timeDifference = (currentTime.getTime() - otpCreationTime.getTime()) / (1000 * 60); // Time difference in minutes
+
+    if (otpData.otp !== otp || timeDifference > 10) {
+      throw new BadRequestException('Invalid or expired OTP');
+    }
+
+    await this.otpRepository.delete({ email });
+    return { success: true, message: 'OTP verified successfully' }
+  }
+
 
   // admin login 
   async signIn(myDto) {
+    try {
+      const myData = await this.userRepo.findOne({ where: { email: myDto.email } });
 
-    const myData = await this.adminRepo.findOneBy({ email: myDto.email });
-    if (!myData) {
-      return 0;
-    }
-    if (myDto.password == myData.password) {
-      return true;
-    }
-    return false;
+      if (!myData) {
+        return { status: HttpStatus.NOT_FOUND, message: 'User not found' };
+      }
 
+      const isPasswordValid = await bcrypt.compare(myDto.password, myData.password);
+
+      if (isPasswordValid) {
+        console.log('valid');
+        return { status: HttpStatus.OK, message: 'Login successful', data: myData };
+      }
+
+      return { status: HttpStatus.UNAUTHORIZED, message: 'Invalid password' };
+    } catch (error) {
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: 'An error occurred during login',
+        error: error.message,
+      };
+    }
   }
 
   // update admin profile 
@@ -187,9 +283,9 @@ export class AdminService {
   // delete a cart item  
   async deleteCartItem(id: string) {
     const myData = await this.cartRepo.findOneBy({ uniqueId: id });
-    console.log(myData, "169");
+    // console.log(myData, "169");
     if (myData) {
-      console.log(myData, "171");
+      // console.log(myData, "171");
       return this.cartRepo.delete(myData.id);
     }
     throw new NotFoundException(`Banner with ID ${id} not found.`);;
@@ -294,7 +390,7 @@ export class AdminService {
 
   // view all carts 
   async getAllCarts(email) {
-    console.log(email, "252");
+    // console.log(email, "252");
     if (email) {
       const cartsWithHistory = await this.cartRepo.find({
         where: {
@@ -302,7 +398,7 @@ export class AdminService {
         },
         relations: ['product', 'coupon']
       });
-      console.log(cartsWithHistory, "259");
+      // console.log(cartsWithHistory, "259");
       return cartsWithHistory;
     }
     throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
@@ -437,12 +533,12 @@ export class AdminService {
 
   // get customer by id 
   async getCustomerById(id) {
-    return await this.customerRepo.findOneBy({ uniqueId: id });
+    return await this.userRepo.findOneBy({ uniqueId: id });
   }
 
   // get customer by email 
-  async getCustomerByEmail(email) {
-    return await this.customerRepo.findOneBy({ email: email });
+  async getUserByEmail(email) {
+    return await this.userRepo.findOneBy({ email: email });
   }
 
   // get color by name 
@@ -480,7 +576,7 @@ export class AdminService {
       const products = await this.getProductBySubSubCatId(subCategoryId);
       const publishableProducts = products.filter(product => product.publishable);
 
-      console.log(products, 'break', publishableProducts);
+      // console.log(products, 'break', publishableProducts);
       return publishableProducts;
     } catch (error) {
       console.error('Error finding publishable products:', error);
@@ -622,7 +718,7 @@ export class AdminService {
     myDto,
   ) {
     const category = await this.getSubCategoryById(myDto.categoryId)
-    console.log(category, 583);
+    // console.log(category, 583);
     myDto.category = category
     const newCategory = this.subSubCategoryRepo.create({
       ...myDto
@@ -652,7 +748,7 @@ export class AdminService {
 
   // create new buy 
   async createNewBuy(myDto) {
-    console.log(myDto, "544");
+    // console.log(myDto, "544");
 
     myDto.deliveryStatus = await this.getDeliveryStatusById(myDto?.deliveryStatusId || 1)
     myDto.paymentMethod = await this.getPaymentMethodById(myDto?.paymentMethodId || 1)
@@ -669,13 +765,13 @@ export class AdminService {
   async customerLogin(myDto) {
     try {
       // Check if there is a customer with the provided email
-      const existingCustomer = await this.customerRepo.findOne({
+      const existingCustomer = await this.userRepo.findOne({
         where: { email: myDto.email },
       });
 
-      console.log(existingCustomer, "583");
+      // console.log(existingCustomer, "583");
       if (!existingCustomer) {
-        console.log("innnn");
+        // console.log("innnn");
         const newCustomer = this.createCustomer(myDto);
         return newCustomer
       }
@@ -689,12 +785,12 @@ export class AdminService {
 
   // create new cart 
   async createNewCart(myDto) {
-    console.log(myDto);
+    // console.log(myDto);
 
     const selectedProduct = await this.getProductById(myDto.productId)
     myDto.product = selectedProduct
     myDto.uniqueId = uuidv4()
-    myDto.customer = myDto?.customerEmail && await this.getCustomerByEmail(myDto?.customerEmail)
+    myDto.customer = myDto?.customerEmail && await this.getUserByEmail(myDto?.customerEmail)
     myDto.coupon = myDto?.couponId && await this.getCouponById(myDto?.couponId)
     const selectedColor = await this.getColorById(myDto.colorId)
     myDto.ProductName = selectedColor.name + " " + selectedProduct.name
@@ -743,7 +839,7 @@ export class AdminService {
 
   // create new product 
   async createNewProduct(myDto) {
-    console.log(myDto, 720);
+    // console.log(myDto, 720);
     const selectedColor = await this.getColorByName(myDto.color)
 
     myDto.color = selectedColor
@@ -794,7 +890,7 @@ export class AdminService {
       }
     })
 
-    console.log(processedCatsInfo, 771);
+    // console.log(processedCatsInfo, 771);
 
     return product
   }

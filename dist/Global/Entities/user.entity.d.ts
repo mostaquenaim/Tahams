@@ -1,11 +1,12 @@
 import { CartsEntity } from 'src/Global/Entities/cart.entity';
 import { WishEntity } from 'src/Global/Entities/wish.entity';
-export declare class CustomerEntity {
+export declare class UserEntity {
     id: number;
     name: string;
     uniqueId: string;
     password: string;
     email: string;
+    role: string;
     mbl_no: string;
     filename: string;
     address: string;

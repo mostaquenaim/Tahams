@@ -16,7 +16,7 @@ exports.CustomerService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
-const customer_entity_1 = require("../Entities/customer.entity");
+const user_entity_1 = require("../../Global/Entities/user.entity");
 const bcrypt = require("bcrypt");
 const uuid_1 = require("uuid");
 let CustomerService = exports.CustomerService = class CustomerService {
@@ -33,7 +33,7 @@ let CustomerService = exports.CustomerService = class CustomerService {
 };
 exports.CustomerService = CustomerService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, typeorm_1.InjectRepository)(customer_entity_1.CustomerEntity)),
+    __param(0, (0, typeorm_1.InjectRepository)(user_entity_1.UserEntity)),
     __metadata("design:paramtypes", [typeorm_2.Repository])
 ], CustomerService);
 //# sourceMappingURL=customer.service.js.map

@@ -1,4 +1,4 @@
-import { CustomerEntity } from 'src/Customer/Entities/customer.entity';
+import { UserEntity } from './user.entity';
 import { ProductEntity } from './product.entity';
 import { BuyingHistoryEntity } from './buyingHistory.entity';
 import { CouponEntity } from './coupon.entity';
@@ -10,7 +10,7 @@ export declare class CartsEntity {
     ProductName: string;
     created_at: Date;
     isBought: boolean;
-    customer: CustomerEntity;
+    customer: UserEntity;
     product: ProductEntity;
     coupon: CouponEntity;
     history: BuyingHistoryEntity;

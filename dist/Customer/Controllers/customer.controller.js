@@ -21,7 +21,6 @@ let CustomerController = exports.CustomerController = class CustomerController {
         this.appService = appService;
     }
     createUser(createUser) {
-        console.log(createUser);
         return this.appService.createUser(createUser);
     }
     getImages(name, res) {

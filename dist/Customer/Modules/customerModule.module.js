@@ -11,7 +11,7 @@ const mailer_1 = require("@nestjs-modules/mailer");
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const customer_controller_1 = require("../Controllers/customer.controller");
-const customer_entity_1 = require("../Entities/customer.entity");
+const user_entity_1 = require("../../Global/Entities/user.entity");
 const customer_service_1 = require("../Services/customer.service");
 const dotenv = require("dotenv");
 dotenv.config();
@@ -32,7 +32,7 @@ exports.CustomerModule = CustomerModule = __decorate([
                     },
                 }
             }),
-            typeorm_1.TypeOrmModule.forFeature([customer_entity_1.CustomerEntity])
+            typeorm_1.TypeOrmModule.forFeature([user_entity_1.UserEntity])
         ],
         controllers: [customer_controller_1.CustomerController],
         providers: [customer_service_1.CustomerService],

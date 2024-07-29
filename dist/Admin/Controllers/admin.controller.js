@@ -26,16 +26,22 @@ let AdminController = exports.AdminController = class AdminController {
     }
     async signIn(session, myDto) {
         const res = await (this.adminService.signIn(myDto));
-        if (res == true) {
-            session.email = myDto.email;
-            return (session.email);
-        }
-        else {
-            throw new common_1.UnauthorizedException({ message: "invalid" });
-        }
+        return res;
+    }
+    async customerLogin(myDto) {
+        const response = await this.adminService.customerLogin(myDto);
+        return response;
     }
     sendEmail(mydata) {
         return this.adminService.sendEmail(mydata);
+    }
+    async sendOtp(sendOtpDto) {
+        const result = await this.adminService.checkEmailAndSendOTP(sendOtpDto.email);
+        console.log(result);
+        return result;
+    }
+    async verifyOtp(verifyOtpDto) {
+        return await this.adminService.verifyOtp(verifyOtpDto.email, verifyOtpDto.otp);
     }
     addBanner(myDto, file) {
         myDto.filename = file.filename;
@@ -76,10 +82,6 @@ let AdminController = exports.AdminController = class AdminController {
     }
     async createNewCart(myDto) {
         const response = await this.adminService.createNewCart(myDto);
-        return response;
-    }
-    async customerLogin(myDto) {
-        const response = await this.adminService.customerLogin(myDto);
         return response;
     }
     deleteCartItem(id, email) {
@@ -127,7 +129,6 @@ let AdminController = exports.AdminController = class AdminController {
         return this.adminService.getCategoryByName(id);
     }
     getProductByCat(name) {
-        console.log(name);
         return this.adminService.getProductByCat(name);
     }
     getProductBySubSubCatId(id) {
@@ -137,7 +138,6 @@ let AdminController = exports.AdminController = class AdminController {
         await this.adminService.updateCategory(id, myDto);
     }
     createNewCategory(myDto) {
-        console.log(myDto, "337");
         return this.adminService.createNewCategory(myDto);
     }
     createNewSubCategory(myDto) {
@@ -179,8 +179,8 @@ let AdminController = exports.AdminController = class AdminController {
             throw new common_1.UnauthorizedException("Can't log out");
         }
     }
-    createUser(createUser) {
-        return this.adminService.createUser(createUser);
+    createUser(myDto) {
+        return this.adminService.createUser(myDto);
     }
     viewAllProduct() {
         return this.adminService.viewAllProduct();
@@ -216,13 +216,10 @@ let AdminController = exports.AdminController = class AdminController {
         return this.adminService.updateAdmin(myDto, myDto.email);
     }
     createNewWish(myDto) {
-        console.log("myDto", myDto);
         return this.adminService.createNewWish(myDto);
     }
     async getWishByUser(userId) {
-        console.log(userId, "572");
         const res = await this.adminService.getWishByUser(userId);
-        console.log(res, "574");
         return res;
     }
     getImages(name, res) {
@@ -234,9 +231,17 @@ __decorate([
     __param(0, (0, common_1.Session)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, adminform_dto_1.AdminForm]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "signIn", null);
+__decorate([
+    (0, common_1.Post)('customer-login'),
+    (0, common_1.UsePipes)(common_1.ValidationPipe),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "customerLogin", null);
 __decorate([
     (0, common_1.Post)('sendemail'),
     __param(0, (0, common_1.Body)()),
@@ -244,6 +249,22 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "sendEmail", null);
+__decorate([
+    (0, common_1.Post)('send-otp'),
+    (0, common_1.UsePipes)(common_1.ValidationPipe),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "sendOtp", null);
+__decorate([
+    (0, common_1.Post)('verify-otp'),
+    (0, common_1.UsePipes)(common_1.ValidationPipe),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "verifyOtp", null);
 __decorate([
     (0, common_1.Post)('add-banner'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('filename', {
@@ -364,14 +385,6 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "createNewCart", null);
-__decorate([
-    (0, common_1.Post)('customer-login'),
-    (0, common_1.UsePipes)(common_1.ValidationPipe),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], AdminController.prototype, "customerLogin", null);
 __decorate([
     (0, common_1.Delete)('delete-cart/:uniqueId'),
     __param(0, (0, common_1.Param)('uniqueId')),
@@ -584,7 +597,7 @@ __decorate([
     (0, common_1.Post)('create'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [adminform_dto_1.AdminForm]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "createUser", null);
 __decorate([

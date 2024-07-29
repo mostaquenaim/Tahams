@@ -28,7 +28,6 @@ let EmployeeService = exports.EmployeeService = class EmployeeService {
         return 'my name is khan';
     }
     createUser(createUserDto) {
-        console.log(createUserDto);
         return createUserDto;
     }
 };
