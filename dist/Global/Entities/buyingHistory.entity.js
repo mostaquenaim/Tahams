@@ -27,19 +27,67 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
-], BuyingHistoryEntity.prototype, "Address", void 0);
+], BuyingHistoryEntity.prototype, "address", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], BuyingHistoryEntity.prototype, "region", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], BuyingHistoryEntity.prototype, "city", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
 ], BuyingHistoryEntity.prototype, "phone_no", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
+    __metadata("design:type", Number)
+], BuyingHistoryEntity.prototype, "deliveryFee", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
     __metadata("design:type", Date)
 ], BuyingHistoryEntity.prototype, "BuyingDate", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], BuyingHistoryEntity.prototype, "receivedDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], BuyingHistoryEntity.prototype, "processedDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], BuyingHistoryEntity.prototype, "readyToShipDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], BuyingHistoryEntity.prototype, "droppedOffDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], BuyingHistoryEntity.prototype, "outDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], BuyingHistoryEntity.prototype, "deliveredDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], BuyingHistoryEntity.prototype, "cancelDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], BuyingHistoryEntity.prototype, "returnDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], BuyingHistoryEntity.prototype, "PaymentDetails", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], BuyingHistoryEntity.prototype, "screenshot", void 0);
 __decorate([
     (0, typeorm_1.Column)({ default: false }),
     __metadata("design:type", Boolean)

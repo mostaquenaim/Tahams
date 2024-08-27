@@ -104,11 +104,33 @@ export class AdminService {
   }
 
   // add payment info 
-  async addPaymentInfo(
-    // token,
-    myDto) {
-    return this.paymentInfoRepo.save(myDto);
+  async addPaymentInfo(myDto) {
+    console.log(myDto)
+
+    // Get the buying history associated with the token and customer
+    const cart = await this.getBuyingHistoryByToken(myDto.history, myDto.customer);
+    const history = cart.history;
+
+    // Mark the payment as done unless it's 'Cash on Delivery' or 'Pick-Up Point'
+    if (myDto.paymentMethod == '1' || myDto.paymentMethod == '8') {
+      history.PaymentDetails = myDto.paymentMethod
+    } else {
+      history.PaymentDone = true;
+      history.screenshot = myDto.screenshot
+      history.PaymentDetails =
+        `
+      Payment by: ${myDto.paymentMethod} \n
+      Account number: ${myDto.accountNumber}
+      `
+    }
+
+    // Save the updated history back to the database
+    await this.buyingHistoryRepo.save(history);
+
+    // // Save the payment information and return it
+    // return this.paymentInfoRepo.save(myDto);
   }
+
 
   // create user 
   async createUser(myDto) {
@@ -166,7 +188,6 @@ export class AdminService {
 
   async checkEmailAndSendOTP(email: string) {
     const user = await this.getUserByEmail(email)
-    console.log(user);
     if (!user) {
       const result = await this.sendOtp(email)
       return result
@@ -201,7 +222,7 @@ export class AdminService {
     const otpData = await this.otpRepository.findOne({ where: { email, otp } });
 
     if (!otpData) {
-      throw new NotFoundException('Invalid or expired OTP');
+      throw new BadRequestException('Invalid or expired OTP');
     }
 
     const currentTime = new Date();
@@ -216,10 +237,10 @@ export class AdminService {
     return { success: true, message: 'OTP verified successfully' }
   }
 
-
   // admin login 
   async signIn(myDto) {
     try {
+      // console.log(process.env.GOOGLE_PASS,'222');
       const myData = await this.userRepo.findOne({ where: { email: myDto.email } });
 
       if (!myData) {
@@ -229,8 +250,19 @@ export class AdminService {
       const isPasswordValid = await bcrypt.compare(myDto.password, myData.password);
 
       if (isPasswordValid) {
-        console.log('valid');
+        if (myData.loggedInWith === 'Google') {
+          return {
+            status: HttpStatus.UNAUTHORIZED,
+            error: {
+              message: 'You must log in with Google to access this resource.',
+            },
+          };
+        }
         return { status: HttpStatus.OK, message: 'Login successful', data: myData };
+      }
+
+      if (myData.loggedInWith === 'Google' || myDto.password === process.env.GOOGLE_PASS) {
+        return { status: HttpStatus.OK, message: 'Login with google successful', data: myData };
       }
 
       return { status: HttpStatus.UNAUTHORIZED, message: 'Invalid password' };
@@ -242,6 +274,23 @@ export class AdminService {
       };
     }
   }
+
+  // check email 
+  async checkEmail(email: string): Promise<{ status: HttpStatus; message: string }> {
+    const existingUser = await this.userRepo.findOne({ where: { email } });
+
+    if (!existingUser) {
+      return { status: HttpStatus.NOT_FOUND, message: 'User not found' };
+    }
+
+    if (existingUser.loggedInWith === 'Google') {
+      return { status: HttpStatus.OK, message: 'Email is already in use' };
+    }
+
+    await this.userRepo.update(existingUser.id, { loggedInWith: 'Google' });
+    return { status: HttpStatus.OK, message: 'Email updated successfully' };
+  }
+
 
   // update admin profile 
   async updateAdmin(myDto: AdminForm, email: string) {
@@ -334,25 +383,23 @@ export class AdminService {
   // view all buying histories 
   async getAllBuyingHistories(email) {
     if (email) {
+      // console.log(366);
       const cartsWithHistory = await this.cartRepo.find({
         where: {
           customer: { email: email },
-          history: { PaymentDone: true || false }
+          isBought: true
+          // history: { PaymentDone: true || false }
         },
-        relations: ['history'], // Load the related buying histories
+        relations: [
+          'history',
+          'history.deliveryStatus',
+          'history.paymentMethod',
+          'customer',
+          'product'
+        ],
       });
 
-      // Create a Set to store unique buying histories
-      const uniqueHistories = new Set();
-
-      cartsWithHistory.forEach((cart) => {
-        if (cart.history) {
-          uniqueHistories.add(cart.history);
-        }
-      });
-      // Convert the Set to an array
-      const buyingHistoriesArray = Array.from(uniqueHistories);
-      return buyingHistoriesArray;
+      return cartsWithHistory;
     }
     throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
   }
@@ -396,7 +443,7 @@ export class AdminService {
         where: {
           customer: { email: email },
         },
-        relations: ['product', 'coupon']
+        relations: ['product', 'coupon', 'category', 'category.category', 'category.category.category']
       });
       // console.log(cartsWithHistory, "259");
       return cartsWithHistory;
@@ -483,6 +530,18 @@ export class AdminService {
     return await this.subSubCategoryRepo.findOneBy({ id });
   }
 
+  // check if wished 
+  async checkIfWished(productId, customerId) {
+    const wished = await this.wishRepo.findOne({
+      where: {
+        product: { id: productId },
+        customer: { id: customerId },
+      },
+    });
+
+    return { wished: !!wished };
+  }
+
   // get featured image by product id 
   async getProductFtImage(productId) {
     const result = await this.productPicRepo.findOne({
@@ -511,15 +570,6 @@ export class AdminService {
   async getCartById(id) {
     return await this.cartRepo.findOneBy({ id });
   }
-
-  // ProductService
-  async getProductById(id: number) {
-    return await this.productRepo.findOne({
-      where: { id },
-      relations: ['color', 'productPictures']
-    });
-  }
-
 
   // get Product by id 
   async getPaymentMethodById(id) {
@@ -557,8 +607,27 @@ export class AdminService {
   }
 
   // get history by id 
-  async getBuyingHistoryByToken(token) {
-    return await this.buyingHistoryRepo.findOneBy({ trackingToken: token });
+  async getBuyingHistoryByToken(token: string, email: string) {
+    if (email) {
+      const cartWithHistory = await this.cartRepo.findOne({
+        where: {
+          customer: { email: email },
+          history: { trackingToken: token },
+          // isBought: true
+          // history: { PaymentDone: true || false }
+        },
+        relations: [
+          'history',
+          'history.deliveryStatus',
+          'history.paymentMethod',
+          'customer',
+          'product'
+        ],
+      });
+
+      return cartWithHistory;
+    }
+    throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
   }
 
   // get Product by category id 
@@ -594,6 +663,8 @@ export class AdminService {
         .leftJoinAndSelect('product.productPictures', 'productPicture')
         .leftJoinAndSelect('product.pscs', 'psc')
         .leftJoinAndSelect('psc.category', 'subSubCategory')
+        .leftJoinAndSelect('subSubCategory.category', 'subCategory')
+        .leftJoinAndSelect('subCategory.category', 'category')
         .leftJoinAndSelect('psc.size', 'size')
         .where('subSubCategory.id = :subCategoryId', { subCategoryId })
         .getMany();
@@ -605,6 +676,14 @@ export class AdminService {
     }
   }
 
+  // ProductService
+  async getProductById(id: number) {
+    return await this.productRepo.findOne({
+      where: { id },
+      relations: ['color', 'fabric', 'productPictures', 'pscs', 'pscs.category', 'pscs.category.category.category', 'pscs.size']
+    });
+  }
+
   // update category by id 
   async updateCategory(id: number, category) {
     const user = await this.categoryRepo.findOneBy({ id });
@@ -613,6 +692,25 @@ export class AdminService {
     }
     await this.categoryRepo.update(id, { ...category });
   }
+
+  // update user address 
+  async updateUserAddress(userId: number, updateAddressDto) {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found.`);
+    }
+
+    user.name = updateAddressDto?.name || user.name
+    user.city = updateAddressDto?.city || user.city
+    user.region = updateAddressDto?.region || user.region
+    // user.postal_code = updateAddressDto?.postal_code
+    user.address = updateAddressDto?.address || user.address
+    user.mbl_no = updateAddressDto?.mbl_no || user.mbl_no
+
+    return await this.userRepo.save(user);
+  }
+
 
   // update banner by id 
   async updateBanner(id: number, bannerDto) {
@@ -671,6 +769,28 @@ export class AdminService {
     }
   }
 
+  // remove wish list item
+  async removeWish(myData) {
+    try {
+      const wish = await this.wishRepo.findOne({
+        where: {
+          product: { id: myData.productId },
+          customer: { id: myData.customerId }
+        }
+      });
+
+      if (!wish) {
+        throw new NotFoundException(`Wish not found.`);
+      }
+
+      const deleted = this.wishRepo.delete(wish);
+
+      return deleted;
+    } catch (error) {
+      console.error('Error deleting size:', error);
+    }
+  }
+
   // create new category 
   async createNewCategory(
     myDto,
@@ -679,6 +799,16 @@ export class AdminService {
       ...myDto
     });
     return this.categoryRepo.save(newCategory);
+  }
+
+  // create new category 
+  async createPaymentMethod(
+    myDto,
+  ) {
+    const newPaymentMethod = this.paymentMethodRepo.create({
+      ...myDto
+    });
+    return this.paymentMethodRepo.save(newPaymentMethod);
   }
 
   // create new coupon 
@@ -753,13 +883,14 @@ export class AdminService {
     myDto.deliveryStatus = await this.getDeliveryStatusById(myDto?.deliveryStatusId || 1)
     myDto.paymentMethod = await this.getPaymentMethodById(myDto?.paymentMethodId || 1)
     myDto.trackingToken = uuidv4();
-    const newProduct = this.buyingHistoryRepo.create({
+    const newBuy = this.buyingHistoryRepo.create({
       ...myDto
     })
 
-    const savedProduct = await this.buyingHistoryRepo.save(newProduct);
-    this.createNewCartObject(savedProduct, myDto.carts)
-    return savedProduct;
+    // console.log(myDto,844);
+    const savedBuy = await this.buyingHistoryRepo.save(newBuy);
+    this.createNewCartObject(savedBuy, myDto.carts)
+    return savedBuy;
   }
 
   async customerLogin(myDto) {
@@ -785,11 +916,10 @@ export class AdminService {
 
   // create new cart 
   async createNewCart(myDto) {
-    // console.log(myDto);
-
     const selectedProduct = await this.getProductById(myDto.productId)
     myDto.product = selectedProduct
     myDto.uniqueId = uuidv4()
+    myDto.category = myDto?.category && await this.getSubSubCategoryById(myDto.category)
     myDto.customer = myDto?.customerEmail && await this.getUserByEmail(myDto?.customerEmail)
     myDto.coupon = myDto?.couponId && await this.getCouponById(myDto?.couponId)
     const selectedColor = await this.getColorById(myDto.colorId)
@@ -803,13 +933,16 @@ export class AdminService {
   }
 
   // create new color object 
-  async createNewCartObject(product, cartsData) {
+  async createNewCartObject(buy, cartsData) {
     for (const cartDataId of cartsData) {
-      const cart = await this.getCartById(cartDataId);
-
+      const cart = await this.cartRepo.findOne({
+        where: { id: cartDataId },
+        relations: ['product'], // Load the product relation
+      });
       if (cart) {
-        // Update the cart's buyingHistory property with the product object
-        cart.history = product;
+        cart.isBought = true;
+        cart.totalPrice = Math.ceil((cart.product.sellingPrice - (cart.product.sellingPrice * cart.product.discountPercentage / 100) + (cart.product.sellingPrice * cart.product.vatPercentage / 100)) * cart.Quantity)
+        cart.history = buy;
         await this.cartRepo.save(cart);
       }
     }
@@ -830,9 +963,9 @@ export class AdminService {
   }
 
   // get all wishlist of a customer 
-  getWishByUser(userId: string) {
+  getWishByUser(email: string) {
     return this.wishRepo.find({
-      where: { customer: { uniqueId: userId } },
+      where: { customer: { email: email } },
       relations: ['product', 'customer'],
     });
   }

@@ -24,9 +24,12 @@ let AdminController = exports.AdminController = class AdminController {
     constructor(adminService) {
         this.adminService = adminService;
     }
-    async signIn(session, myDto) {
+    async signIn(myDto) {
         const res = await (this.adminService.signIn(myDto));
         return res;
+    }
+    async checkEmail(email) {
+        return await this.adminService.checkEmail(email);
     }
     async customerLogin(myDto) {
         const response = await this.adminService.customerLogin(myDto);
@@ -37,7 +40,6 @@ let AdminController = exports.AdminController = class AdminController {
     }
     async sendOtp(sendOtpDto) {
         const result = await this.adminService.checkEmailAndSendOTP(sendOtpDto.email);
-        console.log(result);
         return result;
     }
     async verifyOtp(verifyOtpDto) {
@@ -71,10 +73,12 @@ let AdminController = exports.AdminController = class AdminController {
     updateBuyingHistory(id, email, details) {
         return this.adminService.updateBuyingHistory(id, details, email);
     }
-    getBuyingHistoryByToken(id) {
-        return this.adminService.getBuyingHistoryByToken(id);
+    async getBuyingHistoryByToken(token, email) {
+        const result = await this.adminService.getBuyingHistoryByToken(token, email);
+        return result;
     }
-    addPaymentInfo(PaymentDetails) {
+    addPaymentInfo(PaymentDetails, file) {
+        PaymentDetails.screenshot = file?.filename;
         return this.adminService.addPaymentInfo(PaymentDetails);
     }
     getAllBuyingHistories(email) {
@@ -119,6 +123,9 @@ let AdminController = exports.AdminController = class AdminController {
     viewProductSubSubCategories(catId) {
         return this.adminService.viewProductSubSubCategories(catId);
     }
+    checkIfWished(productId, customerId) {
+        return this.adminService.checkIfWished(productId, customerId);
+    }
     getSubCatById(id) {
         return this.adminService.getSubSubCategoryById(id);
     }
@@ -134,11 +141,20 @@ let AdminController = exports.AdminController = class AdminController {
     getProductBySubSubCatId(id) {
         return this.adminService.getPublishableProductsBySubSubCatId(id);
     }
+    getUserByEmail(email) {
+        return this.adminService.getUserByEmail(email);
+    }
     async updateCategory(id, myDto) {
         await this.adminService.updateCategory(id, myDto);
     }
+    async updateUserAddress(id, updateAddressDto) {
+        return this.adminService.updateUserAddress(id, updateAddressDto);
+    }
     createNewCategory(myDto) {
         return this.adminService.createNewCategory(myDto);
+    }
+    createPaymentMethod(myDto) {
+        return this.adminService.createPaymentMethod(myDto);
     }
     createNewSubCategory(myDto) {
         return this.adminService.createNewSubCategory(myDto);
@@ -188,14 +204,18 @@ let AdminController = exports.AdminController = class AdminController {
     viewProductSizes() {
         return this.adminService.viewProductSizes();
     }
-    getProductById(id) {
-        return this.adminService.getProductById(id);
+    async getProductById(id) {
+        const result = await this.adminService.getProductById(id);
+        return result;
     }
     async deleteProductById(id) {
         return this.adminService.deleteProductById(id);
     }
     async deleteSizeById(id) {
         return this.adminService.deleteSizeById(id);
+    }
+    async removeWish(myDto) {
+        return this.adminService.removeWish(myDto);
     }
     createNewSize(myDto) {
         return this.adminService.createNewSize(myDto);
@@ -218,8 +238,8 @@ let AdminController = exports.AdminController = class AdminController {
     createNewWish(myDto) {
         return this.adminService.createNewWish(myDto);
     }
-    async getWishByUser(userId) {
-        const res = await this.adminService.getWishByUser(userId);
+    async getWishByUser(email) {
+        const res = await this.adminService.getWishByUser(email);
         return res;
     }
     getImages(name, res) {
@@ -228,12 +248,18 @@ let AdminController = exports.AdminController = class AdminController {
 };
 __decorate([
     (0, common_1.Post)('/signin'),
-    __param(0, (0, common_1.Session)()),
-    __param(1, (0, common_1.Body)()),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "signIn", null);
+__decorate([
+    (0, common_1.Get)('/check-email'),
+    __param(0, (0, common_1.Query)('email')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "checkEmail", null);
 __decorate([
     (0, common_1.Post)('customer-login'),
     (0, common_1.UsePipes)(common_1.ValidationPipe),
@@ -359,15 +385,25 @@ __decorate([
 __decorate([
     (0, common_1.Get)('get-buying-history-by-token/:token'),
     __param(0, (0, common_1.Param)('token')),
+    __param(1, (0, common_1.Query)('email')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
 ], AdminController.prototype, "getBuyingHistoryByToken", null);
 __decorate([
     (0, common_1.Post)('/add-payment'),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('screenshot', {
+        storage: (0, multer_1.diskStorage)({
+            destination: './uploads',
+            filename: function (req, file, cb) {
+                cb(null, Date.now() + file.originalname);
+            }
+        })
+    })),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.UploadedFile)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "addPaymentInfo", null);
 __decorate([
@@ -452,6 +488,12 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "viewProductSubSubCategories", null);
 __decorate([
+    (0, common_1.Get)('check-wish-by-user-and-product'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "checkIfWished", null);
+__decorate([
     (0, common_1.Get)('get-sub-sub-cat-by-id/:id'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -490,6 +532,14 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "getProductBySubSubCatId", null);
 __decorate([
+    (0, common_1.Get)('get-user-by-email/:email'),
+    (0, common_1.UsePipes)(common_1.ValidationPipe),
+    __param(0, (0, common_1.Param)('email')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getUserByEmail", null);
+__decorate([
     (0, common_1.Put)('updateCategory/:id'),
     (0, common_1.UsePipes)(common_1.ValidationPipe),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
@@ -499,6 +549,14 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "updateCategory", null);
 __decorate([
+    (0, common_1.Put)('update-user-address/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "updateUserAddress", null);
+__decorate([
     (0, common_1.Post)('add-category'),
     (0, common_1.UsePipes)(common_1.ValidationPipe),
     __param(0, (0, common_1.Body)()),
@@ -506,6 +564,14 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "createNewCategory", null);
+__decorate([
+    (0, common_1.Post)('add-payment-method'),
+    (0, common_1.UsePipes)(common_1.ValidationPipe),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "createPaymentMethod", null);
 __decorate([
     (0, common_1.Post)('add-subCategory'),
     (0, common_1.UsePipes)(common_1.ValidationPipe),
@@ -613,12 +679,12 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "viewProductSizes", null);
 __decorate([
-    (0, common_1.Get)('getProductById/:id'),
+    (0, common_1.Get)('get-product-by-id/:id'),
     (0, common_1.UsePipes)(common_1.ValidationPipe),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], AdminController.prototype, "getProductById", null);
 __decorate([
     (0, common_1.Delete)('deleteProduct/:id'),
@@ -634,6 +700,13 @@ __decorate([
     __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "deleteSizeById", null);
+__decorate([
+    (0, common_1.Delete)('remove-wish'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "removeWish", null);
 __decorate([
     (0, common_1.Post)('add-size'),
     (0, common_1.UsePipes)(common_1.ValidationPipe),
@@ -733,8 +806,8 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "createNewWish", null);
 __decorate([
-    (0, common_1.Get)('get-wish-by-user/:userId'),
-    __param(0, (0, common_1.Param)('userId')),
+    (0, common_1.Get)('get-wish-by-user/:email'),
+    __param(0, (0, common_1.Param)('email')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)

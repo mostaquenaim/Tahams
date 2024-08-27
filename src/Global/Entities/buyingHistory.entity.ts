@@ -23,16 +23,52 @@ export class BuyingHistoryEntity {
     trackingToken: string
 
     @Column()
-    Address: string
+    address: string
+
+    @Column()
+    region: string
+
+    @Column()
+    city: string
 
     @Column()
     phone_no: string
 
     @Column()
+    deliveryFee: number
+
+    @Column()
     BuyingDate: Date
+
+    @Column({nullable: true})
+    receivedDate: Date
+
+    @Column({nullable: true})
+    processedDate: Date
+
+    @Column({nullable: true})
+    readyToShipDate: Date
+
+    @Column({nullable: true})
+    droppedOffDate: Date
+
+    @Column({nullable: true})
+    outDate: Date
+
+    @Column({nullable: true})
+    deliveredDate: Date
+
+    @Column({nullable: true})
+    cancelDate: Date
+
+    @Column({nullable: true})
+    returnDate: Date
 
     @Column({nullable:true})
     PaymentDetails: string
+
+    @Column({nullable:true})
+    screenshot: string //payment screenshot
 
     @Column({default:false})
     PaymentDone: boolean

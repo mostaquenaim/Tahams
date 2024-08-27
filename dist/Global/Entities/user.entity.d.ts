@@ -11,10 +11,12 @@ export declare class UserEntity {
     filename: string;
     address: string;
     city: string;
+    region: string;
     state: string;
     postal_code: string;
     date_of_birth: Date;
     gender: string;
+    loggedInWith: string;
     created_at: Date;
     updated_at: Date;
     carts: CartsEntity[];

@@ -48,7 +48,7 @@ export declare class AdminService {
     private colorSizeRepo;
     constructor(adminRepo: Repository<AdminEntity>, mailerService: MailerService, userRepo: Repository<UserEntity>, productRepo: Repository<ProductEntity>, productSizeCategoryRepo: Repository<ProductSizeCategoryEntity>, productPicRepo: Repository<ProductPictureEntity>, bannerRepo: Repository<BannerEntity>, paymentInfoRepo: Repository<PaymentInfo>, categoryRepo: Repository<CategoryEntity>, couponRepo: Repository<CouponEntity>, colorRepo: Repository<ColorEntity>, otpRepository: Repository<OtpEntity>, subCategoryRepo: Repository<SubCategoryEntity>, subSubCategoryRepo: Repository<SubSubCategoryEntity>, sizeRepo: Repository<SizeEntity>, wishRepo: Repository<WishEntity>, cartRepo: Repository<CartsEntity>, buyingHistoryRepo: Repository<BuyingHistoryEntity>, deliveryStatusRepo: Repository<DeliveryStatusEntity>, paymentMethodRepo: Repository<PaymentMethodEntity>, fabricRepo: Repository<FabricEntity>, colorSizeRepo: Repository<ColorSizeEntity>);
     addBanner(myDto: any): Promise<any>;
-    addPaymentInfo(myDto: any): Promise<any>;
+    addPaymentInfo(myDto: any): Promise<void>;
     createUser(myDto: any): Promise<{
         status: HttpStatus;
         message: string;
@@ -86,8 +86,15 @@ export declare class AdminService {
     signIn(myDto: any): Promise<{
         status: HttpStatus;
         message: string;
-        data?: undefined;
         error?: undefined;
+        data?: undefined;
+    } | {
+        status: HttpStatus;
+        error: {
+            message: string;
+        };
+        message?: undefined;
+        data?: undefined;
     } | {
         status: HttpStatus;
         message: string;
@@ -99,13 +106,17 @@ export declare class AdminService {
         error: any;
         data?: undefined;
     }>;
+    checkEmail(email: string): Promise<{
+        status: HttpStatus;
+        message: string;
+    }>;
     updateAdmin(myDto: AdminForm, email: string): Promise<"Admin not found" | "Admin updated" | "Update failed">;
     publishProduct(id: number, publishable: boolean): Promise<void>;
     deleteBanner(id: number): Promise<import("typeorm").DeleteResult>;
     deleteCartItem(id: string): Promise<import("typeorm").DeleteResult>;
     deleteCarts(cartArray: string[]): Promise<import("typeorm").DeleteResult>;
     viewAllProduct(): Promise<ProductEntity[]>;
-    getAllBuyingHistories(email: any): Promise<unknown[]>;
+    getAllBuyingHistories(email: any): Promise<CartsEntity[]>;
     getAllCoupons(): Promise<CouponEntity[]>;
     getAllDeliveryStatus(): Promise<DeliveryStatusEntity[]>;
     getAllPaymentMethod(): Promise<PaymentMethodEntity[]>;
@@ -124,11 +135,13 @@ export declare class AdminService {
     getCategoryByName(name: any): Promise<CategoryEntity>;
     getSubCategoryById(id: any): Promise<SubCategoryEntity>;
     getSubSubCategoryById(id: any): Promise<SubSubCategoryEntity>;
+    checkIfWished(productId: any, customerId: any): Promise<{
+        wished: boolean;
+    }>;
     getProductFtImage(productId: any): Promise<ProductPictureEntity>;
     getBannerById(id: any): Promise<BannerEntity>;
     getSizeById(id: any): Promise<SizeEntity>;
     getCartById(id: any): Promise<CartsEntity>;
-    getProductById(id: number): Promise<ProductEntity>;
     getPaymentMethodById(id: any): Promise<PaymentMethodEntity>;
     getColorById(id: any): Promise<ColorEntity>;
     getCustomerById(id: any): Promise<UserEntity>;
@@ -136,16 +149,20 @@ export declare class AdminService {
     getColorByName(name: string): Promise<ColorEntity>;
     getDeliveryStatusById(id: any): Promise<DeliveryStatusEntity>;
     getCouponById(id: any): Promise<CouponEntity>;
-    getBuyingHistoryByToken(token: any): Promise<BuyingHistoryEntity>;
+    getBuyingHistoryByToken(token: string, email: string): Promise<CartsEntity>;
     getProductByCat(name: any): Promise<void>;
     getPublishableProductsBySubSubCatId(subCategoryId: any): Promise<ProductEntity[]>;
     getProductBySubSubCatId(subCategoryId: any): Promise<ProductEntity[]>;
+    getProductById(id: number): Promise<ProductEntity>;
     updateCategory(id: number, category: any): Promise<void>;
+    updateUserAddress(userId: number, updateAddressDto: any): Promise<UserEntity>;
     updateBanner(id: number, bannerDto: any): Promise<void>;
     updateBuyingHistory(token: any, details: any, email: any): Promise<BuyingHistoryEntity>;
     deleteProductById(id: number): Promise<import("typeorm").DeleteResult>;
     deleteSizeById(id: number): Promise<import("typeorm").DeleteResult>;
+    removeWish(myData: any): Promise<import("typeorm").DeleteResult>;
     createNewCategory(myDto: any): Promise<CategoryEntity[]>;
+    createPaymentMethod(myDto: any): Promise<PaymentMethodEntity[]>;
     createNewCoupon(myDto: any): Promise<CouponEntity[]>;
     createNewColor(myDto: any): Promise<ColorEntity[]>;
     createNewSubCategory(myDto: any): Promise<SubCategoryEntity[]>;
@@ -155,9 +172,9 @@ export declare class AdminService {
     createNewBuy(myDto: any): Promise<BuyingHistoryEntity[]>;
     customerLogin(myDto: any): Promise<any>;
     createNewCart(myDto: any): Promise<CartsEntity[]>;
-    createNewCartObject(product: any, cartsData: any): Promise<boolean>;
+    createNewCartObject(buy: any, cartsData: any): Promise<boolean>;
     createNewWish(myDto: any): Promise<WishEntity[]>;
-    getWishByUser(userId: string): Promise<WishEntity[]>;
+    getWishByUser(email: string): Promise<WishEntity[]>;
     createNewProduct(myDto: any): Promise<any>;
     createProductExtension(product: any, catsInfo: any): Promise<any>;
     addProductPictures(myDto: any): Promise<boolean>;

@@ -36,6 +36,9 @@ export class UserEntity {
     city: string;
 
     @Column({ nullable: true })
+    region: string;
+
+    @Column({ nullable: true })
     state: string;
 
     @Column({ nullable: true })
@@ -46,6 +49,9 @@ export class UserEntity {
 
     @Column({ nullable: true })
     gender: string;
+
+    @Column({ nullable: true })
+    loggedInWith: string;
 
     @Column({ default: () => 'CURRENT_TIMESTAMP' })
     created_at: Date;

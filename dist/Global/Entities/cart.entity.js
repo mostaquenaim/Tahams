@@ -15,6 +15,7 @@ const user_entity_1 = require("./user.entity");
 const product_entity_1 = require("./product.entity");
 const buyingHistory_entity_1 = require("./buyingHistory.entity");
 const coupon_entity_1 = require("./coupon.entity");
+const subSubCategory_entity_1 = require("./subSubCategory.entity");
 let CartsEntity = exports.CartsEntity = class CartsEntity {
 };
 __decorate([
@@ -46,6 +47,14 @@ __decorate([
     __metadata("design:type", Boolean)
 ], CartsEntity.prototype, "isBought", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ default: 0 }),
+    __metadata("design:type", Number)
+], CartsEntity.prototype, "totalPrice", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => subSubCategory_entity_1.SubSubCategoryEntity, (category) => category.carts),
+    __metadata("design:type", subSubCategory_entity_1.SubSubCategoryEntity)
+], CartsEntity.prototype, "category", void 0);
+__decorate([
     (0, typeorm_1.ManyToOne)(() => user_entity_1.UserEntity, (customer) => customer.carts),
     __metadata("design:type", user_entity_1.UserEntity)
 ], CartsEntity.prototype, "customer", void 0);
@@ -62,6 +71,6 @@ __decorate([
     __metadata("design:type", buyingHistory_entity_1.BuyingHistoryEntity)
 ], CartsEntity.prototype, "history", void 0);
 exports.CartsEntity = CartsEntity = __decorate([
-    (0, typeorm_1.Entity)('carts')
+    (0, typeorm_1.Entity)('cart')
 ], CartsEntity);
 //# sourceMappingURL=cart.entity.js.map

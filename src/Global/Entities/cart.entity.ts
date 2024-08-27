@@ -4,8 +4,9 @@ import { UserEntity } from './user.entity';
 import { ProductEntity } from './product.entity';
 import { BuyingHistoryEntity } from './buyingHistory.entity';
 import { CouponEntity } from './coupon.entity';
+import { SubSubCategoryEntity } from './subSubCategory.entity';
 
-@Entity('carts')
+@Entity('cart')
 export class CartsEntity {
 
     @PrimaryGeneratedColumn()
@@ -28,6 +29,12 @@ export class CartsEntity {
 
     @Column({default:false})
     isBought: boolean
+
+    @Column({default:0})
+    totalPrice: number
+
+    @ManyToOne(() => SubSubCategoryEntity, (category) => category.carts)
+    category: SubSubCategoryEntity
 
     @ManyToOne(() => UserEntity, (customer) => customer.carts)
     customer: UserEntity

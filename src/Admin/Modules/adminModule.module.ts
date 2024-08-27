@@ -24,11 +24,11 @@ import { PaymentMethodEntity } from "src/Global/Entities/paymentMethod.entity";
 import { SubSubCategoryEntity } from "src/Global/Entities/subSubCategory.entity";
 import { ColorSizeEntity } from "src/Global/Entities/color-size-combined.entity";
 import { PaymentInfo } from "src/Global/Entities/paymentInfo.entity";
-import * as dotenv from 'dotenv';
 import { FabricEntity } from "src/Global/Entities/fabrics.entity";
 import { ProductSizeCategoryEntity } from "src/Global/Entities/productSizeCategory.entity";
 import { OtpEntity } from "src/Global/Entities/otp.entity";
 // Load environment variables
+import * as dotenv from 'dotenv';
 dotenv.config();
 
 @Module({

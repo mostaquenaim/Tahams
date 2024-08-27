@@ -6,11 +6,18 @@ import CouponForm from 'src/Global/DTOs/couponform.dto';
 export declare class AdminController {
     private readonly adminService;
     constructor(adminService: AdminService);
-    signIn(session: any, myDto: any): Promise<{
+    signIn(myDto: any): Promise<{
         status: HttpStatus;
         message: string;
-        data?: undefined;
         error?: undefined;
+        data?: undefined;
+    } | {
+        status: HttpStatus;
+        error: {
+            message: string;
+        };
+        message?: undefined;
+        data?: undefined;
     } | {
         status: HttpStatus;
         message: string;
@@ -21,6 +28,10 @@ export declare class AdminController {
         message: string;
         error: any;
         data?: undefined;
+    }>;
+    checkEmail(email: string): Promise<{
+        status: HttpStatus;
+        message: string;
     }>;
     customerLogin(myDto: any): Promise<any>;
     sendEmail(mydata: any): Promise<void>;
@@ -45,9 +56,9 @@ export declare class AdminController {
     changeBannerImage(id: any, file: Express.Multer.File): object;
     createNewBuy(myDto: any): Promise<import("../../Global/Entities/buyingHistory.entity").BuyingHistoryEntity[]>;
     updateBuyingHistory(id: any, email: string, details: any): Promise<import("../../Global/Entities/buyingHistory.entity").BuyingHistoryEntity>;
-    getBuyingHistoryByToken(id: any): Promise<import("../../Global/Entities/buyingHistory.entity").BuyingHistoryEntity>;
-    addPaymentInfo(PaymentDetails: any): Promise<any>;
-    getAllBuyingHistories(email: string): Promise<unknown[]>;
+    getBuyingHistoryByToken(token: any, email: string): Promise<import("../../Global/Entities/cart.entity").CartsEntity>;
+    addPaymentInfo(PaymentDetails: any, file: Express.Multer.File): Promise<void>;
+    getAllBuyingHistories(email: string): Promise<import("../../Global/Entities/cart.entity").CartsEntity[]>;
     createNewCart(myDto: any): Promise<import("../../Global/Entities/cart.entity").CartsEntity[]>;
     deleteCartItem(id: any, email: any): Promise<import("typeorm").DeleteResult>;
     deleteCarts(myDto: any): Promise<import("typeorm").DeleteResult>;
@@ -59,13 +70,19 @@ export declare class AdminController {
     viewAllProductSubCategories(): Promise<import("../../Global/Entities/subCategory.entity").SubCategoryEntity[]>;
     viewProductSubCategories(id: number): Promise<import("../../Global/Entities/subCategory.entity").SubCategoryEntity[]>;
     viewProductSubSubCategories(catId: number): Promise<import("../../Global/Entities/subSubCategory.entity").SubSubCategoryEntity[]>;
+    checkIfWished(productId: any, customerId: any): Promise<{
+        wished: boolean;
+    }>;
     getSubCatById(id: number): Promise<import("../../Global/Entities/subSubCategory.entity").SubSubCategoryEntity>;
     getProductFtImage(id: number): Promise<import("../../Global/Entities/product-pictures.entity").ProductPictureEntity>;
     getCategoryById(id: any): Promise<import("../../Global/Entities/category.entity").CategoryEntity>;
     getProductByCat(name: any): Promise<void>;
     getProductBySubSubCatId(id: any): Promise<import("../../Global/Entities/product.entity").ProductEntity[]>;
+    getUserByEmail(email: any): Promise<import("../../Global/Entities/user.entity").UserEntity>;
     updateCategory(id: number, myDto: any): Promise<void>;
+    updateUserAddress(id: number, updateAddressDto: any): Promise<import("../../Global/Entities/user.entity").UserEntity>;
     createNewCategory(myDto: any): Promise<import("../../Global/Entities/category.entity").CategoryEntity[]>;
+    createPaymentMethod(myDto: any): Promise<import("../../Global/Entities/paymentMethod.entity").PaymentMethodEntity[]>;
     createNewSubCategory(myDto: any): Promise<import("../../Global/Entities/subCategory.entity").SubCategoryEntity[]>;
     createNewSubSubCategory(myDto: any): Promise<import("../../Global/Entities/subSubCategory.entity").SubSubCategoryEntity[]>;
     changeCategoryImage(id: any, file: Express.Multer.File): object;
@@ -100,12 +117,13 @@ export declare class AdminController {
     getProductById(id: any): Promise<import("../../Global/Entities/product.entity").ProductEntity>;
     deleteProductById(id: number): Promise<import("typeorm").DeleteResult>;
     deleteSizeById(id: number): Promise<import("typeorm").DeleteResult>;
+    removeWish(myDto: any): Promise<import("typeorm").DeleteResult>;
     createNewSize(myDto: any): Promise<import("../../Global/Entities/size.entity").SizeEntity[]>;
     createNewFabric(myDto: any): Promise<import("../../Global/Entities/fabrics.entity").FabricEntity[]>;
     addProductFunc(mydata: any, imageobj: Express.Multer.File): Promise<any>;
     addProductPictures(files: any, mydata: any): Promise<boolean>;
     updateAdmin(myDto: AdminForm, file: Express.Multer.File): Promise<"Admin not found" | "Admin updated" | "Update failed">;
     createNewWish(myDto: any): Promise<import("../../Global/Entities/wish.entity").WishEntity[]>;
-    getWishByUser(userId: string): Promise<import("../../Global/Entities/wish.entity").WishEntity[]>;
+    getWishByUser(email: string): Promise<import("../../Global/Entities/wish.entity").WishEntity[]>;
     getImages(name: any, res: any): void;
 }

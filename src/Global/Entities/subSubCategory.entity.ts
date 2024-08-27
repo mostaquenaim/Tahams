@@ -4,6 +4,7 @@ import { ProductEntity } from './product.entity';
 import { CategoryEntity } from './category.entity';
 import { SubCategoryEntity } from './subCategory.entity';
 import { ProductSizeCategoryEntity } from './productSizeCategory.entity';
+import { CartsEntity } from './cart.entity';
 
 @Entity('sub-sub-category')
 export class SubSubCategoryEntity {
@@ -22,4 +23,7 @@ export class SubSubCategoryEntity {
 
     @OneToMany(() => ProductSizeCategoryEntity, (psc) => psc.category)
     pscs: ProductSizeCategoryEntity[]
+
+    @OneToMany(() => CartsEntity, (cart) => cart.category)
+    carts: CartsEntity[]
 }

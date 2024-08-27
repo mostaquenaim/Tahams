@@ -58,6 +58,10 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
+], UserEntity.prototype, "region", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
 ], UserEntity.prototype, "state", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
@@ -71,6 +75,10 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], UserEntity.prototype, "gender", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], UserEntity.prototype, "loggedInWith", void 0);
 __decorate([
     (0, typeorm_1.Column)({ default: () => 'CURRENT_TIMESTAMP' }),
     __metadata("design:type", Date)

@@ -13,6 +13,7 @@ exports.SubSubCategoryEntity = void 0;
 const typeorm_1 = require("typeorm");
 const subCategory_entity_1 = require("./subCategory.entity");
 const productSizeCategory_entity_1 = require("./productSizeCategory.entity");
+const cart_entity_1 = require("./cart.entity");
 let SubSubCategoryEntity = exports.SubSubCategoryEntity = class SubSubCategoryEntity {
 };
 __decorate([
@@ -35,6 +36,10 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => productSizeCategory_entity_1.ProductSizeCategoryEntity, (psc) => psc.category),
     __metadata("design:type", Array)
 ], SubSubCategoryEntity.prototype, "pscs", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => cart_entity_1.CartsEntity, (cart) => cart.category),
+    __metadata("design:type", Array)
+], SubSubCategoryEntity.prototype, "carts", void 0);
 exports.SubSubCategoryEntity = SubSubCategoryEntity = __decorate([
     (0, typeorm_1.Entity)('sub-sub-category')
 ], SubSubCategoryEntity);

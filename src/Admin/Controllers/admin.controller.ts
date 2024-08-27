@@ -41,17 +41,18 @@ export class AdminController {
 
   //Login to admin account 
   @Post('/signin')
-  async signIn(@Session() session, @Body() myDto) {
+  async signIn(@Body() myDto) {
 
     const res = await (this.adminService.signIn(myDto));
     return res
-    // if (res.status === 'success') {
-    //   session.email = myDto.email;
-    //   return res.data
-    // }
-    // else {
-    //   throw new UnauthorizedException({ message: "invalid" });
-    // }
+  }
+
+  // check email 
+  @Get('/check-email')
+  async checkEmail(
+    @Query('email') email: string
+  ) {
+    return await this.adminService.checkEmail(email)
   }
 
   // customerlogin 
@@ -78,7 +79,6 @@ export class AdminController {
   async sendOtp(@Body() sendOtpDto) {
     // try {
     const result = await this.adminService.checkEmailAndSendOTP(sendOtpDto.email);
-    console.log(result);
     return result
     //   return { success: true, message: 'OTP sent successfully' };
     // } catch (error) {
@@ -201,17 +201,30 @@ export class AdminController {
 
   // get buying histoy by id 
   @Get('get-buying-history-by-token/:token')
-  getBuyingHistoryByToken(
-    @Param('token') id,
+  async getBuyingHistoryByToken(
+    @Param('token') token,
+    @Query('email') email: string,
   ) {
-    return this.adminService.getBuyingHistoryByToken(id)
+    const result = await this.adminService.getBuyingHistoryByToken(token, email)
+    return result
   }
 
   // add payment info 
   @Post('/add-payment')
+  @UseInterceptors(FileInterceptor('screenshot',
+    {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: function (req, file, cb) {
+          cb(null, Date.now() + file.originalname)
+        }
+      })
+    }))
   addPaymentInfo(
     // @Param('token') token: string,
-    @Body() PaymentDetails) {
+    @Body() PaymentDetails,
+    @UploadedFile() file: Express.Multer.File) {
+    PaymentDetails.screenshot = file?.filename
     return this.adminService.addPaymentInfo(PaymentDetails)
   }
 
@@ -229,9 +242,7 @@ export class AdminController {
   async createNewCart(
     @Body() myDto,
   ) {
-    // console.log(myDto,"185");
     const response = await this.adminService.createNewCart(myDto);
-    // console.log(response);
     return response
   }
 
@@ -314,6 +325,12 @@ export class AdminController {
     return this.adminService.viewProductSubSubCategories(catId);
   }
 
+  // check if wished 
+  @Get('check-wish-by-user-and-product')
+  checkIfWished(productId, customerId) {
+    return this.adminService.checkIfWished(productId, customerId)
+  }
+
   // get sub category by id 
   @Get('get-sub-sub-cat-by-id/:id')
   getSubCatById(
@@ -358,6 +375,15 @@ export class AdminController {
     return this.adminService.getPublishableProductsBySubSubCatId(id);
   }
 
+  // get user by email
+  @Get('get-user-by-email/:email')
+  @UsePipes(ValidationPipe)
+  getUserByEmail(
+    @Param('email') email,
+  ) {
+    return this.adminService.getUserByEmail(email);
+  }
+
   //update category by id
   @Put('updateCategory/:id')
   @UsePipes(ValidationPipe)
@@ -369,6 +395,15 @@ export class AdminController {
     await this.adminService.updateCategory(id, myDto);
   }
 
+  // update user address 
+  @Put('update-user-address/:id')
+  async updateUserAddress(
+    @Param('id') id: number,
+    @Body() updateAddressDto
+  ) {
+    return this.adminService.updateUserAddress(id, updateAddressDto);
+  }
+
   // add new category 
   @Post('add-category')
   @UsePipes(ValidationPipe)
@@ -377,6 +412,15 @@ export class AdminController {
   ) {
     // console.log(myDto,"337");
     return this.adminService.createNewCategory(myDto);
+  }
+
+  // add new payment method 
+  @Post('add-payment-method')
+  @UsePipes(ValidationPipe)
+  createPaymentMethod(
+    @Body() myDto,
+  ) {
+    return this.adminService.createPaymentMethod(myDto);
   }
 
   // add new sub-category 
@@ -502,12 +546,13 @@ export class AdminController {
   }
 
   // get product by id 
-  @Get('getProductById/:id')
+  @Get('get-product-by-id/:id')
   @UsePipes(ValidationPipe)
-  getProductById(
+  async getProductById(
     @Param('id') id,
   ) {
-    return this.adminService.getProductById(id);
+    const result = await this.adminService.getProductById(id)
+    return result
   }
 
   // delete product by id  
@@ -522,6 +567,14 @@ export class AdminController {
   async deleteSizeById(@Param('id', ParseIntPipe) id: number) {
 
     return this.adminService.deleteSizeById(id);
+  }
+
+  // remove wish list item
+  @Delete('remove-wish')
+  async removeWish(
+    @Body() myDto
+  ) {
+    return this.adminService.removeWish(myDto);
   }
 
   // add new size 
@@ -634,10 +687,10 @@ export class AdminController {
   }
 
   // get wishlist 
-  @Get('get-wish-by-user/:userId')
-  async getWishByUser(@Param('userId') userId: string) {
+  @Get('get-wish-by-user/:email')
+  async getWishByUser(@Param('email') email: string) {
     // console.log(userId,"572");
-    const res = await this.adminService.getWishByUser(userId);
+    const res = await this.adminService.getWishByUser(email);
     // console.log(res,"574");
     return res
   }

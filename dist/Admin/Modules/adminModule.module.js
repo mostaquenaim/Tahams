@@ -32,10 +32,10 @@ const paymentMethod_entity_1 = require("../../Global/Entities/paymentMethod.enti
 const subSubCategory_entity_1 = require("../../Global/Entities/subSubCategory.entity");
 const color_size_combined_entity_1 = require("../../Global/Entities/color-size-combined.entity");
 const paymentInfo_entity_1 = require("../../Global/Entities/paymentInfo.entity");
-const dotenv = require("dotenv");
 const fabrics_entity_1 = require("../../Global/Entities/fabrics.entity");
 const productSizeCategory_entity_1 = require("../../Global/Entities/productSizeCategory.entity");
 const otp_entity_1 = require("../../Global/Entities/otp.entity");
+const dotenv = require("dotenv");
 dotenv.config();
 let AdminModule = exports.AdminModule = class AdminModule {
 };
