@@ -217,7 +217,7 @@ export class AdminController {
         destination: './uploads',
         filename: function (req, file, cb) {
           cb(null, Date.now() + file.originalname)
-        }
+        } 
       })
     }))
   addPaymentInfo(
@@ -689,9 +689,9 @@ export class AdminController {
   // get wishlist 
   @Get('get-wish-by-user/:email')
   async getWishByUser(@Param('email') email: string) {
-    // console.log(userId,"572");
+    console.log(email,"572");
     const res = await this.adminService.getWishByUser(email);
-    // console.log(res,"574");
+    console.log(res,"574");
     return res
   }
 

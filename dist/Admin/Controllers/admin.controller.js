@@ -239,7 +239,9 @@ let AdminController = exports.AdminController = class AdminController {
         return this.adminService.createNewWish(myDto);
     }
     async getWishByUser(email) {
+        console.log(email, "572");
         const res = await this.adminService.getWishByUser(email);
+        console.log(res, "574");
         return res;
     }
     getImages(name, res) {

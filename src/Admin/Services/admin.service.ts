@@ -383,12 +383,13 @@ export class AdminService {
   // view all buying histories 
   async getAllBuyingHistories(email) {
     if (email) {
-      // console.log(366);
+      console.log('in');
+      const user = await this.getUserByEmail(email)
+      console.log('user',user,'user');
       const cartsWithHistory = await this.cartRepo.find({
         where: {
-          customer: { email: email },
+          ...(user.role !== 'admin' && { customer: { email: email } }),
           isBought: true
-          // history: { PaymentDone: true || false }
         },
         relations: [
           'history',
@@ -398,7 +399,8 @@ export class AdminService {
           'product'
         ],
       });
-
+  
+      console.log(cartsWithHistory);
       return cartsWithHistory;
     }
     throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
@@ -951,8 +953,11 @@ export class AdminService {
 
   // create new wish 
   async createNewWish(myDto) {
+    console.log(myDto.customerEmail,'customerEmail');
     myDto.product = await this.getProductById(myDto.productId)
-    myDto.customer = await this.getCustomerById(myDto.customerId)
+    myDto.customer = await this.getUserByEmail(myDto.customerEmail)
+
+    // console.log(myDto.customer);
 
     const newWish = this.wishRepo.create({
       ...myDto
