@@ -105,7 +105,7 @@ export class AdminService {
 
   // add payment info 
   async addPaymentInfo(myDto) {
-    console.log(myDto)
+    // console.log(myDto)
 
     // Get the buying history associated with the token and customer
     const cart = await this.getBuyingHistoryByToken(myDto.history, myDto.customer);
@@ -383,9 +383,9 @@ export class AdminService {
   // view all buying histories 
   async getAllBuyingHistories(email) {
     if (email) {
-      console.log('in');
+      // console.log('in');
       const user = await this.getUserByEmail(email)
-      console.log('user',user,'user');
+      // console.log('user',user,'user');
       const cartsWithHistory = await this.cartRepo.find({
         where: {
           ...(user.role !== 'admin' && { customer: { email: email } }),
@@ -399,8 +399,8 @@ export class AdminService {
           'product'
         ],
       });
-  
-      console.log(cartsWithHistory);
+
+      // console.log(cartsWithHistory);
       return cartsWithHistory;
     }
     throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
@@ -635,11 +635,18 @@ export class AdminService {
   // get Product by category id 
   async getProductByCat(name) {
     //get all the products where category name == name
-    // const products = await this.productRepo.find({
-    //   where: {
-    //     subCategories
-    //   }
-    // })
+    const products = await this.productRepo.find({
+      where: {
+        pscs: {
+          category: { category: { category: { name } } }
+        },
+        publishable: true
+      },
+      relations: ['color', 'fabric', 'productPictures', 'pscs', 'pscs.category', 'pscs.category.category.category', 'pscs.size']
+    });
+
+    // console.log(products);
+    return products
   }
 
   async getPublishableProductsBySubSubCatId(subCategoryId) {
@@ -953,7 +960,7 @@ export class AdminService {
 
   // create new wish 
   async createNewWish(myDto) {
-    console.log(myDto.customerEmail,'customerEmail');
+    // console.log(myDto.customerEmail,'customerEmail');
     myDto.product = await this.getProductById(myDto.productId)
     myDto.customer = await this.getUserByEmail(myDto.customerEmail)
 

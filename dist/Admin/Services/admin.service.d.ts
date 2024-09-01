@@ -150,7 +150,7 @@ export declare class AdminService {
     getDeliveryStatusById(id: any): Promise<DeliveryStatusEntity>;
     getCouponById(id: any): Promise<CouponEntity>;
     getBuyingHistoryByToken(token: string, email: string): Promise<CartsEntity>;
-    getProductByCat(name: any): Promise<void>;
+    getProductByCat(name: any): Promise<ProductEntity[]>;
     getPublishableProductsBySubSubCatId(subCategoryId: any): Promise<ProductEntity[]>;
     getProductBySubSubCatId(subCategoryId: any): Promise<ProductEntity[]>;
     getProductById(id: number): Promise<ProductEntity>;

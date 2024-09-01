@@ -71,7 +71,6 @@ let AdminService = exports.AdminService = class AdminService {
         return this.bannerRepo.save(myDto);
     }
     async addPaymentInfo(myDto) {
-        console.log(myDto);
         const cart = await this.getBuyingHistoryByToken(myDto.history, myDto.customer);
         const history = cart.history;
         if (myDto.paymentMethod == '1' || myDto.paymentMethod == '8') {
@@ -279,9 +278,7 @@ let AdminService = exports.AdminService = class AdminService {
     }
     async getAllBuyingHistories(email) {
         if (email) {
-            console.log('in');
             const user = await this.getUserByEmail(email);
-            console.log('user', user, 'user');
             const cartsWithHistory = await this.cartRepo.find({
                 where: {
                     ...(user.role !== 'admin' && { customer: { email: email } }),
@@ -295,7 +292,6 @@ let AdminService = exports.AdminService = class AdminService {
                     'product'
                 ],
             });
-            console.log(cartsWithHistory);
             return cartsWithHistory;
         }
         throw new common_1.HttpException('Forbidden', common_1.HttpStatus.FORBIDDEN);
@@ -457,6 +453,16 @@ let AdminService = exports.AdminService = class AdminService {
         throw new common_1.HttpException('Forbidden', common_1.HttpStatus.FORBIDDEN);
     }
     async getProductByCat(name) {
+        const products = await this.productRepo.find({
+            where: {
+                pscs: {
+                    category: { category: { category: { name } } }
+                },
+                publishable: true
+            },
+            relations: ['color', 'fabric', 'productPictures', 'pscs', 'pscs.category', 'pscs.category.category.category', 'pscs.size']
+        });
+        return products;
     }
     async getPublishableProductsBySubSubCatId(subCategoryId) {
         try {
@@ -684,7 +690,6 @@ let AdminService = exports.AdminService = class AdminService {
         return true;
     }
     async createNewWish(myDto) {
-        console.log(myDto.customerEmail, 'customerEmail');
         myDto.product = await this.getProductById(myDto.productId);
         myDto.customer = await this.getUserByEmail(myDto.customerEmail);
         const newWish = this.wishRepo.create({

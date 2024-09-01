@@ -362,7 +362,7 @@ export class AdminController {
   getProductByCat(
     @Param('name') name,
   ) {
-    // console.log(name);
+    console.log(name);
     return this.adminService.getProductByCat(name);
   }
 
@@ -689,9 +689,9 @@ export class AdminController {
   // get wishlist 
   @Get('get-wish-by-user/:email')
   async getWishByUser(@Param('email') email: string) {
-    console.log(email,"572");
+    // console.log(email,"572");
     const res = await this.adminService.getWishByUser(email);
-    console.log(res,"574");
+    // console.log(res,"574");
     return res
   }
 

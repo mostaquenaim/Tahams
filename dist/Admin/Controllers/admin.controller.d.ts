@@ -76,7 +76,7 @@ export declare class AdminController {
     getSubCatById(id: number): Promise<import("../../Global/Entities/subSubCategory.entity").SubSubCategoryEntity>;
     getProductFtImage(id: number): Promise<import("../../Global/Entities/product-pictures.entity").ProductPictureEntity>;
     getCategoryById(id: any): Promise<import("../../Global/Entities/category.entity").CategoryEntity>;
-    getProductByCat(name: any): Promise<void>;
+    getProductByCat(name: any): Promise<import("../../Global/Entities/product.entity").ProductEntity[]>;
     getProductBySubSubCatId(id: any): Promise<import("../../Global/Entities/product.entity").ProductEntity[]>;
     getUserByEmail(email: any): Promise<import("../../Global/Entities/user.entity").UserEntity>;
     updateCategory(id: number, myDto: any): Promise<void>;
