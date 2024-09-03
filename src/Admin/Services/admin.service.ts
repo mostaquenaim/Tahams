@@ -361,7 +361,7 @@ export class AdminService {
   }
 
   // view all product 
-  async viewAllProduct() {
+  async viewAllProduct(filters: any) {
     try {
       const products = await this.productRepo
         .createQueryBuilder('product')
@@ -371,6 +371,7 @@ export class AdminService {
         .leftJoinAndSelect('product.pscs', 'psc')
         .leftJoinAndSelect('psc.category', 'subSubCategory')
         .leftJoinAndSelect('psc.size', 'size')
+        .andWhere(filters)
         .getMany();
 
       return products;
@@ -748,14 +749,12 @@ export class AdminService {
   // delete product by id 
   async deleteProductById(id: number) {
     try {
-      const product = await this.productRepo.findOneBy({ id });
+      await this.productPicRepo.delete({ product: {id} });
 
-      if (!product) {
-        throw new NotFoundException(`Product with ID ${id} not found.`);
-      }
+      await this.productSizeCategoryRepo.delete({ product: { id }})
 
-      const deleted = this.productRepo.delete(product);
-      return deleted;
+      const deleted = await this.productRepo.delete(id);
+      return deleted; 
     } catch (error) {
       console.error('Error deleting product:', error);
     }

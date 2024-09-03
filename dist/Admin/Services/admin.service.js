@@ -258,7 +258,7 @@ let AdminService = exports.AdminService = class AdminService {
             throw new common_1.NotFoundException(`Error deleting carts: ${error.message}`);
         }
     }
-    async viewAllProduct() {
+    async viewAllProduct(filters) {
         try {
             const products = await this.productRepo
                 .createQueryBuilder('product')
@@ -268,6 +268,7 @@ let AdminService = exports.AdminService = class AdminService {
                 .leftJoinAndSelect('product.pscs', 'psc')
                 .leftJoinAndSelect('psc.category', 'subSubCategory')
                 .leftJoinAndSelect('psc.size', 'size')
+                .andWhere(filters)
                 .getMany();
             return products;
         }
@@ -539,11 +540,9 @@ let AdminService = exports.AdminService = class AdminService {
     }
     async deleteProductById(id) {
         try {
-            const product = await this.productRepo.findOneBy({ id });
-            if (!product) {
-                throw new common_1.NotFoundException(`Product with ID ${id} not found.`);
-            }
-            const deleted = this.productRepo.delete(product);
+            await this.productPicRepo.delete({ product: { id } });
+            await this.productSizeCategoryRepo.delete({ product: { id } });
+            const deleted = await this.productRepo.delete(id);
             return deleted;
         }
         catch (error) {

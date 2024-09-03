@@ -136,7 +136,6 @@ let AdminController = exports.AdminController = class AdminController {
         return this.adminService.getCategoryByName(id);
     }
     getProductByCat(name) {
-        console.log(name);
         return this.adminService.getProductByCat(name);
     }
     getProductBySubSubCatId(id) {
@@ -199,8 +198,8 @@ let AdminController = exports.AdminController = class AdminController {
     createUser(myDto) {
         return this.adminService.createUser(myDto);
     }
-    viewAllProduct() {
-        return this.adminService.viewAllProduct();
+    viewAllProducts(query) {
+        return this.adminService.viewAllProduct(query);
     }
     viewProductSizes() {
         return this.adminService.viewProductSizes();
@@ -669,10 +668,11 @@ __decorate([
 ], AdminController.prototype, "createUser", null);
 __decorate([
     (0, common_1.Get)('view-all-products'),
+    __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
-], AdminController.prototype, "viewAllProduct", null);
+], AdminController.prototype, "viewAllProducts", null);
 __decorate([
     (0, common_1.Get)('view-product-sizes'),
     __metadata("design:type", Function),
@@ -688,7 +688,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "getProductById", null);
 __decorate([
-    (0, common_1.Delete)('deleteProduct/:id'),
+    (0, common_1.Delete)('delete-product/:id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number]),

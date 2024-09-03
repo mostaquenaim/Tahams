@@ -362,7 +362,7 @@ export class AdminController {
   getProductByCat(
     @Param('name') name,
   ) {
-    console.log(name);
+    // console.log(name);
     return this.adminService.getProductByCat(name);
   }
 
@@ -535,8 +535,9 @@ export class AdminController {
 
   // view all product 
   @Get('view-all-products')
-  viewAllProduct() {
-    return this.adminService.viewAllProduct();
+  viewAllProducts(@Query() query: any) {
+    // console.log(query);
+    return this.adminService.viewAllProduct(query);
   }
 
   // view size
@@ -556,9 +557,8 @@ export class AdminController {
   }
 
   // delete product by id  
-  @Delete('deleteProduct/:id')
+  @Delete('delete-product/:id')
   async deleteProductById(@Param('id', ParseIntPipe) id: number) {
-
     return this.adminService.deleteProductById(id);
   }
 
