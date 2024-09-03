@@ -1,0 +1,31 @@
+import { ColorEntity } from './colors.entity';
+import { CartsEntity } from './cart.entity';
+import { WishEntity } from './wish.entity';
+import { ProductPictureEntity } from './product-pictures.entity';
+import { ProductSizeCategoryEntity } from './productSizeCategory.entity';
+import { FabricEntity } from './fabrics.entity';
+export declare class ProductEntity {
+    id: number;
+    name: string;
+    serialNo: string;
+    note: string;
+    purchaseDate: Date;
+    vatPercentage: number;
+    discountPercentage: number;
+    buyingPrice: number;
+    sellingPrice: number;
+    tags: string;
+    description: string;
+    longDescription: string;
+    ifStock: boolean;
+    filename: string;
+    publishable: boolean;
+    createdAt: Date;
+    updateAt: Date;
+    color: ColorEntity;
+    fabric: FabricEntity;
+    productPictures: ProductPictureEntity[];
+    pscs: ProductSizeCategoryEntity[];
+    carts: CartsEntity[];
+    wishes: WishEntity[];
+}
