@@ -112,7 +112,7 @@ export declare class AdminController {
         error: any;
         data?: undefined;
     }>;
-    viewAllProduct(): Promise<import("../../Global/Entities/product.entity").ProductEntity[]>;
+    viewAllProducts(query: any): Promise<import("../../Global/Entities/product.entity").ProductEntity[]>;
     viewProductSizes(): Promise<import("../../Global/Entities/size.entity").SizeEntity[]>;
     getProductById(id: any): Promise<import("../../Global/Entities/product.entity").ProductEntity>;
     deleteProductById(id: number): Promise<import("typeorm").DeleteResult>;
