@@ -537,7 +537,7 @@ export class AdminController {
   @Get('view-all-products')
   viewAllProducts(@Query() query: any) {
     // console.log(query);
-    return this.adminService.viewAllProduct(query);
+    return this.adminService.viewAllProducts(query);
   }
 
   // view size
