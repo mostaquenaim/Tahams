@@ -16,7 +16,7 @@ async function bootstrap() {
         },
     }));
     app.enableCors({
-        origin: true,
+        origin: ['http://localhost:8000', 'https://tahamsbd.com'],
         methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
         credentials: true,
     });
