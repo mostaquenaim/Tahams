@@ -258,7 +258,7 @@ let AdminService = exports.AdminService = class AdminService {
             throw new common_1.NotFoundException(`Error deleting carts: ${error.message}`);
         }
     }
-    async viewAllProduct(filters) {
+    async viewAllProducts(filters) {
         try {
             const products = await this.productRepo
                 .createQueryBuilder('product')

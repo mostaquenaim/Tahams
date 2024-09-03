@@ -361,7 +361,7 @@ export class AdminService {
   }
 
   // view all product 
-  async viewAllProduct(filters: any) {
+  async viewAllProducts(filters: any) {
     try {
       const products = await this.productRepo
         .createQueryBuilder('product')

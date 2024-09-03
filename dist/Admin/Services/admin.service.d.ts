@@ -115,7 +115,7 @@ export declare class AdminService {
     deleteBanner(id: number): Promise<import("typeorm").DeleteResult>;
     deleteCartItem(id: string): Promise<import("typeorm").DeleteResult>;
     deleteCarts(cartArray: string[]): Promise<import("typeorm").DeleteResult>;
-    viewAllProduct(filters: any): Promise<ProductEntity[]>;
+    viewAllProducts(filters: any): Promise<ProductEntity[]>;
     getAllBuyingHistories(email: any): Promise<CartsEntity[]>;
     getAllCoupons(): Promise<CouponEntity[]>;
     getAllDeliveryStatus(): Promise<DeliveryStatusEntity[]>;

@@ -199,7 +199,7 @@ let AdminController = exports.AdminController = class AdminController {
         return this.adminService.createUser(myDto);
     }
     viewAllProducts(query) {
-        return this.adminService.viewAllProduct(query);
+        return this.adminService.viewAllProducts(query);
     }
     viewProductSizes() {
         return this.adminService.viewProductSizes();
