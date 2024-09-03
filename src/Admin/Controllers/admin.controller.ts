@@ -559,6 +559,7 @@ export class AdminController {
   // delete product by id  
   @Delete('delete-product/:id')
   async deleteProductById(@Param('id', ParseIntPipe) id: number) {
+    console.log(id);
     return this.adminService.deleteProductById(id);
   }
 
@@ -616,9 +617,6 @@ export class AdminController {
   ))
   @UsePipes(new ValidationPipe)
   addProductFunc(@Body() mydata, @UploadedFile() imageobj: Express.Multer.File) {
-    // console.log(mydata,"496");
-    // console.log(imageobj,"523");
-    // console.log(imageobj.filename);
     mydata.filename = imageobj.filename;
     return this.adminService.createNewProduct(mydata);
   }
