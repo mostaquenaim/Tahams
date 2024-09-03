@@ -726,7 +726,7 @@ let AdminService = exports.AdminService = class AdminService {
                 previousCategory.sizes.push(size);
             }
         });
-        processedCatsInfo.forEach(async (item) => {
+        for (const item of processedCatsInfo) {
             const catInfoItem = new productSizeCategory_entity_1.ProductSizeCategoryEntity();
             catInfoItem.product = product;
             catInfoItem.category = await this.subSubCategoryRepo.findOne({ where: { id: item.categoryId } });
@@ -734,16 +734,15 @@ let AdminService = exports.AdminService = class AdminService {
                 await this.productSizeCategoryRepo.save(catInfoItem);
             }
             else {
-                item.sizes.forEach(async (sizeItem) => {
-                    if (sizeItem.sizeId) {
-                        const sizeObject = await this.getSizeById(sizeItem.sizeId);
-                        catInfoItem.size = sizeObject;
-                    }
-                    catInfoItem.quantity = sizeItem.quantity;
-                    await this.productSizeCategoryRepo.save(catInfoItem);
-                });
+                for (const sizeItem of item.sizes) {
+                    const sizeObject = sizeItem.sizeId ? await this.getSizeById(sizeItem.sizeId) : null;
+                    const newCatInfoItem = { ...catInfoItem };
+                    newCatInfoItem.size = sizeObject;
+                    newCatInfoItem.quantity = sizeItem.quantity;
+                    await this.productSizeCategoryRepo.save(newCatInfoItem);
+                }
             }
-        });
+        }
         return product;
     }
     async addProductPictures(myDto) {

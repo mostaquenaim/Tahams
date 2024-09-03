@@ -1013,26 +1013,28 @@ export class AdminService {
       }
     });
 
-    processedCatsInfo.forEach(async item => {
-      const catInfoItem = new ProductSizeCategoryEntity();
+    // console.log(JSON.stringify(processedCatsInfo, null, 2));
 
+    for (const item of processedCatsInfo) {
+      const catInfoItem = new ProductSizeCategoryEntity();
+    
       catInfoItem.product = product;
       catInfoItem.category = await this.subSubCategoryRepo.findOne({ where: { id: item.categoryId } });
-
+    
       if (item.sizes.length <= 0) {
         await this.productSizeCategoryRepo.save(catInfoItem);
+      } else {
+        for (const sizeItem of item.sizes) {
+          const sizeObject = sizeItem.sizeId ? await this.getSizeById(sizeItem.sizeId) : null;
+    
+          const newCatInfoItem = { ...catInfoItem }; // Create a new instance
+          newCatInfoItem.size = sizeObject;
+          newCatInfoItem.quantity = sizeItem.quantity;
+    
+          await this.productSizeCategoryRepo.save(newCatInfoItem);
+        }
       }
-      else {
-        item.sizes.forEach(async sizeItem => {
-          if (sizeItem.sizeId) {
-            const sizeObject = await this.getSizeById(sizeItem.sizeId)
-            catInfoItem.size = sizeObject
-          }
-          catInfoItem.quantity = sizeItem.quantity
-          await this.productSizeCategoryRepo.save(catInfoItem);
-        });
-      }
-    })
+    }
 
     // console.log(processedCatsInfo, 771);
 

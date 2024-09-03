@@ -209,6 +209,7 @@ let AdminController = exports.AdminController = class AdminController {
         return result;
     }
     async deleteProductById(id) {
+        console.log(id);
         return this.adminService.deleteProductById(id);
     }
     async deleteSizeById(id) {
