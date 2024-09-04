@@ -73,15 +73,17 @@ let AdminService = exports.AdminService = class AdminService {
     async addPaymentInfo(myDto) {
         const cart = await this.getBuyingHistoryByToken(myDto.history, myDto.customer);
         const history = cart.history;
+        const paymentMethod = await this.getPaymentMethodById(myDto.paymentMethod);
+        history.paymentMethod = paymentMethod;
         if (myDto.paymentMethod == '1' || myDto.paymentMethod == '8') {
-            history.PaymentDetails = myDto.paymentMethod;
+            history.PaymentDetails = paymentMethod.name;
         }
         else {
             history.PaymentDone = true;
             history.screenshot = myDto.screenshot;
             history.PaymentDetails =
                 `
-      Payment by: ${myDto.paymentMethod} \n
+      Payment by: ${paymentMethod.name} \n
       Account number: ${myDto.accountNumber}
       `;
         }
@@ -410,6 +412,9 @@ let AdminService = exports.AdminService = class AdminService {
     async getSizeById(id) {
         return await this.sizeRepo.findOneBy({ id });
     }
+    async getSizeByName(name) {
+        return await this.sizeRepo.findOneBy({ name });
+    }
     async getCartById(id) {
         return await this.cartRepo.findOneBy({ id });
     }
@@ -632,17 +637,6 @@ let AdminService = exports.AdminService = class AdminService {
         });
         return this.fabricRepo.save(newFabric);
     }
-    async createNewBuy(myDto) {
-        myDto.deliveryStatus = await this.getDeliveryStatusById(myDto?.deliveryStatusId || 1);
-        myDto.paymentMethod = await this.getPaymentMethodById(myDto?.paymentMethodId || 1);
-        myDto.trackingToken = (0, uuid_1.v4)();
-        const newBuy = this.buyingHistoryRepo.create({
-            ...myDto
-        });
-        const savedBuy = await this.buyingHistoryRepo.save(newBuy);
-        this.createNewCartObject(savedBuy, myDto.carts);
-        return savedBuy;
-    }
     async customerLogin(myDto) {
         try {
             const existingCustomer = await this.userRepo.findOne({
@@ -658,6 +652,43 @@ let AdminService = exports.AdminService = class AdminService {
             throw new Error('Authentication failed');
         }
     }
+    async createNewBuy(myDto) {
+        myDto.deliveryStatus = await this.getDeliveryStatusById(myDto?.deliveryStatusId || 1);
+        myDto.paymentMethod = await this.getPaymentMethodById(myDto?.paymentMethodId || 1);
+        myDto.trackingToken = (0, uuid_1.v4)();
+        const newBuy = this.buyingHistoryRepo.create({
+            ...myDto
+        });
+        const savedBuy = await this.buyingHistoryRepo.save(newBuy);
+        this.createNewCartObject(savedBuy, myDto.carts);
+        return savedBuy;
+    }
+    async createNewCartObject(buy, cartsData) {
+        for (const cartDataId of cartsData) {
+            const cart = await this.cartRepo.findOne({
+                where: { id: cartDataId },
+                relations: ['product', 'category'],
+            });
+            const size = await this.getSizeByName(cart.size);
+            const pscObj = await this.productSizeCategoryRepo.findOne({
+                where: {
+                    category: cart.category,
+                    size: size,
+                    product: { id: cart.product.id },
+                },
+                relations: ['product']
+            });
+            pscObj.quantity -= cart.Quantity;
+            await this.productSizeCategoryRepo.save(pscObj);
+            if (cart) {
+                cart.isBought = true;
+                cart.totalPrice = Math.ceil((cart.product.sellingPrice - (cart.product.sellingPrice * cart.product.discountPercentage / 100) + (cart.product.sellingPrice * cart.product.vatPercentage / 100)) * cart.Quantity);
+                cart.history = buy;
+                await this.cartRepo.save(cart);
+            }
+        }
+        return true;
+    }
     async createNewCart(myDto) {
         const selectedProduct = await this.getProductById(myDto.productId);
         myDto.product = selectedProduct;
@@ -672,21 +703,6 @@ let AdminService = exports.AdminService = class AdminService {
         });
         const savedProduct = await this.cartRepo.save(newCart);
         return savedProduct;
-    }
-    async createNewCartObject(buy, cartsData) {
-        for (const cartDataId of cartsData) {
-            const cart = await this.cartRepo.findOne({
-                where: { id: cartDataId },
-                relations: ['product'],
-            });
-            if (cart) {
-                cart.isBought = true;
-                cart.totalPrice = Math.ceil((cart.product.sellingPrice - (cart.product.sellingPrice * cart.product.discountPercentage / 100) + (cart.product.sellingPrice * cart.product.vatPercentage / 100)) * cart.Quantity);
-                cart.history = buy;
-                await this.cartRepo.save(cart);
-            }
-        }
-        return true;
     }
     async createNewWish(myDto) {
         myDto.product = await this.getProductById(myDto.productId);

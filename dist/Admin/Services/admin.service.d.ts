@@ -141,6 +141,7 @@ export declare class AdminService {
     getProductFtImage(productId: any): Promise<ProductPictureEntity>;
     getBannerById(id: any): Promise<BannerEntity>;
     getSizeById(id: any): Promise<SizeEntity>;
+    getSizeByName(name: string): Promise<SizeEntity>;
     getCartById(id: any): Promise<CartsEntity>;
     getPaymentMethodById(id: any): Promise<PaymentMethodEntity>;
     getColorById(id: any): Promise<ColorEntity>;
@@ -169,10 +170,10 @@ export declare class AdminService {
     createNewSubSubCategory(myDto: any): Promise<SubSubCategoryEntity[]>;
     createNewSize(myDto: any): Promise<SizeEntity[]>;
     createNewFabric(myDto: any): Promise<FabricEntity[]>;
-    createNewBuy(myDto: any): Promise<BuyingHistoryEntity[]>;
     customerLogin(myDto: any): Promise<any>;
-    createNewCart(myDto: any): Promise<CartsEntity[]>;
+    createNewBuy(myDto: any): Promise<BuyingHistoryEntity[]>;
     createNewCartObject(buy: any, cartsData: any): Promise<boolean>;
+    createNewCart(myDto: any): Promise<CartsEntity[]>;
     createNewWish(myDto: any): Promise<WishEntity[]>;
     getWishByUser(email: string): Promise<WishEntity[]>;
     createNewProduct(myDto: any): Promise<any>;

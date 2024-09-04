@@ -105,30 +105,31 @@ export class AdminService {
 
   // add payment info 
   async addPaymentInfo(myDto) {
-    // console.log(myDto)
+    // console.log(myDto, 'payment')
 
     // Get the buying history associated with the token and customer
     const cart = await this.getBuyingHistoryByToken(myDto.history, myDto.customer);
     const history = cart.history;
 
+
+    const paymentMethod = await this.getPaymentMethodById(myDto.paymentMethod)
+    history.paymentMethod = paymentMethod
+
     // Mark the payment as done unless it's 'Cash on Delivery' or 'Pick-Up Point'
     if (myDto.paymentMethod == '1' || myDto.paymentMethod == '8') {
-      history.PaymentDetails = myDto.paymentMethod
+      history.PaymentDetails = paymentMethod.name
     } else {
       history.PaymentDone = true;
       history.screenshot = myDto.screenshot
       history.PaymentDetails =
         `
-      Payment by: ${myDto.paymentMethod} \n
+      Payment by: ${paymentMethod.name} \n
       Account number: ${myDto.accountNumber}
       `
     }
 
     // Save the updated history back to the database
     await this.buyingHistoryRepo.save(history);
-
-    // // Save the payment information and return it
-    // return this.paymentInfoRepo.save(myDto);
   }
 
 
@@ -569,6 +570,11 @@ export class AdminService {
     return await this.sizeRepo.findOneBy({ id });
   }
 
+  // get size by name 
+  async getSizeByName(name: string) {
+    return await this.sizeRepo.findOneBy({ name });
+  }
+
   // get cart by id 
   async getCartById(id) {
     return await this.cartRepo.findOneBy({ id });
@@ -749,12 +755,12 @@ export class AdminService {
   // delete product by id 
   async deleteProductById(id: number) {
     try {
-      await this.productPicRepo.delete({ product: {id} });
+      await this.productPicRepo.delete({ product: { id } });
 
-      await this.productSizeCategoryRepo.delete({ product: { id }})
+      await this.productSizeCategoryRepo.delete({ product: { id } })
 
       const deleted = await this.productRepo.delete(id);
-      return deleted; 
+      return deleted;
     } catch (error) {
       console.error('Error deleting product:', error);
     }
@@ -884,23 +890,6 @@ export class AdminService {
     return this.fabricRepo.save(newFabric);
   }
 
-  // create new buy 
-  async createNewBuy(myDto) {
-    // console.log(myDto, "544");
-
-    myDto.deliveryStatus = await this.getDeliveryStatusById(myDto?.deliveryStatusId || 1)
-    myDto.paymentMethod = await this.getPaymentMethodById(myDto?.paymentMethodId || 1)
-    myDto.trackingToken = uuidv4();
-    const newBuy = this.buyingHistoryRepo.create({
-      ...myDto
-    })
-
-    // console.log(myDto,844);
-    const savedBuy = await this.buyingHistoryRepo.save(newBuy);
-    this.createNewCartObject(savedBuy, myDto.carts)
-    return savedBuy;
-  }
-
   async customerLogin(myDto) {
     try {
       // Check if there is a customer with the provided email
@@ -922,6 +911,64 @@ export class AdminService {
     }
   }
 
+  // create new buy 
+  async createNewBuy(myDto) {
+    // console.log(myDto, "544");
+
+    myDto.deliveryStatus = await this.getDeliveryStatusById(myDto?.deliveryStatusId || 1)
+    myDto.paymentMethod = await this.getPaymentMethodById(myDto?.paymentMethodId || 1)
+    myDto.trackingToken = uuidv4();
+    const newBuy = this.buyingHistoryRepo.create({
+      ...myDto
+    })
+
+    // console.log(myDto,844);
+    const savedBuy = await this.buyingHistoryRepo.save(newBuy);
+    this.createNewCartObject(savedBuy, myDto.carts)
+    return savedBuy;
+  }
+
+  // create new color object 
+  async createNewCartObject(buy, cartsData) {
+    for (const cartDataId of cartsData) {
+      const cart = await this.cartRepo.findOne({
+        where: { id: cartDataId },
+        relations: ['product', 'category'], // Load the product relation
+      });
+
+      const size = await this.getSizeByName(cart.size)
+
+      // console.log(cart.product,"product");
+      // console.log(cart.category);
+      // console.log(size);
+
+      const pscObj = await this.productSizeCategoryRepo.findOne({
+        where: {
+          category: cart.category,
+          size: size,
+          product: { id: cart.product.id }, // Use the Equal operator
+        },
+        relations: ['product']
+      })
+
+
+      // console.log('pscObj',pscObj);
+
+      pscObj.quantity -= cart.Quantity
+      await this.productSizeCategoryRepo.save(pscObj)
+
+      // console.log(cart);
+      // const quantity = 
+      if (cart) {
+        cart.isBought = true;
+        cart.totalPrice = Math.ceil((cart.product.sellingPrice - (cart.product.sellingPrice * cart.product.discountPercentage / 100) + (cart.product.sellingPrice * cart.product.vatPercentage / 100)) * cart.Quantity)
+        cart.history = buy;
+        await this.cartRepo.save(cart);
+      }
+    }
+    return true;
+  }
+
   // create new cart 
   async createNewCart(myDto) {
     const selectedProduct = await this.getProductById(myDto.productId)
@@ -938,23 +985,6 @@ export class AdminService {
 
     const savedProduct = await this.cartRepo.save(newCart);
     return savedProduct;
-  }
-
-  // create new color object 
-  async createNewCartObject(buy, cartsData) {
-    for (const cartDataId of cartsData) {
-      const cart = await this.cartRepo.findOne({
-        where: { id: cartDataId },
-        relations: ['product'], // Load the product relation
-      });
-      if (cart) {
-        cart.isBought = true;
-        cart.totalPrice = Math.ceil((cart.product.sellingPrice - (cart.product.sellingPrice * cart.product.discountPercentage / 100) + (cart.product.sellingPrice * cart.product.vatPercentage / 100)) * cart.Quantity)
-        cart.history = buy;
-        await this.cartRepo.save(cart);
-      }
-    }
-    return true;
   }
 
   // create new wish 
@@ -1017,20 +1047,20 @@ export class AdminService {
 
     for (const item of processedCatsInfo) {
       const catInfoItem = new ProductSizeCategoryEntity();
-    
+
       catInfoItem.product = product;
       catInfoItem.category = await this.subSubCategoryRepo.findOne({ where: { id: item.categoryId } });
-    
+
       if (item.sizes.length <= 0) {
         await this.productSizeCategoryRepo.save(catInfoItem);
       } else {
         for (const sizeItem of item.sizes) {
           const sizeObject = sizeItem.sizeId ? await this.getSizeById(sizeItem.sizeId) : null;
-    
+
           const newCatInfoItem = { ...catInfoItem }; // Create a new instance
           newCatInfoItem.size = sizeObject;
           newCatInfoItem.quantity = sizeItem.quantity;
-    
+
           await this.productSizeCategoryRepo.save(newCatInfoItem);
         }
       }
