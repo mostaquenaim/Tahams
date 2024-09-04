@@ -423,6 +423,16 @@ export class AdminController {
     return this.adminService.createPaymentMethod(myDto);
   }
 
+  // increase product view 
+  @Post('increase-product-view/:id')
+  @UsePipes(ValidationPipe)
+  increaseProductView(
+    @Param('id') id: number,
+    @Query('email') email: string
+  ) {
+    return this.adminService.increaseProductView(id, email);
+  }
+
   // add new sub-category 
   @Post('add-subCategory')
   @UsePipes(ValidationPipe)

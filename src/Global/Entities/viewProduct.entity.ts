@@ -9,12 +9,12 @@ export class ViewProductEntity {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @ManyToOne(() => ProductEntity, (product) => product.view)
+    @ManyToOne(() => ProductEntity, (product) => product.views)
     product: ProductEntity
 
-    @ManyToOne(() => UserEntity, (user) => user.view)
+    @ManyToOne(() => UserEntity, (user) => user.views)
     user: UserEntity
 
     @Column()
-    times: number
+    count: number
 }

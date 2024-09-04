@@ -4,6 +4,7 @@ import { WishEntity } from './wish.entity';
 import { ProductPictureEntity } from './product-pictures.entity';
 import { ProductSizeCategoryEntity } from './productSizeCategory.entity';
 import { FabricEntity } from './fabrics.entity';
+import { ViewProductEntity } from './viewProduct.entity';
 export declare class ProductEntity {
     id: number;
     name: string;
@@ -28,4 +29,5 @@ export declare class ProductEntity {
     pscs: ProductSizeCategoryEntity[];
     carts: CartsEntity[];
     wishes: WishEntity[];
+    views: ViewProductEntity[];
 }

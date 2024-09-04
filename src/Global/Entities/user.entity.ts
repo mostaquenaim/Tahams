@@ -2,6 +2,7 @@
 import { CartsEntity } from 'src/Global/Entities/cart.entity';
 import { WishEntity } from 'src/Global/Entities/wish.entity';
 import { Entity, Column, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { ViewProductEntity } from './viewProduct.entity';
 
 @Entity('users')
 export class UserEntity {
@@ -67,4 +68,7 @@ export class UserEntity {
 
     @OneToMany(() => WishEntity, (wish) => wish.customer)
     wishes: WishEntity[];
+
+    @OneToMany(() => ViewProductEntity, (view) => view.user)
+    views: ViewProductEntity[];
 }

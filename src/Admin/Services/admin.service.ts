@@ -29,6 +29,7 @@ import { MoreThan } from 'typeorm';
 import { FabricEntity } from 'src/Global/Entities/fabrics.entity';
 import { ProductSizeCategoryEntity } from 'src/Global/Entities/productSizeCategory.entity';
 import { OtpEntity } from 'src/Global/Entities/otp.entity';
+import { ViewProductEntity } from 'src/Global/Entities/viewProduct.entity';
 
 @Injectable()
 export class AdminService {
@@ -76,6 +77,9 @@ export class AdminService {
 
     @InjectRepository(SizeEntity)
     private sizeRepo: Repository<SizeEntity>,
+
+    @InjectRepository(ViewProductEntity)
+    private viewRepo: Repository<ViewProductEntity>,
 
     @InjectRepository(WishEntity)
     private wishRepo: Repository<WishEntity>,
@@ -823,6 +827,28 @@ export class AdminService {
       ...myDto
     });
     return this.paymentMethodRepo.save(newPaymentMethod);
+  }
+
+  // increase product view 
+  async increaseProductView(productId: number, email: string) {
+    const existingView = await this.viewRepo.findOne({
+      where: {
+        product: { id: productId },
+        user: { email },
+      },
+    });
+
+    if (existingView) {
+      existingView.count += 1;
+      await this.viewRepo.save(existingView);
+    } else {
+      const newView = this.viewRepo.create({
+        product: { id: productId },
+        user: { email },
+        count: 1,
+      });
+      await this.viewRepo.save(newView);
+    }
   }
 
   // create new coupon 

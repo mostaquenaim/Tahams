@@ -20,17 +20,17 @@ __decorate([
     __metadata("design:type", Number)
 ], ViewProductEntity.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => product_entity_1.ProductEntity, (product) => product.view),
+    (0, typeorm_1.ManyToOne)(() => product_entity_1.ProductEntity, (product) => product.views),
     __metadata("design:type", product_entity_1.ProductEntity)
 ], ViewProductEntity.prototype, "product", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => user_entity_1.UserEntity, (user) => user.view),
+    (0, typeorm_1.ManyToOne)(() => user_entity_1.UserEntity, (user) => user.views),
     __metadata("design:type", user_entity_1.UserEntity)
 ], ViewProductEntity.prototype, "user", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", Number)
-], ViewProductEntity.prototype, "times", void 0);
+], ViewProductEntity.prototype, "count", void 0);
 exports.ViewProductEntity = ViewProductEntity = __decorate([
     (0, typeorm_1.Entity)('view_product')
 ], ViewProductEntity);

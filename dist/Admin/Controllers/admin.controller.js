@@ -156,6 +156,9 @@ let AdminController = exports.AdminController = class AdminController {
     createPaymentMethod(myDto) {
         return this.adminService.createPaymentMethod(myDto);
     }
+    increaseProductView(id, email) {
+        return this.adminService.increaseProductView(id, email);
+    }
     createNewSubCategory(myDto) {
         return this.adminService.createNewSubCategory(myDto);
     }
@@ -573,6 +576,15 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "createPaymentMethod", null);
+__decorate([
+    (0, common_1.Post)('increase-product-view/:id'),
+    (0, common_1.UsePipes)(common_1.ValidationPipe),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Query)('email')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "increaseProductView", null);
 __decorate([
     (0, common_1.Post)('add-subCategory'),
     (0, common_1.UsePipes)(common_1.ValidationPipe),

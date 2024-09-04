@@ -4,5 +4,5 @@ export declare class ViewProductEntity {
     id: number;
     product: ProductEntity;
     user: UserEntity;
-    times: number;
+    count: number;
 }

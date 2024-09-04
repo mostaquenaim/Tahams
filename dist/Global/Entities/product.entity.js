@@ -17,6 +17,7 @@ const wish_entity_1 = require("./wish.entity");
 const product_pictures_entity_1 = require("./product-pictures.entity");
 const productSizeCategory_entity_1 = require("./productSizeCategory.entity");
 const fabrics_entity_1 = require("./fabrics.entity");
+const viewProduct_entity_1 = require("./viewProduct.entity");
 let ProductEntity = exports.ProductEntity = class ProductEntity {
 };
 __decorate([
@@ -111,6 +112,10 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => wish_entity_1.WishEntity, (wish) => wish.product),
     __metadata("design:type", Array)
 ], ProductEntity.prototype, "wishes", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => viewProduct_entity_1.ViewProductEntity, (view) => view.product),
+    __metadata("design:type", Array)
+], ProductEntity.prototype, "views", void 0);
 exports.ProductEntity = ProductEntity = __decorate([
     (0, typeorm_1.Entity)('product')
 ], ProductEntity);

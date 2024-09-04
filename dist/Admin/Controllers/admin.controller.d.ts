@@ -83,6 +83,7 @@ export declare class AdminController {
     updateUserAddress(id: number, updateAddressDto: any): Promise<import("../../Global/Entities/user.entity").UserEntity>;
     createNewCategory(myDto: any): Promise<import("../../Global/Entities/category.entity").CategoryEntity[]>;
     createPaymentMethod(myDto: any): Promise<import("../../Global/Entities/paymentMethod.entity").PaymentMethodEntity[]>;
+    increaseProductView(id: number, email: string): Promise<void>;
     createNewSubCategory(myDto: any): Promise<import("../../Global/Entities/subCategory.entity").SubCategoryEntity[]>;
     createNewSubSubCategory(myDto: any): Promise<import("../../Global/Entities/subSubCategory.entity").SubSubCategoryEntity[]>;
     changeCategoryImage(id: any, file: Express.Multer.File): object;

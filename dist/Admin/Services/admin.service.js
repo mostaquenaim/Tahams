@@ -42,8 +42,9 @@ const typeorm_4 = require("typeorm");
 const fabrics_entity_1 = require("../../Global/Entities/fabrics.entity");
 const productSizeCategory_entity_1 = require("../../Global/Entities/productSizeCategory.entity");
 const otp_entity_1 = require("../../Global/Entities/otp.entity");
+const viewProduct_entity_1 = require("../../Global/Entities/viewProduct.entity");
 let AdminService = exports.AdminService = class AdminService {
-    constructor(adminRepo, mailerService, userRepo, productRepo, productSizeCategoryRepo, productPicRepo, bannerRepo, paymentInfoRepo, categoryRepo, couponRepo, colorRepo, otpRepository, subCategoryRepo, subSubCategoryRepo, sizeRepo, wishRepo, cartRepo, buyingHistoryRepo, deliveryStatusRepo, paymentMethodRepo, fabricRepo, colorSizeRepo) {
+    constructor(adminRepo, mailerService, userRepo, productRepo, productSizeCategoryRepo, productPicRepo, bannerRepo, paymentInfoRepo, categoryRepo, couponRepo, colorRepo, otpRepository, subCategoryRepo, subSubCategoryRepo, sizeRepo, viewRepo, wishRepo, cartRepo, buyingHistoryRepo, deliveryStatusRepo, paymentMethodRepo, fabricRepo, colorSizeRepo) {
         this.adminRepo = adminRepo;
         this.mailerService = mailerService;
         this.userRepo = userRepo;
@@ -59,6 +60,7 @@ let AdminService = exports.AdminService = class AdminService {
         this.subCategoryRepo = subCategoryRepo;
         this.subSubCategoryRepo = subSubCategoryRepo;
         this.sizeRepo = sizeRepo;
+        this.viewRepo = viewRepo;
         this.wishRepo = wishRepo;
         this.cartRepo = cartRepo;
         this.buyingHistoryRepo = buyingHistoryRepo;
@@ -597,6 +599,26 @@ let AdminService = exports.AdminService = class AdminService {
         });
         return this.paymentMethodRepo.save(newPaymentMethod);
     }
+    async increaseProductView(productId, email) {
+        const existingView = await this.viewRepo.findOne({
+            where: {
+                product: { id: productId },
+                user: { email },
+            },
+        });
+        if (existingView) {
+            existingView.count += 1;
+            await this.viewRepo.save(existingView);
+        }
+        else {
+            const newView = this.viewRepo.create({
+                product: { id: productId },
+                user: { email },
+                count: 1,
+            });
+            await this.viewRepo.save(newView);
+        }
+    }
     async createNewCoupon(myDto) {
         const newCoupon = this.couponRepo.create({
             ...myDto
@@ -823,15 +845,17 @@ exports.AdminService = AdminService = __decorate([
     __param(12, (0, typeorm_1.InjectRepository)(subCategory_entity_1.SubCategoryEntity)),
     __param(13, (0, typeorm_1.InjectRepository)(subSubCategory_entity_1.SubSubCategoryEntity)),
     __param(14, (0, typeorm_1.InjectRepository)(size_entity_1.SizeEntity)),
-    __param(15, (0, typeorm_1.InjectRepository)(wish_entity_1.WishEntity)),
-    __param(16, (0, typeorm_1.InjectRepository)(cart_entity_1.CartsEntity)),
-    __param(17, (0, typeorm_1.InjectRepository)(buyingHistory_entity_1.BuyingHistoryEntity)),
-    __param(18, (0, typeorm_1.InjectRepository)(deliveryStatus_entity_1.DeliveryStatusEntity)),
-    __param(19, (0, typeorm_1.InjectRepository)(paymentMethod_entity_1.PaymentMethodEntity)),
-    __param(20, (0, typeorm_1.InjectRepository)(fabrics_entity_1.FabricEntity)),
-    __param(21, (0, typeorm_1.InjectRepository)(color_size_combined_entity_1.ColorSizeEntity)),
+    __param(15, (0, typeorm_1.InjectRepository)(viewProduct_entity_1.ViewProductEntity)),
+    __param(16, (0, typeorm_1.InjectRepository)(wish_entity_1.WishEntity)),
+    __param(17, (0, typeorm_1.InjectRepository)(cart_entity_1.CartsEntity)),
+    __param(18, (0, typeorm_1.InjectRepository)(buyingHistory_entity_1.BuyingHistoryEntity)),
+    __param(19, (0, typeorm_1.InjectRepository)(deliveryStatus_entity_1.DeliveryStatusEntity)),
+    __param(20, (0, typeorm_1.InjectRepository)(paymentMethod_entity_1.PaymentMethodEntity)),
+    __param(21, (0, typeorm_1.InjectRepository)(fabrics_entity_1.FabricEntity)),
+    __param(22, (0, typeorm_1.InjectRepository)(color_size_combined_entity_1.ColorSizeEntity)),
     __metadata("design:paramtypes", [typeorm_3.Repository,
         dist_1.MailerService,
+        typeorm_3.Repository,
         typeorm_3.Repository,
         typeorm_3.Repository,
         typeorm_3.Repository,

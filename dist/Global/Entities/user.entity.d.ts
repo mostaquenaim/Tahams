@@ -1,5 +1,6 @@
 import { CartsEntity } from 'src/Global/Entities/cart.entity';
 import { WishEntity } from 'src/Global/Entities/wish.entity';
+import { ViewProductEntity } from './viewProduct.entity';
 export declare class UserEntity {
     id: number;
     name: string;
@@ -21,4 +22,5 @@ export declare class UserEntity {
     updated_at: Date;
     carts: CartsEntity[];
     wishes: WishEntity[];
+    views: ViewProductEntity[];
 }

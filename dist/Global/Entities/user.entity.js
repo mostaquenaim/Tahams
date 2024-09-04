@@ -13,6 +13,7 @@ exports.UserEntity = void 0;
 const cart_entity_1 = require("./cart.entity");
 const wish_entity_1 = require("./wish.entity");
 const typeorm_1 = require("typeorm");
+const viewProduct_entity_1 = require("./viewProduct.entity");
 let UserEntity = exports.UserEntity = class UserEntity {
 };
 __decorate([
@@ -95,6 +96,10 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => wish_entity_1.WishEntity, (wish) => wish.customer),
     __metadata("design:type", Array)
 ], UserEntity.prototype, "wishes", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => viewProduct_entity_1.ViewProductEntity, (view) => view.user),
+    __metadata("design:type", Array)
+], UserEntity.prototype, "views", void 0);
 exports.UserEntity = UserEntity = __decorate([
     (0, typeorm_1.Entity)('users')
 ], UserEntity);
