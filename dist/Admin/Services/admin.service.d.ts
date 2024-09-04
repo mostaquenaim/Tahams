@@ -166,7 +166,7 @@ export declare class AdminService {
     removeWish(myData: any): Promise<import("typeorm").DeleteResult>;
     createNewCategory(myDto: any): Promise<CategoryEntity[]>;
     createPaymentMethod(myDto: any): Promise<PaymentMethodEntity[]>;
-    increaseProductView(productId: number, email: string): Promise<void>;
+    increaseProductView(productId: number, email: string): Promise<ViewProductEntity>;
     createNewCoupon(myDto: any): Promise<CouponEntity[]>;
     createNewColor(myDto: any): Promise<ColorEntity[]>;
     createNewSubCategory(myDto: any): Promise<SubCategoryEntity[]>;

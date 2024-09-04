@@ -157,6 +157,7 @@ let AdminController = exports.AdminController = class AdminController {
         return this.adminService.createPaymentMethod(myDto);
     }
     increaseProductView(id, email) {
+        console.log('id', id, email);
         return this.adminService.increaseProductView(id, email);
     }
     createNewSubCategory(myDto) {

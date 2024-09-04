@@ -428,8 +428,9 @@ export class AdminController {
   @UsePipes(ValidationPipe)
   increaseProductView(
     @Param('id') id: number,
-    @Query('email') email: string
-  ) {
+    @Query('email') email: string 
+  ) {  
+    console.log('id',id,email);
     return this.adminService.increaseProductView(id, email);
   }
 

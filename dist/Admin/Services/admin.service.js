@@ -600,23 +600,24 @@ let AdminService = exports.AdminService = class AdminService {
         return this.paymentMethodRepo.save(newPaymentMethod);
     }
     async increaseProductView(productId, email) {
+        const customer = await this.getUserByEmail(email);
         const existingView = await this.viewRepo.findOne({
             where: {
                 product: { id: productId },
-                user: { email },
+                user: { id: customer.id },
             },
         });
         if (existingView) {
             existingView.count += 1;
-            await this.viewRepo.save(existingView);
+            return await this.viewRepo.save(existingView);
         }
         else {
             const newView = this.viewRepo.create({
                 product: { id: productId },
-                user: { email },
+                user: { id: customer.id },
                 count: 1,
             });
-            await this.viewRepo.save(newView);
+            return await this.viewRepo.save(newView);
         }
     }
     async createNewCoupon(myDto) {
