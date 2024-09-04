@@ -1,7 +1,5 @@
 /* eslint-disable prettier/prettier */
 import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, ManyToOne, OneToMany } from 'typeorm';
-import { ColorEntity } from './colors.entity';
-import { ColorSizeEntity } from './color-size-combined.entity';
 import { ProductEntity } from './product.entity';
 import { SizeEntity } from './size.entity';
 import { SubSubCategoryEntity } from './subSubCategory.entity';

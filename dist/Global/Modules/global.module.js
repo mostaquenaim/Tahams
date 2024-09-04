@@ -31,6 +31,7 @@ const dotenv = require("dotenv");
 const fabrics_entity_1 = require("../Entities/fabrics.entity");
 const productSizeCategory_entity_1 = require("../Entities/productSizeCategory.entity");
 const otp_entity_1 = require("../Entities/otp.entity");
+const viewProduct_entity_1 = require("../Entities/viewProduct.entity");
 dotenv.config();
 let GlobalModule = exports.GlobalModule = class GlobalModule {
 };
@@ -69,6 +70,7 @@ exports.GlobalModule = GlobalModule = __decorate([
                 size_entity_1.SizeEntity,
                 subCategory_entity_1.SubCategoryEntity,
                 subSubCategory_entity_1.SubSubCategoryEntity,
+                viewProduct_entity_1.ViewProductEntity,
                 wish_entity_1.WishEntity,
             ])
         ],
