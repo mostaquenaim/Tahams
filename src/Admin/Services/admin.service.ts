@@ -394,7 +394,7 @@ export class AdminService {
       // console.log('user',user,'user');
       const cartsWithHistory = await this.cartRepo.find({
         where: {
-          ...(user.role !== 'admin' && { customer: { email: email } }),
+          ...(user.role != 'admin' && { customer: { email: email } }),
           isBought: true
         },
         relations: [
