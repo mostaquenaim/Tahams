@@ -64,8 +64,14 @@ export class BuyingHistoryEntity {
     @Column({nullable: true})
     returnDate: Date
 
+    @Column({ default: () => 'CURRENT_TIMESTAMP' })
+    checkedDate: Date
+
     @Column({nullable:true})
     PaymentDetails: string
+
+    @Column({default:false})
+    isChecked: boolean
 
     @Column({nullable:true})
     screenshot: string //payment screenshot

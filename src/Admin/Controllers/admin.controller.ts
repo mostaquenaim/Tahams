@@ -190,13 +190,13 @@ export class AdminController {
   }
 
   // update buying history 
-  @Patch('update-buy-reference/:token')
+  @Patch('update-history/:token')
   updateBuyingHistory(
-    @Param('token') id,
+    @Param('token') tt: string,
     @Query('email') email: string,
-    @Body('PaymentDetails') details,
+    @Body() updates: { [key: string]: any },
   ) {
-    return this.adminService.updateBuyingHistory(id, details, email)
+    return this.adminService.updateBuyingHistory(tt, updates, email)
   }
 
   // get buying histoy by id 

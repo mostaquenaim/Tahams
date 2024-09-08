@@ -118,7 +118,8 @@ export declare class AdminService {
     deleteCartItem(id: string): Promise<import("typeorm").DeleteResult>;
     deleteCarts(cartArray: string[]): Promise<import("typeorm").DeleteResult>;
     viewAllProducts(filters: any): Promise<ProductEntity[]>;
-    getAllBuyingHistories(email: any): Promise<CartsEntity[]>;
+    getAllBuyingHistories(email: string): Promise<CartsEntity[]>;
+    getBuyingHistoryByToken(token: string, email: string): Promise<CartsEntity[]>;
     getAllCoupons(): Promise<CouponEntity[]>;
     getAllDeliveryStatus(): Promise<DeliveryStatusEntity[]>;
     getAllPaymentMethod(): Promise<PaymentMethodEntity[]>;
@@ -152,7 +153,6 @@ export declare class AdminService {
     getColorByName(name: string): Promise<ColorEntity>;
     getDeliveryStatusById(id: any): Promise<DeliveryStatusEntity>;
     getCouponById(id: any): Promise<CouponEntity>;
-    getBuyingHistoryByToken(token: string, email: string): Promise<CartsEntity>;
     getProductByCat(name: any): Promise<ProductEntity[]>;
     getPublishableProductsBySubSubCatId(subCategoryId: any): Promise<ProductEntity[]>;
     getProductBySubSubCatId(subCategoryId: any): Promise<ProductEntity[]>;
@@ -160,7 +160,7 @@ export declare class AdminService {
     updateCategory(id: number, category: any): Promise<void>;
     updateUserAddress(userId: number, updateAddressDto: any): Promise<UserEntity>;
     updateBanner(id: number, bannerDto: any): Promise<void>;
-    updateBuyingHistory(token: any, details: any, email: any): Promise<BuyingHistoryEntity>;
+    updateBuyingHistory(token: string, updates: any, email: string): Promise<BuyingHistoryEntity>;
     deleteProductById(id: number): Promise<import("typeorm").DeleteResult>;
     deleteSizeById(id: number): Promise<import("typeorm").DeleteResult>;
     removeWish(myData: any): Promise<import("typeorm").DeleteResult>;

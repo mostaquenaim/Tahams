@@ -70,8 +70,8 @@ let AdminController = exports.AdminController = class AdminController {
     createNewBuy(myDto) {
         return this.adminService.createNewBuy(myDto);
     }
-    updateBuyingHistory(id, email, details) {
-        return this.adminService.updateBuyingHistory(id, details, email);
+    updateBuyingHistory(tt, email, updates) {
+        return this.adminService.updateBuyingHistory(tt, updates, email);
     }
     async getBuyingHistoryByToken(token, email) {
         const result = await this.adminService.getBuyingHistoryByToken(token, email);
@@ -379,12 +379,12 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "createNewBuy", null);
 __decorate([
-    (0, common_1.Patch)('update-buy-reference/:token'),
+    (0, common_1.Patch)('update-history/:token'),
     __param(0, (0, common_1.Param)('token')),
     __param(1, (0, common_1.Query)('email')),
-    __param(2, (0, common_1.Body)('PaymentDetails')),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "updateBuyingHistory", null);
 __decorate([

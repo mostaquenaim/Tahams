@@ -113,7 +113,7 @@ export class AdminService {
 
     // Get the buying history associated with the token and customer
     const cart = await this.getBuyingHistoryByToken(myDto.history, myDto.customer);
-    const history = cart.history;
+    const history = cart[0].history;
 
 
     const paymentMethod = await this.getPaymentMethodById(myDto.paymentMethod)
@@ -135,7 +135,6 @@ export class AdminService {
     // Save the updated history back to the database
     await this.buyingHistoryRepo.save(history);
   }
-
 
   // create user 
   async createUser(myDto) {
@@ -387,7 +386,7 @@ export class AdminService {
   }
 
   // view all buying histories 
-  async getAllBuyingHistories(email) {
+  async getAllBuyingHistories(email: string) {
     if (email) {
       // console.log('in');
       const user = await this.getUserByEmail(email)
@@ -395,6 +394,7 @@ export class AdminService {
       const cartsWithHistory = await this.cartRepo.find({
         where: {
           ...(user.role != 'admin' && { customer: { email: email } }),
+          // isBought: true || false
           isBought: true
         },
         relations: [
@@ -402,7 +402,41 @@ export class AdminService {
           'history.deliveryStatus',
           'history.paymentMethod',
           'customer',
-          'product'
+          'product',
+          'category',
+          'category.category',
+          'category.category.category'
+        ],
+      });
+
+      // console.log(cartsWithHistory);
+      return cartsWithHistory;
+    }
+    throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+  }
+
+
+  // get history by id 
+  async getBuyingHistoryByToken(token: string, email: string) {
+    if (email) {
+      // console.log('in');
+      const user = await this.getUserByEmail(email)
+      // console.log('user',user,'user');
+      const cartsWithHistory = await this.cartRepo.find({
+        where: {
+          ...(user?.role != 'admin' && { customer: { email: email } }),
+          // isBought: true || false
+          history: { trackingToken: token },
+        },
+        relations: [
+          'history',
+          'history.deliveryStatus',
+          'history.paymentMethod',
+          'customer',
+          'product',
+          'category',
+          'category.category',
+          'category.category.category'
         ],
       });
 
@@ -619,30 +653,6 @@ export class AdminService {
     return await this.couponRepo.findOneBy({ id });
   }
 
-  // get history by id 
-  async getBuyingHistoryByToken(token: string, email: string) {
-    if (email) {
-      const cartWithHistory = await this.cartRepo.findOne({
-        where: {
-          customer: { email: email },
-          history: { trackingToken: token },
-          // isBought: true
-          // history: { PaymentDone: true || false }
-        },
-        relations: [
-          'history',
-          'history.deliveryStatus',
-          'history.paymentMethod',
-          'customer',
-          'product'
-        ],
-      });
-
-      return cartWithHistory;
-    }
-    throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
-  }
-
   // get Product by category id 
   async getProductByCat(name) {
     //get all the products where category name == name
@@ -742,18 +752,20 @@ export class AdminService {
   }
 
   // update buying by id 
-  async updateBuyingHistory(token, details, email) {
+  async updateBuyingHistory(token: string, updates, email: string) {
     const history = await this.buyingHistoryRepo.findOneBy({ trackingToken: token });
-
+  
     if (!history) {
       throw new NotFoundException(`Not found.`);
     }
-
-
-    // Update PaymentDetails in the buying history
-    history.PaymentDetails = details
+  
+    // Update any column in the buying history
+    Object.keys(updates).forEach((key) => {
+      history[key] = updates[key];
+    });
+  
     const result = await this.buyingHistoryRepo.save(history);
-    return result
+    return result;
   }
 
   // delete product by id 

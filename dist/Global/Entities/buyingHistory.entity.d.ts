@@ -18,7 +18,9 @@ export declare class BuyingHistoryEntity {
     deliveredDate: Date;
     cancelDate: Date;
     returnDate: Date;
+    checkedDate: Date;
     PaymentDetails: string;
+    isChecked: boolean;
     screenshot: string;
     PaymentDone: boolean;
     deliveryStatus: DeliveryStatusEntity;

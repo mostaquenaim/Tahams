@@ -74,7 +74,7 @@ let AdminService = exports.AdminService = class AdminService {
     }
     async addPaymentInfo(myDto) {
         const cart = await this.getBuyingHistoryByToken(myDto.history, myDto.customer);
-        const history = cart.history;
+        const history = cart[0].history;
         const paymentMethod = await this.getPaymentMethodById(myDto.paymentMethod);
         history.paymentMethod = paymentMethod;
         if (myDto.paymentMethod == '1' || myDto.paymentMethod == '8') {
@@ -294,7 +294,33 @@ let AdminService = exports.AdminService = class AdminService {
                     'history.deliveryStatus',
                     'history.paymentMethod',
                     'customer',
-                    'product'
+                    'product',
+                    'category',
+                    'category.category',
+                    'category.category.category'
+                ],
+            });
+            return cartsWithHistory;
+        }
+        throw new common_1.HttpException('Forbidden', common_1.HttpStatus.FORBIDDEN);
+    }
+    async getBuyingHistoryByToken(token, email) {
+        if (email) {
+            const user = await this.getUserByEmail(email);
+            const cartsWithHistory = await this.cartRepo.find({
+                where: {
+                    ...(user?.role != 'admin' && { customer: { email: email } }),
+                    history: { trackingToken: token },
+                },
+                relations: [
+                    'history',
+                    'history.deliveryStatus',
+                    'history.paymentMethod',
+                    'customer',
+                    'product',
+                    'category',
+                    'category.category',
+                    'category.category.category'
                 ],
             });
             return cartsWithHistory;
@@ -441,25 +467,6 @@ let AdminService = exports.AdminService = class AdminService {
     async getCouponById(id) {
         return await this.couponRepo.findOneBy({ id });
     }
-    async getBuyingHistoryByToken(token, email) {
-        if (email) {
-            const cartWithHistory = await this.cartRepo.findOne({
-                where: {
-                    customer: { email: email },
-                    history: { trackingToken: token },
-                },
-                relations: [
-                    'history',
-                    'history.deliveryStatus',
-                    'history.paymentMethod',
-                    'customer',
-                    'product'
-                ],
-            });
-            return cartWithHistory;
-        }
-        throw new common_1.HttpException('Forbidden', common_1.HttpStatus.FORBIDDEN);
-    }
     async getProductByCat(name) {
         const products = await this.productRepo.find({
             where: {
@@ -536,12 +543,14 @@ let AdminService = exports.AdminService = class AdminService {
         }
         await this.bannerRepo.update(id, { ...bannerDto });
     }
-    async updateBuyingHistory(token, details, email) {
+    async updateBuyingHistory(token, updates, email) {
         const history = await this.buyingHistoryRepo.findOneBy({ trackingToken: token });
         if (!history) {
             throw new common_1.NotFoundException(`Not found.`);
         }
-        history.PaymentDetails = details;
+        Object.keys(updates).forEach((key) => {
+            history[key] = updates[key];
+        });
         const result = await this.buyingHistoryRepo.save(history);
         return result;
     }

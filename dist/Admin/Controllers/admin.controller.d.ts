@@ -55,8 +55,10 @@ export declare class AdminController {
     publishProduct(id: number, publishable: boolean): Promise<void>;
     changeBannerImage(id: any, file: Express.Multer.File): object;
     createNewBuy(myDto: any): Promise<import("../../Global/Entities/buyingHistory.entity").BuyingHistoryEntity[]>;
-    updateBuyingHistory(id: any, email: string, details: any): Promise<import("../../Global/Entities/buyingHistory.entity").BuyingHistoryEntity>;
-    getBuyingHistoryByToken(token: any, email: string): Promise<import("../../Global/Entities/cart.entity").CartsEntity>;
+    updateBuyingHistory(tt: string, email: string, updates: {
+        [key: string]: any;
+    }): Promise<import("../../Global/Entities/buyingHistory.entity").BuyingHistoryEntity>;
+    getBuyingHistoryByToken(token: any, email: string): Promise<import("../../Global/Entities/cart.entity").CartsEntity[]>;
     addPaymentInfo(PaymentDetails: any, file: Express.Multer.File): Promise<void>;
     getAllBuyingHistories(email: string): Promise<import("../../Global/Entities/cart.entity").CartsEntity[]>;
     createNewCart(myDto: any): Promise<import("../../Global/Entities/cart.entity").CartsEntity[]>;
