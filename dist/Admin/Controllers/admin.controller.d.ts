@@ -72,7 +72,7 @@ export declare class AdminController {
     viewAllProductSubCategories(): Promise<import("../../Global/Entities/subCategory.entity").SubCategoryEntity[]>;
     viewProductSubCategories(id: number): Promise<import("../../Global/Entities/subCategory.entity").SubCategoryEntity[]>;
     viewProductSubSubCategories(catId: number): Promise<import("../../Global/Entities/subSubCategory.entity").SubSubCategoryEntity[]>;
-    checkIfWished(productId: any, customerId: any): Promise<{
+    checkIfWished(customerId: number, productId: number): Promise<{
         wished: boolean;
     }>;
     getSubCatById(id: number): Promise<import("../../Global/Entities/subSubCategory.entity").SubSubCategoryEntity>;
@@ -120,13 +120,13 @@ export declare class AdminController {
     getProductById(id: any): Promise<import("../../Global/Entities/product.entity").ProductEntity>;
     deleteProductById(id: number): Promise<import("typeorm").DeleteResult>;
     deleteSizeById(id: number): Promise<import("typeorm").DeleteResult>;
-    removeWish(myDto: any): Promise<import("typeorm").DeleteResult>;
     createNewSize(myDto: any): Promise<import("../../Global/Entities/size.entity").SizeEntity[]>;
     createNewFabric(myDto: any): Promise<import("../../Global/Entities/fabrics.entity").FabricEntity[]>;
     addProductFunc(mydata: any, imageobj: Express.Multer.File): Promise<any>;
     addProductPictures(files: any, mydata: any): Promise<boolean>;
     updateAdmin(myDto: AdminForm, file: Express.Multer.File): Promise<"Admin not found" | "Admin updated" | "Update failed">;
-    createNewWish(myDto: any): Promise<import("../../Global/Entities/wish.entity").WishEntity[]>;
+    createNewWish(myDto: any): Promise<import("../../Global/Entities/wish.entity").WishEntity>;
+    removeWish(productId: number, email: string): Promise<import("typeorm").DeleteResult>;
     getWishByUser(email: string): Promise<import("../../Global/Entities/wish.entity").WishEntity[]>;
     getImages(name: any, res: any): void;
 }

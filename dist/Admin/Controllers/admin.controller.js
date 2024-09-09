@@ -123,7 +123,7 @@ let AdminController = exports.AdminController = class AdminController {
     viewProductSubSubCategories(catId) {
         return this.adminService.viewProductSubSubCategories(catId);
     }
-    checkIfWished(productId, customerId) {
+    checkIfWished(customerId, productId) {
         return this.adminService.checkIfWished(productId, customerId);
     }
     getSubCatById(id) {
@@ -219,9 +219,6 @@ let AdminController = exports.AdminController = class AdminController {
     async deleteSizeById(id) {
         return this.adminService.deleteSizeById(id);
     }
-    async removeWish(myDto) {
-        return this.adminService.removeWish(myDto);
-    }
     createNewSize(myDto) {
         return this.adminService.createNewSize(myDto);
     }
@@ -242,6 +239,9 @@ let AdminController = exports.AdminController = class AdminController {
     }
     createNewWish(myDto) {
         return this.adminService.createNewWish(myDto);
+    }
+    removeWish(productId, email) {
+        return this.adminService.removeWish(productId, email);
     }
     async getWishByUser(email) {
         const res = await this.adminService.getWishByUser(email);
@@ -494,8 +494,10 @@ __decorate([
 ], AdminController.prototype, "viewProductSubSubCategories", null);
 __decorate([
     (0, common_1.Get)('check-wish-by-user-and-product'),
+    __param(0, (0, common_1.Query)('customerId')),
+    __param(1, (0, common_1.Query)('productId')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Number, Number]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "checkIfWished", null);
 __decorate([
@@ -716,13 +718,6 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "deleteSizeById", null);
 __decorate([
-    (0, common_1.Delete)('remove-wish'),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], AdminController.prototype, "removeWish", null);
-__decorate([
     (0, common_1.Post)('add-size'),
     (0, common_1.UsePipes)(common_1.ValidationPipe),
     __param(0, (0, common_1.Body)()),
@@ -820,6 +815,14 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "createNewWish", null);
+__decorate([
+    (0, common_1.Delete)('remove-wish/:productId'),
+    __param(0, (0, common_1.Param)('productId')),
+    __param(1, (0, common_1.Query)('email')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "removeWish", null);
 __decorate([
     (0, common_1.Get)('get-wish-by-user/:email'),
     __param(0, (0, common_1.Param)('email')),

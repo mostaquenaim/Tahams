@@ -217,7 +217,7 @@ export class AdminController {
         destination: './uploads',
         filename: function (req, file, cb) {
           cb(null, Date.now() + file.originalname)
-        } 
+        }
       })
     }))
   addPaymentInfo(
@@ -327,7 +327,10 @@ export class AdminController {
 
   // check if wished 
   @Get('check-wish-by-user-and-product')
-  checkIfWished(productId, customerId) {
+  checkIfWished(
+    @Query('customerId') customerId: number,
+    @Query('productId') productId: number
+  ) {
     return this.adminService.checkIfWished(productId, customerId)
   }
 
@@ -428,9 +431,9 @@ export class AdminController {
   @UsePipes(ValidationPipe)
   increaseProductView(
     @Param('id') id: number,
-    @Query('email') email: string 
-  ) {  
-    console.log('id',id,email);
+    @Query('email') email: string
+  ) {
+    console.log('id', id, email);
     return this.adminService.increaseProductView(id, email);
   }
 
@@ -581,14 +584,6 @@ export class AdminController {
     return this.adminService.deleteSizeById(id);
   }
 
-  // remove wish list item
-  @Delete('remove-wish')
-  async removeWish(
-    @Body() myDto
-  ) {
-    return this.adminService.removeWish(myDto);
-  }
-
   // add new size 
   @Post('add-size')
   @UsePipes(ValidationPipe)
@@ -688,11 +683,19 @@ export class AdminController {
   @Post('add-Wish')
   @UsePipes(ValidationPipe)
   createNewWish(
-    // @Body('colors') colors,
     @Body() myDto,
   ) {
-    // console.log("myDto", myDto)
     return this.adminService.createNewWish(myDto);
+  }
+
+  // remove wish list item
+  @Delete('remove-wish/:productId')
+  // @UsePipes(ValidationPipe)
+  removeWish(
+    @Param('productId') productId: number,
+    @Query('email') email: string
+  ) {
+    return this.adminService.removeWish(productId, email);
   }
 
   // get wishlist 

@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { BadRequestException, HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In } from 'typeorm';
 import { AdminForm } from '../DTOs/adminform.dto';
@@ -574,6 +574,7 @@ export class AdminService {
 
   // check if wished 
   async checkIfWished(productId, customerId) {
+    console.log(productId, customerId, "okk");
     const wished = await this.wishRepo.findOne({
       where: {
         product: { id: productId },
@@ -708,6 +709,7 @@ export class AdminService {
 
   // ProductService
   async getProductById(id: number) {
+    console.log(id,'id');
     return await this.productRepo.findOne({
       where: { id },
       relations: ['color', 'fabric', 'productPictures', 'pscs', 'pscs.category', 'pscs.category.category.category', 'pscs.size']
@@ -800,12 +802,13 @@ export class AdminService {
   }
 
   // remove wish list item
-  async removeWish(myData) {
+  async removeWish(productId, customerEmail) {
+    console.log('myData',productId, customerEmail);
     try {
       const wish = await this.wishRepo.findOne({
         where: {
-          product: { id: myData.productId },
-          customer: { id: myData.customerId }
+          product: { id: productId },
+          customer: { email: customerEmail }
         }
       });
 
@@ -994,8 +997,7 @@ export class AdminService {
 
 
       // console.log('pscObj',pscObj);
-
-      pscObj.quantity -= cart.Quantity
+      pscObj && pscObj.quantity && (pscObj.quantity -= cart?.Quantity)
       await this.productSizeCategoryRepo.save(pscObj)
 
       // console.log(cart);
@@ -1027,21 +1029,35 @@ export class AdminService {
     const savedProduct = await this.cartRepo.save(newCart);
     return savedProduct;
   }
-
+ 
   // create new wish 
   async createNewWish(myDto) {
-    // console.log(myDto.customerEmail,'customerEmail');
-    myDto.product = await this.getProductById(myDto.productId)
-    myDto.customer = await this.getUserByEmail(myDto.customerEmail)
-
-    // console.log(myDto.customer);
-
-    const newWish = this.wishRepo.create({
-      ...myDto
-    });
-
-    const savedProduct = await this.wishRepo.save(newWish);
-    return savedProduct;
+    console.log('myDto',myDto);
+    if (!myDto.productId || !myDto.customerEmail) {
+      console.log("object");
+      throw new BadRequestException('Product ID and customer email are required');
+    }
+  
+    try {
+      const product = await this.getProductById(myDto.productId);
+      if (!product) {
+        throw new NotFoundException('Product not found');
+      }
+  
+      const customer = await this.getUserByEmail(myDto.customerEmail);
+      if (!customer) {
+        throw new NotFoundException('Customer not found');
+      }
+  
+      const newWish = this.wishRepo.create({
+        product,
+        customer,
+      });
+  
+      return await this.wishRepo.save(newWish);
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to create new wish');
+    }
   }
 
   // get all wishlist of a customer 

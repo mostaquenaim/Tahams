@@ -163,7 +163,7 @@ export declare class AdminService {
     updateBuyingHistory(token: string, updates: any, email: string): Promise<BuyingHistoryEntity>;
     deleteProductById(id: number): Promise<import("typeorm").DeleteResult>;
     deleteSizeById(id: number): Promise<import("typeorm").DeleteResult>;
-    removeWish(myData: any): Promise<import("typeorm").DeleteResult>;
+    removeWish(productId: any, customerEmail: any): Promise<import("typeorm").DeleteResult>;
     createNewCategory(myDto: any): Promise<CategoryEntity[]>;
     createPaymentMethod(myDto: any): Promise<PaymentMethodEntity[]>;
     increaseProductView(productId: number, email: string): Promise<ViewProductEntity>;
@@ -177,7 +177,7 @@ export declare class AdminService {
     createNewBuy(myDto: any): Promise<BuyingHistoryEntity[]>;
     createNewCartObject(buy: any, cartsData: any): Promise<boolean>;
     createNewCart(myDto: any): Promise<CartsEntity[]>;
-    createNewWish(myDto: any): Promise<WishEntity[]>;
+    createNewWish(myDto: any): Promise<WishEntity>;
     getWishByUser(email: string): Promise<WishEntity[]>;
     createNewProduct(myDto: any): Promise<any>;
     createProductExtension(product: any, catsInfo: any): Promise<any>;

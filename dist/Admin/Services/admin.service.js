@@ -415,6 +415,7 @@ let AdminService = exports.AdminService = class AdminService {
         return await this.subSubCategoryRepo.findOneBy({ id });
     }
     async checkIfWished(productId, customerId) {
+        console.log(productId, customerId, "okk");
         const wished = await this.wishRepo.findOne({
             where: {
                 product: { id: productId },
@@ -512,6 +513,7 @@ let AdminService = exports.AdminService = class AdminService {
         }
     }
     async getProductById(id) {
+        console.log(id, 'id');
         return await this.productRepo.findOne({
             where: { id },
             relations: ['color', 'fabric', 'productPictures', 'pscs', 'pscs.category', 'pscs.category.category.category', 'pscs.size']
@@ -578,12 +580,13 @@ let AdminService = exports.AdminService = class AdminService {
             console.error('Error deleting size:', error);
         }
     }
-    async removeWish(myData) {
+    async removeWish(productId, customerEmail) {
+        console.log('myData', productId, customerEmail);
         try {
             const wish = await this.wishRepo.findOne({
                 where: {
-                    product: { id: myData.productId },
-                    customer: { id: myData.customerId }
+                    product: { id: productId },
+                    customer: { email: customerEmail }
                 }
             });
             if (!wish) {
@@ -710,7 +713,7 @@ let AdminService = exports.AdminService = class AdminService {
                 },
                 relations: ['product']
             });
-            pscObj.quantity -= cart.Quantity;
+            pscObj && pscObj.quantity && (pscObj.quantity -= cart?.Quantity);
             await this.productSizeCategoryRepo.save(pscObj);
             if (cart) {
                 cart.isBought = true;
@@ -737,13 +740,29 @@ let AdminService = exports.AdminService = class AdminService {
         return savedProduct;
     }
     async createNewWish(myDto) {
-        myDto.product = await this.getProductById(myDto.productId);
-        myDto.customer = await this.getUserByEmail(myDto.customerEmail);
-        const newWish = this.wishRepo.create({
-            ...myDto
-        });
-        const savedProduct = await this.wishRepo.save(newWish);
-        return savedProduct;
+        console.log('myDto', myDto);
+        if (!myDto.productId || !myDto.customerEmail) {
+            console.log("object");
+            throw new common_1.BadRequestException('Product ID and customer email are required');
+        }
+        try {
+            const product = await this.getProductById(myDto.productId);
+            if (!product) {
+                throw new common_1.NotFoundException('Product not found');
+            }
+            const customer = await this.getUserByEmail(myDto.customerEmail);
+            if (!customer) {
+                throw new common_1.NotFoundException('Customer not found');
+            }
+            const newWish = this.wishRepo.create({
+                product,
+                customer,
+            });
+            return await this.wishRepo.save(newWish);
+        }
+        catch (error) {
+            throw new common_1.InternalServerErrorException('Failed to create new wish');
+        }
     }
     getWishByUser(email) {
         return this.wishRepo.find({
