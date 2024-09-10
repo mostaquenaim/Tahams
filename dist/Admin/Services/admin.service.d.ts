@@ -161,7 +161,7 @@ export declare class AdminService {
     updateUserAddress(userId: number, updateAddressDto: any): Promise<UserEntity>;
     updateBanner(id: number, bannerDto: any): Promise<void>;
     updateBuyingHistory(token: string, updates: any, email: string): Promise<BuyingHistoryEntity>;
-    deleteProductById(id: number): Promise<import("typeorm").DeleteResult>;
+    deleteProductById(id: number, email: string): Promise<import("typeorm").DeleteResult>;
     deleteSizeById(id: number): Promise<import("typeorm").DeleteResult>;
     removeWish(productId: any, customerEmail: any): Promise<import("typeorm").DeleteResult>;
     createNewCategory(myDto: any): Promise<CategoryEntity[]>;

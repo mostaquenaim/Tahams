@@ -212,9 +212,9 @@ let AdminController = exports.AdminController = class AdminController {
         const result = await this.adminService.getProductById(id);
         return result;
     }
-    async deleteProductById(id) {
+    async deleteProductById(id, email) {
         console.log(id);
-        return this.adminService.deleteProductById(id);
+        return this.adminService.deleteProductById(id, email);
     }
     async deleteSizeById(id) {
         return this.adminService.deleteSizeById(id);
@@ -684,7 +684,7 @@ __decorate([
 ], AdminController.prototype, "createUser", null);
 __decorate([
     (0, common_1.Get)('view-all-products'),
-    __param(0, (0, common_1.Query)()),
+    __param(0, (0, common_1.Query)('filter')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
@@ -705,9 +705,10 @@ __decorate([
 ], AdminController.prototype, "getProductById", null);
 __decorate([
     (0, common_1.Delete)('delete-product/:id'),
-    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Query)('email')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number]),
+    __metadata("design:paramtypes", [Number, String]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "deleteProductById", null);
 __decorate([

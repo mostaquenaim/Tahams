@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { BadRequestException, HttpException, HttpStatus, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In } from 'typeorm';
 import { AdminForm } from '../DTOs/adminform.dto';
@@ -709,7 +709,7 @@ export class AdminService {
 
   // ProductService
   async getProductById(id: number) {
-    console.log(id,'id');
+    console.log(id, 'id');
     return await this.productRepo.findOne({
       where: { id },
       relations: ['color', 'fabric', 'productPictures', 'pscs', 'pscs.category', 'pscs.category.category.category', 'pscs.size']
@@ -756,29 +756,44 @@ export class AdminService {
   // update buying by id 
   async updateBuyingHistory(token: string, updates, email: string) {
     const history = await this.buyingHistoryRepo.findOneBy({ trackingToken: token });
-  
+
     if (!history) {
       throw new NotFoundException(`Not found.`);
     }
-  
+
     // Update any column in the buying history
     Object.keys(updates).forEach((key) => {
       history[key] = updates[key];
     });
-  
+
     const result = await this.buyingHistoryRepo.save(history);
     return result;
   }
 
   // delete product by id 
-  async deleteProductById(id: number) {
+  async deleteProductById(id: number, email: string) {
     try {
-      await this.productPicRepo.delete({ product: { id } });
+      const user = await this.getUserByEmail(email)
 
-      await this.productSizeCategoryRepo.delete({ product: { id } })
+      if (user && user.role == 'admin') {
+        await this.viewRepo.delete({ product: { id } });
 
-      const deleted = await this.productRepo.delete(id);
-      return deleted;
+        await this.wishRepo.delete({ product: { id } });
+
+        await this.cartRepo.delete({ product: { id } });
+
+        await this.productPicRepo.delete({ product: { id } });
+
+        await this.productSizeCategoryRepo.delete({ product: { id } })
+
+        const deleted = await this.productRepo.delete(id);
+
+        return deleted;
+      }
+      else {
+        throw new UnauthorizedException('You are not authorized to delete product')
+      }
+
     } catch (error) {
       console.error('Error deleting product:', error);
     }
@@ -803,7 +818,7 @@ export class AdminService {
 
   // remove wish list item
   async removeWish(productId, customerEmail) {
-    console.log('myData',productId, customerEmail);
+    console.log('myData', productId, customerEmail);
     try {
       const wish = await this.wishRepo.findOne({
         where: {
@@ -850,9 +865,9 @@ export class AdminService {
     const existingView = await this.viewRepo.findOne({
       where: {
         product: { id: productId },
-        user: {id: customer.id},
+        user: { id: customer.id },
       },
-    }); 
+    });
 
     // console.log('existingView',existingView);
 
@@ -862,7 +877,7 @@ export class AdminService {
     } else {
       const newView = this.viewRepo.create({
         product: { id: productId },
-        user: {id: customer.id},
+        user: { id: customer.id },
         count: 1,
       });
       return await this.viewRepo.save(newView);
@@ -1029,31 +1044,31 @@ export class AdminService {
     const savedProduct = await this.cartRepo.save(newCart);
     return savedProduct;
   }
- 
+
   // create new wish 
   async createNewWish(myDto) {
-    console.log('myDto',myDto);
+    console.log('myDto', myDto);
     if (!myDto.productId || !myDto.customerEmail) {
       console.log("object");
       throw new BadRequestException('Product ID and customer email are required');
     }
-  
+
     try {
       const product = await this.getProductById(myDto.productId);
       if (!product) {
         throw new NotFoundException('Product not found');
       }
-  
+
       const customer = await this.getUserByEmail(myDto.customerEmail);
       if (!customer) {
         throw new NotFoundException('Customer not found');
       }
-  
+
       const newWish = this.wishRepo.create({
         product,
         customer,
       });
-  
+
       return await this.wishRepo.save(newWish);
     } catch (error) {
       throw new InternalServerErrorException('Failed to create new wish');

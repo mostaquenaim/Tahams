@@ -549,7 +549,10 @@ export class AdminController {
 
   // view all product 
   @Get('view-all-products')
-  viewAllProducts(@Query() query: any) {
+  viewAllProducts(
+    @Query('filter') query: any
+  ) {
+    // console.log('object');
     // console.log(query);
     return this.adminService.viewAllProducts(query);
   }
@@ -572,9 +575,12 @@ export class AdminController {
 
   // delete product by id  
   @Delete('delete-product/:id')
-  async deleteProductById(@Param('id', ParseIntPipe) id: number) {
+  async deleteProductById(
+    @Param('id') id: number,
+    @Query('email') email: string
+  ) {
     console.log(id);
-    return this.adminService.deleteProductById(id);
+    return this.adminService.deleteProductById(id, email);
   }
 
   // delete size by id 

@@ -556,12 +556,21 @@ let AdminService = exports.AdminService = class AdminService {
         const result = await this.buyingHistoryRepo.save(history);
         return result;
     }
-    async deleteProductById(id) {
+    async deleteProductById(id, email) {
         try {
-            await this.productPicRepo.delete({ product: { id } });
-            await this.productSizeCategoryRepo.delete({ product: { id } });
-            const deleted = await this.productRepo.delete(id);
-            return deleted;
+            const user = await this.getUserByEmail(email);
+            if (user && user.role == 'admin') {
+                await this.viewRepo.delete({ product: { id } });
+                await this.wishRepo.delete({ product: { id } });
+                await this.cartRepo.delete({ product: { id } });
+                await this.productPicRepo.delete({ product: { id } });
+                await this.productSizeCategoryRepo.delete({ product: { id } });
+                const deleted = await this.productRepo.delete(id);
+                return deleted;
+            }
+            else {
+                throw new common_1.UnauthorizedException('You are not authorized to delete product');
+            }
         }
         catch (error) {
             console.error('Error deleting product:', error);
