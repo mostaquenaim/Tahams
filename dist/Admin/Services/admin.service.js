@@ -780,8 +780,18 @@ let AdminService = exports.AdminService = class AdminService {
         });
     }
     async createNewProduct(myDto) {
+        console.log(myDto, 720);
         const selectedColor = await this.getColorByName(myDto.color);
         myDto.color = selectedColor;
+        myDto.ifStock = false;
+        const catsInfoArray = JSON.parse(myDto.catsInfo);
+        catsInfoArray.forEach(item => {
+            if (Array.isArray(item)) {
+                if (parseInt(item[1]) > 0) {
+                    myDto.ifStock = true;
+                }
+            }
+        });
         const newProduct = this.productRepo.create({
             ...myDto
         });
@@ -798,7 +808,7 @@ let AdminService = exports.AdminService = class AdminService {
                 processedCatsInfo.push(previousCategory);
             }
             else {
-                const size = { sizeId: item[0], quantity: item[1] };
+                const size = { sizeId: item[0], quantity: item[1] || 0 };
                 previousCategory.sizes.push(size);
             }
         });
