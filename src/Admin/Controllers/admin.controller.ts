@@ -196,7 +196,20 @@ export class AdminController {
     @Query('email') email: string,
     @Body() updates: { [key: string]: any },
   ) {
+    console.log('in',updates);
     return this.adminService.updateBuyingHistory(tt, updates, email)
+  }
+
+  // update buying history by id 
+  @Patch('update-buying-history-status-by-token/:token')
+  async updateBuyingHistoryStatusByToken(
+    @Param('token') token: string,
+    @Query('email') email: string,
+    @Body() updates:  any ,
+  ) {
+    const result = await this.adminService.updateBuyingHistoryStatusByToken(token, updates, email)
+    // console.log(result);
+    return result
   }
 
   // get buying histoy by id 
@@ -206,6 +219,17 @@ export class AdminController {
     @Query('email') email: string,
   ) {
     const result = await this.adminService.getBuyingHistoryByToken(token, email)
+    return result
+  }
+
+  // get buying history by id 
+  @Get('get-buying-history-status-by-token/:token')
+  async getBuyingHistoryStatusByToken(
+    @Param('token') token,
+    // @Query('email') email: string,
+  ) {
+    const result = await this.adminService.getBuyingHistoryStatusByToken(token)
+    // console.log(result);
     return result
   }
 

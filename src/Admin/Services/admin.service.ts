@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { BadRequestException, HttpException, HttpStatus, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, HttpException, HttpStatus, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In } from 'typeorm';
 import { AdminForm } from '../DTOs/adminform.dto';
@@ -446,6 +446,29 @@ export class AdminService {
     throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
   }
 
+  async getBuyingHistoryStatusByToken(token: string) {
+    console.log(token);
+    const query = {
+      where: {
+        trackingToken: token,
+      },
+      relations: [
+        'deliveryStatus',
+        'paymentMethod',
+      ]
+    }
+
+    try {
+      const cartsWithHistory = await this.buyingHistoryRepo.findOne(query
+      );
+      return cartsWithHistory;
+    } catch (error) {
+      // Handle error logging or other error handling mechanisms
+      console.error(`Error fetching buying history: ${error}`);
+      throw error;
+    }
+  }
+
   // view all coupons 
   async getAllCoupons() {
     const coupons = await this.couponRepo.find();
@@ -754,21 +777,62 @@ export class AdminService {
   }
 
   // update buying by id 
-  async updateBuyingHistory(token: string, updates, email: string) {
+  async updateBuyingHistory(token: string, updates: any, email: string) {
+    // console.log(updates);
+    const user = await this.userRepo.findOneBy({ email });
+
+    if (!user) {
+      throw new NotFoundException(`User not found.`);
+    }
+
+    if (user.role != 'admin') {
+      throw new ForbiddenException(`Only admins can update buying history.`);
+    }
+
     const history = await this.buyingHistoryRepo.findOneBy({ trackingToken: token });
 
     if (!history) {
-      throw new NotFoundException(`Not found.`);
+      throw new NotFoundException(`Buying history not found.`);
     }
 
     // Update any column in the buying history
-    Object.keys(updates).forEach((key) => {
-      history[key] = updates[key];
-    });
+    Object.assign(history, updates);
 
     const result = await this.buyingHistoryRepo.save(history);
     return result;
   }
+
+  // update buying history / order status 
+  async updateBuyingHistoryStatusByToken(token: string, updates: any, email: string) {
+    // console.log(updates);
+    const user = await this.userRepo.findOneBy({ email });
+
+    if (!user) {
+      throw new NotFoundException(`User not found.`);
+    }
+
+    if (user.role != 'admin') {
+      throw new ForbiddenException(`Only admins can update buying history.`);
+    }
+
+    const history = await this.buyingHistoryRepo.findOne({
+      where: { trackingToken: token },
+      relations: ['deliveryStatus'],
+    });
+
+    if (!history) {
+      throw new NotFoundException(`Buying history not found.`);
+    }
+
+    history.deliveryStatus.id += 1
+
+    // Update any column in the buying history
+    Object.assign(history, updates);
+
+    const result = await this.buyingHistoryRepo.save(history);
+    return result;
+  }
+
 
   // delete product by id 
   async deleteProductById(id: number, email: string) {
@@ -1095,8 +1159,8 @@ export class AdminService {
     const catsInfoArray = JSON.parse(myDto.catsInfo)
 
     catsInfoArray.forEach(item => {
-      if (Array.isArray(item))  {
-        if(parseInt(item[1]) > 0) {
+      if (Array.isArray(item)) {
+        if (parseInt(item[1]) > 0) {
           myDto.ifStock = true
         }
       }
