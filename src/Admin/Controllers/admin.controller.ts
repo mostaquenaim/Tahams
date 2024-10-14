@@ -200,6 +200,41 @@ export class AdminController {
     return this.adminService.updateBuyingHistory(tt, updates, email)
   }
 
+  // update product
+  @Put('update-product/:id')
+  @UseInterceptors(
+    FileInterceptor('filename', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+          const ext = extname(file.originalname);
+          const randomName = Array(32)
+            .fill(null)
+            .map(() => Math.round(Math.random() * 16).toString(16))
+            .join('');
+          cb(null, `${randomName}${ext}`);
+        },
+      }),
+    }),
+  )
+  async updateProduct(
+    @Param('id') id,
+    @Body() updateProductDto,
+    @UploadedFile() filename?: Express.Multer.File,
+  ) {
+    try {
+      // Call the service to update product
+      const updatedProduct = await this.adminService.updateProduct(
+        id,
+        updateProductDto,
+        filename,
+      );
+      return updatedProduct;
+    } catch (error) {
+      throw new BadRequestException('Product update failed.');
+    }
+  }
+
   // update buying history by id 
   @Patch('update-buying-history-status-by-token/:token')
   async updateBuyingHistoryStatusByToken(
@@ -684,6 +719,35 @@ export class AdminController {
     // console.log(filenames,"525"); // Log filenames of uploaded files
     mydata.filenames = filenames; // Assuming your service method expects an array of filenames
     return this.adminService.addProductPictures(mydata);
+  }
+
+  @Post('/update-product-pictures')
+  @UseInterceptors(FilesInterceptor('myfiles', 10, {
+    fileFilter: (req, file, cb) => {
+      if (file.originalname.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Unsupported file type'), false);
+      }
+    },
+    storage: diskStorage({
+      destination: './uploads',
+      filename: (req, file, cb) => {
+        const randomName = Array(32)
+          .fill(null)
+          .map(() => Math.round(Math.random() * 16).toString(16))
+          .join('');
+        cb(null, `${randomName}${extname(file.originalname)}`);
+      },
+    }),
+  }))
+  async updateProductPictures(@UploadedFiles() files, @Body() mydata) {
+    // console.log(files,"523");
+    // console.log(mydata); // Log other data sent with the request
+    const filenames = files.map(file => file.filename);
+    // console.log(filenames,"525"); // Log filenames of uploaded files
+    mydata.filenames = filenames; // Assuming your service method expects an array of filenames
+    return this.adminService.updateProductPictures(mydata);
   }
 
   // update admin profile  
