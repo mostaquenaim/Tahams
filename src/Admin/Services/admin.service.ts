@@ -808,21 +808,24 @@ export class AdminService {
     updateProductDto: any,
     filename: any,
   ) {
-    console.log(updateProductDto);
+    // console.log(updateProductDto);
     // Find the product with its related 'pscs' and 'size' relations
     const product = await this.productRepo.findOne({
       where: { id },
       relations: ['pscs', 'pscs.size'],
     });
 
+    console.log(product,'product');
+ 
     if (!product) {
       throw new NotFoundException(`Product with ID ${id} not found.`);
     }
 
     // Update the quantities in the 'pscs' relation
+    // if(product.pscs[0].size > )
     for (const element of product.pscs) {
       const sizeToUpdate = updateProductDto.sizes.find(
-        (size) => size.id == element.size.id,
+        (size) => size.id == element.size?.id,
       );
 
       if (sizeToUpdate) {
