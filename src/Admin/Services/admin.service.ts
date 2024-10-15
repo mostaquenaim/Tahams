@@ -808,43 +808,48 @@ export class AdminService {
     updateProductDto: any,
     filename: any,
   ) {
+    console.log(updateProductDto);
     // Find the product with its related 'pscs' and 'size' relations
     const product = await this.productRepo.findOne({
       where: { id },
       relations: ['pscs', 'pscs.size'],
     });
-  
+
     if (!product) {
       throw new NotFoundException(`Product with ID ${id} not found.`);
     }
-  
+
     // Update the quantities in the 'pscs' relation
     for (const element of product.pscs) {
       const sizeToUpdate = updateProductDto.sizes.find(
         (size) => size.id == element.size.id,
       );
-  
+
       if (sizeToUpdate) {
         element.quantity = parseInt(sizeToUpdate.quantity, 10); // Update quantity
-  
+
         // Save each updated 'pscs' element
         await this.productSizeCategoryRepo.save(element); // Ensure that each 'pscs' is saved after update
       }
     }
-  
+
+    updateProductDto.ifStock == 'true'
+      ? updateProductDto.ifStock = true
+      : updateProductDto.ifStock = false
+
     // Update the product entity itself
     Object.assign(product, updateProductDto);
-  
+
     // Update the filename if provided
     if (filename) {
       product.filename = filename.filename;
     }
-  
+
     // Save the updated product entity
     const res = await this.productRepo.save(product);
-  
+
     return res;
-  }  
+  }
 
   // update buying history / order status 
   async updateBuyingHistoryStatusByToken(token: string, updates: any, email: string) {
@@ -1301,11 +1306,11 @@ export class AdminService {
 
     if (!product) {
       throw new Error('No product found');
-    } 
- 
+    }
+
     myDto.filenames.length > 0 &&
-    await this.productPicRepo.delete({ product: product })
-    
+      await this.productPicRepo.delete({ product: product })
+
     // Update the product entity with the newly added pictures
     const filenames: string[] = myDto.filenames;
     // console.log(filenames, "676");
