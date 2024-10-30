@@ -30,6 +30,7 @@ import { FabricEntity } from 'src/Global/Entities/fabrics.entity';
 import { ProductSizeCategoryEntity } from 'src/Global/Entities/productSizeCategory.entity';
 import { OtpEntity } from 'src/Global/Entities/otp.entity';
 import { ViewProductEntity } from 'src/Global/Entities/viewProduct.entity';
+import { ReturnEntity } from 'src/Global/Entities/return.entity';
 
 @Injectable()
 export class AdminService {
@@ -77,6 +78,9 @@ export class AdminService {
 
     @InjectRepository(SizeEntity)
     private sizeRepo: Repository<SizeEntity>,
+
+    @InjectRepository(ReturnEntity)
+    private returnRepo: Repository<ReturnEntity>,
 
     @InjectRepository(ViewProductEntity)
     private viewRepo: Repository<ViewProductEntity>,
@@ -544,6 +548,24 @@ export class AdminService {
     return categories;
   }
 
+  // view cancellation or return requests
+  async viewRequests(email: string) {
+    // Fetch the user by email
+    const user = await this.userRepo.findOne({ where: { email } });
+
+    // Check if the user exists and if the role is admin
+    if (!user || user.role !== 'admin') {
+      throw new UnauthorizedException('Unauthorized: User is not an admin');
+    }
+
+    // If the user is an admin, fetch the requests
+    const options: FindManyOptions<ReturnEntity> = {
+      relations: ['cart', 'cart.customer'],
+    };
+    const requests = await this.returnRepo.find(options);
+    return requests;
+  }
+
   // view product sub sub category 
   async viewAllProductSubSubCategories() {
     // const options: FindManyOptions<SubSubCategoryEntity> = {};
@@ -766,7 +788,6 @@ export class AdminService {
     return await this.userRepo.save(user);
   }
 
-
   // update banner by id 
   async updateBanner(id: number, bannerDto) {
     const banner = await this.bannerRepo.findOneBy({ id });
@@ -802,6 +823,34 @@ export class AdminService {
     return result;
   }
 
+  // approve req 
+  async updateApproveReq(id: number) {
+    // Find the entity by id
+    const entity = await this.returnRepo.findOne({
+      where: { id },
+      relations: ['cart']
+    })
+
+    console.log(entity);
+
+    if (!entity) {
+      throw new Error(`Entity with id ${id} not found`);
+    }
+
+    entity.cart.Quantity > 0 && entity.cart.Quantity--;
+
+    // Update the isApproved field to true
+    entity.isApproved = true;
+
+    await this.cartRepo.save(entity.cart)
+    // Save the updated entity back to the database
+    const res = await this.returnRepo.save(entity);
+
+    console.log(`Entity with id ${id} updated to isApproved: true`);
+
+    return res
+  }
+
   // update product 
   async updateProduct(
     id: number,
@@ -815,8 +864,8 @@ export class AdminService {
       relations: ['pscs', 'pscs.size'],
     });
 
-    console.log(product,'product');
- 
+    console.log(product, 'product');
+
     if (!product) {
       throw new NotFoundException(`Product with ID ${id} not found.`);
     }
@@ -1042,6 +1091,32 @@ export class AdminService {
       ...myDto
     });
     return this.subSubCategoryRepo.save(newCategory);
+  }
+
+  // Confirm or cancel order
+  async confirmReturnOrCancellation(selectedProducts, reason: string) {
+    // console.log(selectedProducts);
+    const createdReturns = [];
+
+    for (const product of selectedProducts) {
+      const cart = await this.cartRepo.findOne({ where: { id: product.cartId } });
+      console.log(cart);
+
+      if (cart) {
+        const returnEntity = new ReturnEntity();
+        returnEntity.cart = cart;
+        returnEntity.reason = reason
+        returnEntity.quantity = product.quantity;
+        returnEntity.isApproved = false; // Default to false, can update after approval logic
+        // Add additional fields if necessary
+
+        const savedReturn = await this.returnRepo.save(returnEntity);
+        createdReturns.push(savedReturn);
+      }
+    }
+
+    console.log(`Return or cancellation confirmed for reason: ${reason}`);
+    return { success: true, createdReturns, message: 'Return or cancellation has been processed' };
   }
 
   // create new size 

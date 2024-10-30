@@ -24,6 +24,7 @@ import { FabricEntity } from '../Entities/fabrics.entity';
 import { ProductSizeCategoryEntity } from '../Entities/productSizeCategory.entity';
 import { OtpEntity } from '../Entities/otp.entity';
 import { ViewProductEntity } from '../Entities/viewProduct.entity';
+import { ReturnEntity } from '../Entities/return.entity';
 // Load environment variables
 dotenv.config();
 
@@ -59,6 +60,7 @@ dotenv.config();
             ProductEntity,
             PartnerEntity,
             SizeEntity,
+            ReturnEntity,
             SubCategoryEntity,
             SubSubCategoryEntity,
             ViewProductEntity,

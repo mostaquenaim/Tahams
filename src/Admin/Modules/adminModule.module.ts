@@ -30,6 +30,7 @@ import { OtpEntity } from "src/Global/Entities/otp.entity";
 // Load environment variables
 import * as dotenv from 'dotenv';
 import { ViewProductEntity } from "src/Global/Entities/viewProduct.entity";
+import { ReturnEntity } from "src/Global/Entities/return.entity";
 dotenv.config();
 
 @Module({
@@ -48,7 +49,7 @@ dotenv.config();
         }
 
         ),
-        TypeOrmModule.forFeature([AdminEntity, BannerEntity, BuyingHistoryEntity, CategoryEntity, ColorSizeEntity, ColorEntity, CartsEntity, CouponEntity, DeliveryStatusEntity, EmployeeEntity, FabricEntity, OtpEntity, PaymentInfo, PaymentMethodEntity, ProductPictureEntity, ProductEntity, ProductSizeCategoryEntity, PartnerEntity, SizeEntity, SubCategoryEntity, SubSubCategoryEntity, UserEntity, ViewProductEntity, WishEntity])],
+        TypeOrmModule.forFeature([AdminEntity, BannerEntity, BuyingHistoryEntity, CategoryEntity, ColorSizeEntity, ColorEntity, CartsEntity, CouponEntity, DeliveryStatusEntity, EmployeeEntity, FabricEntity, OtpEntity, PaymentInfo, PaymentMethodEntity, ProductPictureEntity, ProductEntity, ProductSizeCategoryEntity, PartnerEntity, ReturnEntity, SizeEntity, SubCategoryEntity, SubSubCategoryEntity, UserEntity, ViewProductEntity, WishEntity])],
     controllers: [AdminController],
     providers: [AdminService],
 })

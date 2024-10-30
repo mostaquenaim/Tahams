@@ -1,10 +1,11 @@
 /* eslint-disable prettier/prettier */
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne} from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany} from 'typeorm';
 import { UserEntity } from './user.entity';
 import { ProductEntity } from './product.entity';
 import { BuyingHistoryEntity } from './buyingHistory.entity';
 import { CouponEntity } from './coupon.entity';
 import { SubSubCategoryEntity } from './subSubCategory.entity';
+import { ReturnEntity } from './return.entity';
 
 @Entity('cart')
 export class CartsEntity {
@@ -47,4 +48,7 @@ export class CartsEntity {
 
     @ManyToOne(() => BuyingHistoryEntity, (history) => history.carts, { nullable: true })
     history: BuyingHistoryEntity
+
+    @OneToMany(() => ReturnEntity, (ret) => ret.cart)
+    returns: ReturnEntity[]
 }

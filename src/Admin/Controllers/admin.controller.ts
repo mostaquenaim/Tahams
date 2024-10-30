@@ -196,8 +196,17 @@ export class AdminController {
     @Query('email') email: string,
     @Body() updates: { [key: string]: any },
   ) {
-    console.log('in',updates);
+    console.log('in', updates);
     return this.adminService.updateBuyingHistory(tt, updates, email)
+  }
+
+  // approve req  
+  @Patch('approve-request')
+  updateApproveReq(
+    @Body() updateObj
+  ) {
+    // console.log(updateObj);
+    return this.adminService.updateApproveReq(updateObj.id)
   }
 
   // update product
@@ -240,7 +249,7 @@ export class AdminController {
   async updateBuyingHistoryStatusByToken(
     @Param('token') token: string,
     @Query('email') email: string,
-    @Body() updates:  any ,
+    @Body() updates: any,
   ) {
     const result = await this.adminService.updateBuyingHistoryStatusByToken(token, updates, email)
     // console.log(result);
@@ -337,6 +346,15 @@ export class AdminController {
   @Get('view-product-categories')
   async viewProductCategories() {
     const result = await this.adminService.viewProductCategories();
+    return result;
+  }
+
+  // view cancellation or return requests
+  @Get('view-cancellation-or-return-requests')
+  async viewRequests(
+    @Query('email') email: string,
+  ) {
+    const result = await this.adminService.viewRequests(email);
     return result;
   }
 
@@ -512,6 +530,15 @@ export class AdminController {
     @Body() myDto,
   ) {
     return this.adminService.createNewSubSubCategory(myDto);
+  }
+
+  // confirm of cancellation
+  @Post('confirm-return-or-cancellation')
+  async confirmReturnOrCancellation(
+    @Body('selectedProducts') selectedProducts: string[],
+    @Body('reason') reason: string,
+  ) {
+    return await this.adminService.confirmReturnOrCancellation(selectedProducts, reason);
   }
 
   // change category image 
