@@ -475,6 +475,33 @@ export class AdminController {
     await this.adminService.updateCategory(id, myDto);
   }
 
+  //update sub sub category by id
+  @Put('update-sub-sub-category/:id')
+  @UseInterceptors(
+    FileInterceptor('myFile', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+          const ext = extname(file.originalname);
+          const randomName = Array(32)
+            .fill(null)
+            .map(() => Math.round(Math.random() * 16).toString(16))
+            .join('');
+          cb(null, `${randomName}${ext}`);
+        },
+      }),
+    }),
+  )
+  // @UsePipes(ValidationPipe)
+  async updateSubSubCategory(
+    @Param('id', ParseIntPipe) id: number,
+    // @Body() myDto,
+    @UploadedFile() myFile: Express.Multer.File, // Add this to handle the file
+  ) {
+    // console.log(myFile,'666'); // Access the uploaded file here
+    await this.adminService.updateSubSubCategory(id, myFile.filename);
+  }
+
   // update user address 
   @Put('update-user-address/:id')
   async updateUserAddress(

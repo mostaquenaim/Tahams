@@ -770,6 +770,17 @@ export class AdminService {
     await this.categoryRepo.update(id, { ...category });
   }
 
+  // update sub sub category by id 
+  async updateSubSubCategory(id: number, filename: string) {
+    const res = await this.subSubCategoryRepo.update(id, {
+      filename
+    });
+
+    // console.log(res);
+
+    return res
+  }
+
   // update user address 
   async updateUserAddress(userId: number, updateAddressDto) {
     const user = await this.userRepo.findOne({ where: { id: userId } });
