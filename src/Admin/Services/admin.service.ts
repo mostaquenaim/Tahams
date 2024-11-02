@@ -916,7 +916,7 @@ export class AdminService {
 
   // update buying history / order status 
   async updateBuyingHistoryStatusByToken(token: string, updates: any, email: string) {
-    // console.log(updates);
+    console.log(updates);
     const user = await this.userRepo.findOneBy({ email });
 
     if (!user) {
@@ -936,7 +936,15 @@ export class AdminService {
       throw new NotFoundException(`Buying history not found.`);
     }
 
-    history.deliveryStatus.id += 1
+    if (!updates.cancelDate && !updates.returnDate) {
+      history.deliveryStatus.id += 1
+    }
+    else if (updates.cancelDate) {
+      history.deliveryStatus.id = 7
+    }
+    else if (updates.returnDate) {
+      history.deliveryStatus.id = 8
+    }
 
     // Update any column in the buying history
     Object.assign(history, updates);
