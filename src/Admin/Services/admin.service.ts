@@ -586,7 +586,7 @@ export class AdminService {
 
     // If the user is an admin, fetch the requests
     const options: FindManyOptions<ReturnEntity> = {
-      relations: ['cart', 'cart.customer'],
+      relations: ['cart', 'cart.customer', 'cart.history'],
     };
     const requests = await this.returnRepo.find(options);
     return requests;

@@ -73,7 +73,7 @@ export class AdminController {
     return this.adminService.sendEmail(mydata);
   }
 
-  // otp
+  // otp 
   @Post('send-otp')
   @UsePipes(ValidationPipe)
   async sendOtp(@Body() sendOtpDto) {
