@@ -348,6 +348,33 @@ export class AdminService {
     throw new NotFoundException(`Banner with ID ${id} not found.`);;
   }
 
+  // delete a history  
+  async deleteHistory(id: string, email: string) {
+    // Check if the user is an admin
+    const user = await this.userRepo.findOne({
+      where: { email, role: 'admin' }
+    });
+
+    if (!user) {
+      throw new ForbiddenException('Unauthorized');
+    }
+
+    // Find the cart entry by unique ID
+    const historyEntry = await this.buyingHistoryRepo.findOneBy({ trackingToken: id });
+
+    // console.log(historyEntry);
+
+    if (!historyEntry) {
+      throw new NotFoundException(`History with ID ${id} not found.`);
+    }
+
+    // Delete the cart entry / make draft
+    historyEntry.isDraft = true
+    const res = await this.buyingHistoryRepo.save(historyEntry)
+    return res;
+  }
+
+
   // delete carts  
   async deleteCarts(cartArray: string[]) {
     try {
@@ -418,7 +445,6 @@ export class AdminService {
     }
     throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
   }
-
 
   // get history by id 
   async getBuyingHistoryByToken(token: string, email: string) {

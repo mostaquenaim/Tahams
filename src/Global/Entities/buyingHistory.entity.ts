@@ -16,80 +16,83 @@ import { PaymentInfo } from './paymentInfo.entity';
 @Entity('buying-history')
 export class BuyingHistoryEntity {
 
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column()
-    trackingToken: string
+  @Column({ default: false })
+  isDraft: boolean
 
-    @Column()
-    address: string
+  @Column()
+  trackingToken: string
 
-    @Column()
-    region: string
+  @Column()
+  address: string
 
-    @Column()
-    city: string
+  @Column()
+  region: string
 
-    @Column()
-    phone_no: string
+  @Column()
+  city: string
 
-    @Column()
-    deliveryFee: number
+  @Column()
+  phone_no: string
 
-    @Column()
-    BuyingDate: Date
+  @Column()
+  deliveryFee: number
 
-    @Column({nullable: true})
-    receivedDate: Date
+  @Column()
+  BuyingDate: Date
 
-    @Column({nullable: true})
-    processedDate: Date
+  @Column({ nullable: true })
+  receivedDate: Date
 
-    @Column({nullable: true})
-    readyToShipDate: Date
+  @Column({ nullable: true })
+  processedDate: Date
 
-    @Column({nullable: true})
-    droppedOffDate: Date
+  @Column({ nullable: true })
+  readyToShipDate: Date
 
-    @Column({nullable: true})
-    outDate: Date
+  @Column({ nullable: true })
+  droppedOffDate: Date
 
-    @Column({nullable: true})
-    deliveredDate: Date
+  @Column({ nullable: true })
+  outDate: Date
 
-    @Column({nullable: true})
-    cancelDate: Date
+  @Column({ nullable: true })
+  deliveredDate: Date
 
-    @Column({nullable: true})
-    returnDate: Date
+  @Column({ nullable: true })
+  cancelDate: Date
 
-    @Column({ default: () => 'CURRENT_TIMESTAMP' })
-    checkedDate: Date
+  @Column({ nullable: true })
+  returnDate: Date
 
-    @Column({nullable:true})
-    PaymentDetails: string
+  @Column({ default: () => 'CURRENT_TIMESTAMP' })
+  checkedDate: Date
 
-    @Column({default:false})
-    isChecked: boolean
+  @Column({ nullable: true })
+  PaymentDetails: string
 
-    @Column({nullable:true})
-    screenshot: string //payment screenshot
+  @Column({ default: false })
+  isChecked: boolean
 
-    @Column({default:false})
-    PaymentDone: boolean
+  @Column({ nullable: true })
+  screenshot: string //payment screenshot
 
-    @ManyToOne(() => DeliveryStatusEntity, (deliveryStatus) => deliveryStatus.buyingHistories)
-    deliveryStatus: DeliveryStatusEntity
+  @Column({ default: false })
+  PaymentDone: boolean
 
-    @ManyToOne(() => PaymentMethodEntity, (paymentMethod) => paymentMethod.buyingHistories)
-    paymentMethod: PaymentMethodEntity
+  @ManyToOne(() => DeliveryStatusEntity, (deliveryStatus) => deliveryStatus.buyingHistories)
+  deliveryStatus: DeliveryStatusEntity
 
-    @OneToMany(() => CartsEntity, (cart) => cart.history)
-    carts: CartsEntity[]
+  @ManyToOne(() => PaymentMethodEntity, (paymentMethod) => paymentMethod.buyingHistories)
+  paymentMethod: PaymentMethodEntity
 
-    // @OneToOne(() => PaymentInfo)
-    // @JoinColumn()
-    // paymentInfo: PaymentInfo
+  @OneToMany(() => CartsEntity, (cart) => cart.history)
+  carts: CartsEntity[]
+
+  // @OneToOne(() => PaymentInfo)
+  // @JoinColumn()
+  // paymentInfo: PaymentInfo
 
 }

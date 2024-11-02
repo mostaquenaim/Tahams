@@ -318,10 +318,19 @@ export class AdminController {
   @Delete('delete-cart/:uniqueId')
   deleteCartItem(
     @Param('uniqueId') id,
-    @Query('email') email,
   ) {
     // console.log(id,"210");
     return this.adminService.deleteCartItem(id);
+  }
+
+  // delete history 
+  @Put('delete-history/:id')
+  deleteHistory(
+    @Param('id') id,
+    @Query('email') email,
+  ) {
+    // console.log(id,"210");
+    return this.adminService.deleteHistory(id, email);
   }
 
   // delete carts 
