@@ -901,12 +901,18 @@ export class AdminService {
       relations: ['pscs', 'pscs.size'],
     });
 
-    console.log(product, 'product');
+    // console.log(product, 'product');
 
     if (!product) {
       throw new NotFoundException(`Product with ID ${id} not found.`);
     }
 
+    // color 
+    if (updateProductDto.colorCode) {
+      const color = await this.colorRepo.findOne({ where: { colorCode: updateProductDto.colorCode } })
+      product.color = color
+    }
+    
     // Update the quantities in the 'pscs' relation
     // if(product.pscs[0].size > )
     for (const element of product.pscs) {
@@ -1218,46 +1224,57 @@ export class AdminService {
 
     // console.log(myDto,844);
     const savedBuy = await this.buyingHistoryRepo.save(newBuy);
+    // console.log(myDto.carts, 'carts');
     this.createNewCartObject(savedBuy, myDto.carts)
     return savedBuy;
   }
 
-  // create new color object 
+  // create new cart object 
   async createNewCartObject(buy, cartsData) {
+    // console.log(buy, 'buy', cartsData, 'cartsData');
     for (const cartDataId of cartsData) {
       const cart = await this.cartRepo.findOne({
         where: { id: cartDataId },
-        relations: ['product', 'category'], // Load the product relation
+        relations: ['product', 'category'],
       });
 
-      const size = await this.getSizeByName(cart.size)
+      if (!cart) {
+        console.error(`Cart not found for ID: ${cartDataId}`);
+        continue;
+      }
 
-      // console.log(cart.product,"product");
-      // console.log(cart.category);
-      // console.log(size);
+      const size = await this.getSizeByName(cart.size);
+      if (!size) {
+        console.error(`Size not found for size name: ${cart.size}`);
+        continue;
+      }
 
       const pscObj = await this.productSizeCategoryRepo.findOne({
         where: {
           category: cart.category,
           size: size,
-          product: { id: cart.product.id }, // Use the Equal operator
+          product: { id: cart.product.id },
         },
         relations: ['product']
-      })
+      });
 
-
-      // console.log('pscObj',pscObj);
-      pscObj && pscObj.quantity && (pscObj.quantity -= cart?.Quantity)
-      await this.productSizeCategoryRepo.save(pscObj)
-
-      // console.log(cart);
-      // const quantity = 
-      if (cart) {
-        cart.isBought = true;
-        cart.totalPrice = Math.ceil((cart.product.sellingPrice - (cart.product.sellingPrice * cart.product.discountPercentage / 100) + (cart.product.sellingPrice * cart.product.vatPercentage / 100)) * cart.Quantity)
-        cart.history = buy;
-        await this.cartRepo.save(cart);
+      if (pscObj) {
+        if (pscObj.quantity) {
+          pscObj.quantity -= cart.Quantity;
+        }
+        await this.productSizeCategoryRepo.save(pscObj);
+      } else {
+        console.error(`Product-Size-Category object not found for Cart ID: ${cartDataId}`);
       }
+
+      cart.isBought = true;
+      cart.totalPrice = Math.ceil(
+        (cart.product.sellingPrice -
+          (cart.product.sellingPrice * cart.product.discountPercentage / 100) +
+          (cart.product.sellingPrice * cart.product.vatPercentage / 100)) * cart.Quantity
+      );
+      cart.history = buy;
+      await this.cartRepo.save(cart);
     }
     return true;
   }
