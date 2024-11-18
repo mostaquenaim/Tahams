@@ -31,6 +31,7 @@ import { ProductSizeCategoryEntity } from 'src/Global/Entities/productSizeCatego
 import { OtpEntity } from 'src/Global/Entities/otp.entity';
 import { ViewProductEntity } from 'src/Global/Entities/viewProduct.entity';
 import { ReturnEntity } from 'src/Global/Entities/return.entity';
+import { GenderEntity } from 'src/Global/Entities/gender.entity';
 
 @Injectable()
 export class AdminService {
@@ -102,6 +103,9 @@ export class AdminService {
 
     @InjectRepository(FabricEntity)
     private fabricRepo: Repository<FabricEntity>,
+
+    @InjectRepository(GenderEntity)
+    private genderRepo: Repository<GenderEntity>,
 
     @InjectRepository(ColorSizeEntity)
     private colorSizeRepo: Repository<ColorSizeEntity>,
@@ -572,6 +576,13 @@ export class AdminService {
     const options: FindManyOptions<CategoryEntity> = {};
     const categories = await this.categoryRepo.find(options);
     return categories;
+  }
+
+  // view genders 
+  async viewGenders() {
+    const options: FindManyOptions<GenderEntity> = {};
+    const genders = await this.genderRepo.find(options);
+    return genders;
   }
 
   // view cancellation or return requests

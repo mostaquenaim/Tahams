@@ -25,6 +25,7 @@ import { ProductSizeCategoryEntity } from '../Entities/productSizeCategory.entit
 import { OtpEntity } from '../Entities/otp.entity';
 import { ViewProductEntity } from '../Entities/viewProduct.entity';
 import { ReturnEntity } from '../Entities/return.entity';
+import { GenderEntity } from '../Entities/gender.entity';
 // Load environment variables
 dotenv.config();
 
@@ -52,6 +53,7 @@ dotenv.config();
             CouponEntity,
             DeliveryStatusEntity,
             FabricEntity,
+            GenderEntity,
             OtpEntity,
             PaymentInfo,
             PaymentMethodEntity,

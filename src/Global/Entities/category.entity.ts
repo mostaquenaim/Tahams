@@ -10,9 +10,18 @@ export class CategoryEntity {
 
     @Column()
     name: string
-    
-    @Column({nullable:true})
+
+    @Column({ nullable: true })
     filename: string
+
+    @Column({ default: false })
+    isGenderVaried: boolean
+
+    @Column({ default: true })
+    isForMen: boolean
+
+    @Column({ default: true })
+    isForWomen: boolean
 
     @OneToMany(() => SubCategoryEntity, (sub) => sub.category)
     subs: SubCategoryEntity[]

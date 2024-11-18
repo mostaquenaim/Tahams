@@ -357,6 +357,13 @@ export class AdminController {
     const result = await this.adminService.viewProductCategories();
     return result;
   }
+
+  // view genders
+  @Get('view-genders')
+  async viewGenders() {
+    const result = await this.adminService.viewGenders();
+    return result;
+  }
  
   // view cancellation or return requests
   @Get('view-cancellation-or-return-requests')

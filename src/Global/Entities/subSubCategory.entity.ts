@@ -5,6 +5,7 @@ import { CategoryEntity } from './category.entity';
 import { SubCategoryEntity } from './subCategory.entity';
 import { ProductSizeCategoryEntity } from './productSizeCategory.entity';
 import { CartsEntity } from './cart.entity';
+import { GenderEntity } from './gender.entity';
 
 @Entity('sub-sub-category')
 export class SubSubCategoryEntity {
@@ -17,6 +18,9 @@ export class SubSubCategoryEntity {
 
     @Column({ nullable: true })
     filename: string;
+
+    @ManyToOne(() => GenderEntity, (gender) => gender.subSubs)
+    gender: GenderEntity
 
     @ManyToOne(() => SubCategoryEntity, (category) => category.subSubs)
     category: SubCategoryEntity
