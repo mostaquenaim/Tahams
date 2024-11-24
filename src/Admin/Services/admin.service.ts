@@ -923,21 +923,25 @@ export class AdminService {
       const color = await this.colorRepo.findOne({ where: { colorCode: updateProductDto.colorCode } })
       product.color = color
     }
-    
+
+    // console.log('in');
+
     // Update the quantities in the 'pscs' relation
     // if(product.pscs[0].size > )
-    for (const element of product.pscs) {
-      const sizeToUpdate = updateProductDto.sizes.find(
-        (size) => size.id == element.size?.id,
-      );
+    // for (const element of product.pscs) {
+    //   const sizeToUpdate = updateProductDto.sizes.find(
+    //     (size) => size.id == element.size?.id,
+    //   );
 
-      if (sizeToUpdate) {
-        element.quantity = parseInt(sizeToUpdate.quantity, 10); // Update quantity
+    //   if (sizeToUpdate) {
+    //     element.quantity = parseInt(sizeToUpdate.quantity, 10); // Update quantity
 
-        // Save each updated 'pscs' element
-        await this.productSizeCategoryRepo.save(element); // Ensure that each 'pscs' is saved after update
-      }
-    }
+    //     // Save each updated 'pscs' element
+    //     await this.productSizeCategoryRepo.save(element); // Ensure that each 'pscs' is saved after update
+    //   }
+    // }
+
+    // console.log('in2');
 
     updateProductDto.ifStock == 'true'
       ? updateProductDto.ifStock = true
@@ -952,9 +956,10 @@ export class AdminService {
     }
 
     // Save the updated product entity
-    const res = await this.productRepo.save(product);
+    const savedProduct = await this.productRepo.save(product);
+    // console.log(res, 'res');
 
-    return res;
+    return await this.createProductExtension(savedProduct, updateProductDto.catsInfo);
   }
 
   // update buying history / order status 

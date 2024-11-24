@@ -232,6 +232,7 @@ export class AdminController {
     @UploadedFile() filename?: Express.Multer.File,
   ) {
     try {
+      // console.log(id,updateProductDto);
       // Call the service to update product
       const updatedProduct = await this.adminService.updateProduct(
         id,
@@ -762,6 +763,7 @@ export class AdminController {
     return this.adminService.createNewProduct(mydata);
   }
 
+  // product pictures add 
   @Post('/add-product-pictures')
   @UseInterceptors(FilesInterceptor('myfiles', 10, {
     fileFilter: (req, file, cb) => {
