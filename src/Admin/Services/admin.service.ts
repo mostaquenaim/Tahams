@@ -535,19 +535,31 @@ export class AdminService {
   }
 
   // view all carts 
-  async getAllCarts(email) {
-    // console.log(email, "252");
-    if (email) {
-      const cartsWithHistory = await this.cartRepo.find({
-        where: {
-          customer: { email: email },
-        },
-        relations: ['product', 'coupon', 'category', 'category.category', 'category.category.category']
-      });
-      // console.log(cartsWithHistory, "259");
-      return cartsWithHistory;
+  async getAllCarts(email: string) {
+    if (!email) {
+      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
     }
-    throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+
+    const user = await this.userRepo.findOneBy({ email });
+    const isAdmin = user?.role == 'admin';
+
+    console.log(isAdmin);
+
+    const cartsWithHistory = await this.cartRepo.find({
+      where: {
+        ...(isAdmin ? {} : { customer: { email } }),
+      },
+      relations: [
+        'product',
+        'coupon',
+        'category',
+        'category.category',
+        'category.category.category'
+      ]
+    });
+
+    // console.log(cartsWithHistory, "259");
+    return cartsWithHistory;
   }
 
   // view all product 
@@ -907,59 +919,85 @@ export class AdminService {
   ) {
     // console.log(updateProductDto);
     // Find the product with its related 'pscs' and 'size' relations
-    const product = await this.productRepo.findOne({
+    const productObj = await this.productRepo.findOne({
       where: { id },
-      relations: ['pscs', 'pscs.size'],
+      relations: ['pscs', 'pscs.size', 'pscs.category'],
     });
 
-    // console.log(product, 'product');
-
-    if (!product) {
+    if (!productObj) {
       throw new NotFoundException(`Product with ID ${id} not found.`);
     }
 
     // color 
     if (updateProductDto.colorCode) {
       const color = await this.colorRepo.findOne({ where: { colorCode: updateProductDto.colorCode } })
-      product.color = color
+      productObj.color = color
     }
-
-    // console.log('in');
-
-    // Update the quantities in the 'pscs' relation
-    // if(product.pscs[0].size > )
-    // for (const element of product.pscs) {
-    //   const sizeToUpdate = updateProductDto.sizes.find(
-    //     (size) => size.id == element.size?.id,
-    //   );
-
-    //   if (sizeToUpdate) {
-    //     element.quantity = parseInt(sizeToUpdate.quantity, 10); // Update quantity
-
-    //     // Save each updated 'pscs' element
-    //     await this.productSizeCategoryRepo.save(element); // Ensure that each 'pscs' is saved after update
-    //   }
-    // }
-
-    // console.log('in2');
 
     updateProductDto.ifStock == 'true'
       ? updateProductDto.ifStock = true
       : updateProductDto.ifStock = false
 
     // Update the product entity itself
-    Object.assign(product, updateProductDto);
+    Object.assign(productObj, updateProductDto);
 
     // Update the filename if provided
     if (filename) {
-      product.filename = filename.filename;
+      productObj.filename = filename.filename;
     }
 
     // Save the updated product entity
-    const savedProduct = await this.productRepo.save(product);
-    // console.log(res, 'res');
+    const savedProduct = await this.productRepo.save(productObj);
 
-    return await this.createProductExtension(savedProduct, updateProductDto.catsInfo);
+    // extract catsinfo 
+    const catsInfoArray = JSON.parse(updateProductDto.catsInfo)
+
+    // update part 
+    const processedCatsInfo = [];
+    let previousCategory = null;
+
+    catsInfoArray.forEach(item => {
+      if (!Array.isArray(item)) {
+        previousCategory = { categoryId: item, sizes: [] };
+        processedCatsInfo.push(previousCategory);
+      } else {
+        const size = { sizeId: item[0], quantity: item[1] || 0 };
+        previousCategory.sizes.push(size);
+      }
+    });
+
+    await this.productSizeCategoryRepo.delete({ product: productObj });
+
+    // Loop through the processedCatsInfo array to add new pcsc objects
+    for (const item of processedCatsInfo) {
+      const catInfoItem = new ProductSizeCategoryEntity();
+
+      // Associate the product and category with the new pcsc object
+      catInfoItem.product = productObj;
+      catInfoItem.category = await this.subSubCategoryRepo.findOne({ where: { id: item.categoryId } });
+
+      if (item.sizes.length <= 0) {
+        // If no sizes, save the pcsc object without size
+        await this.productSizeCategoryRepo.save(catInfoItem);
+      } else {
+        for (const sizeItem of item.sizes) {
+          // Fetch size if sizeId exists, otherwise set it to null
+          const sizeObject = sizeItem.sizeId ? await this.getSizeById(sizeItem.sizeId) : null;
+
+          // Create a new instance for the size-specific pcsc object
+          const newCatInfoItem = new ProductSizeCategoryEntity();
+          newCatInfoItem.product = productObj;
+          newCatInfoItem.category = catInfoItem.category;
+          newCatInfoItem.size = sizeObject;
+          newCatInfoItem.quantity = sizeItem.quantity;
+
+          // Save the size-specific pcsc object
+          await this.productSizeCategoryRepo.save(newCatInfoItem);
+        }
+      }
+    }
+
+    return savedProduct
   }
 
   // update buying history / order status 
