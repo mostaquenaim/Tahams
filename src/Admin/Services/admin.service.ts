@@ -656,30 +656,31 @@ export class AdminService {
     try {
       // Step 1: Fetch all products
       const products = await this.productRepo.find();
-
+  
       // Step 2: Iterate through products and calculate total views
       for (const product of products) {
         const { id: productId } = product;
-
+  
         // Aggregate total views from the view_product table
         const result = await this.viewRepo
-          .createQueryBuilder('vp')
-          .select('SUM(vp.count)', 'totalViews')
-          .where('vp.product.id = :productId', { productId })
+          .createQueryBuilder("view_product")
+          .select("SUM(view_product.count)", "totalViews")
+          .where("view_product.productId = :productId", { productId })
           .getRawOne();
-
-        const totalViews = result.totalViews || 0;
-
+  
+        const totalViews = parseInt(result.totalViews || 0, 10);
+  
         // Update the product's totalViews field
         return await this.productRepo.update(productId, { totalViews });
       }
-
-      console.log('View counts synced successfully');
+  
+      console.log("View counts synced successfully");
     } catch (error) {
-      console.error('Error syncing view counts:', error.message);
+      console.error("Error syncing view counts:", error.message);
       throw error;
     }
   }
+  
 
   // get category by name 
   async getCategoryByName(name) {
