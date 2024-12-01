@@ -651,6 +651,36 @@ export class AdminService {
     return sizes;
   }
 
+  // sync view count 
+  async syncViewCount() {
+    try {
+      // Step 1: Fetch all products
+      const products = await this.productRepo.find();
+
+      // Step 2: Iterate through products and calculate total views
+      for (const product of products) {
+        const { id: productId } = product;
+
+        // Aggregate total views from the view_product table
+        const result = await this.viewRepo
+          .createQueryBuilder('vp')
+          .select('SUM(vp.count)', 'totalViews')
+          .where('vp.product.id = :productId', { productId })
+          .getRawOne();
+
+        const totalViews = result.totalViews || 0;
+
+        // Update the product's totalViews field
+        return await this.productRepo.update(productId, { totalViews });
+      }
+
+      console.log('View counts synced successfully');
+    } catch (error) {
+      console.error('Error syncing view counts:', error.message);
+      throw error;
+    }
+  }
+
   // get category by name 
   async getCategoryByName(name) {
     return await this.categoryRepo.findOneBy({ name: name });
@@ -1130,7 +1160,13 @@ export class AdminService {
 
   // increase product view 
   async increaseProductView(productId: number, email: string) {
-    const customer = await this.getUserByEmail(email)
+    const customer = await this.getUserByEmail(email);
+
+    if (!customer) {
+      throw new Error('Customer not found');
+    }
+
+    // Find the existing view record for the user and product
     const existingView = await this.viewRepo.findOne({
       where: {
         product: { id: productId },
@@ -1138,19 +1174,36 @@ export class AdminService {
       },
     });
 
-    // console.log('existingView',existingView);
-
+    // Update or create the view record
     if (existingView) {
       existingView.count += 1;
-      return await this.viewRepo.save(existingView);
+      await this.viewRepo.save(existingView);
     } else {
       const newView = this.viewRepo.create({
         product: { id: productId },
         user: { id: customer.id },
         count: 1,
       });
-      return await this.viewRepo.save(newView);
+      await this.viewRepo.save(newView);
     }
+
+    // Update the total views for the product
+    await this.updateProductTotalViews(productId);
+  }
+
+// update product views
+  private async updateProductTotalViews(productId: number) {
+    const product = await this.productRepo.findOne({ where: { id: productId } });
+
+    if (!product) {
+      throw new Error('Product not found');
+    }
+
+    // Increment the total views count
+    product.totalViews += 1;
+
+    // Save the updated product
+    return await this.productRepo.save(product);
   }
 
   // create new coupon 

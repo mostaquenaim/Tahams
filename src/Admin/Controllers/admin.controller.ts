@@ -558,6 +558,12 @@ export class AdminController {
     return this.adminService.increaseProductView(id, email);
   }
 
+  // sync view count
+  @Get('sync-view-count')
+  syncViewCount() {
+    return this.adminService.syncViewCount();
+  }
+
   // add new sub-category 
   @Post('add-subCategory')
   @UsePipes(ValidationPipe)

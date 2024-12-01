@@ -67,6 +67,9 @@ export class ProductEntity {
     @Column({ default: false })
     publishable: boolean
 
+    @Column({ default: 0 })
+    totalViews: number
+
     // Timestamp columns
     @CreateDateColumn({ type: 'timestamp' })
     createdAt: Date;
