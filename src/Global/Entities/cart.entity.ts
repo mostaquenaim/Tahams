@@ -19,6 +19,12 @@ export class CartsEntity {
     @Column({nullable:true})
     size: string
 
+    @Column({nullable:true})
+    maleSize: string
+
+    @Column({nullable:true})
+    femaleSize: string
+
     @Column()
     Quantity: number
 
