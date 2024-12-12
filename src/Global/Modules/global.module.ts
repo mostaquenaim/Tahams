@@ -26,6 +26,8 @@ import { OtpEntity } from '../Entities/otp.entity';
 import { ViewProductEntity } from '../Entities/viewProduct.entity';
 import { ReturnEntity } from '../Entities/return.entity';
 import { GenderEntity } from '../Entities/gender.entity';
+import { MessageEntity } from '../Entities/messages.entity';
+import { UnreadMessageEntity } from '../Entities/unreadMessage.entity';
 // Load environment variables
 dotenv.config();
 
@@ -54,6 +56,7 @@ dotenv.config();
             DeliveryStatusEntity,
             FabricEntity,
             GenderEntity,
+            MessageEntity,
             OtpEntity,
             PaymentInfo,
             PaymentMethodEntity,
@@ -65,6 +68,7 @@ dotenv.config();
             ReturnEntity,
             SubCategoryEntity,
             SubSubCategoryEntity,
+            UnreadMessageEntity,
             ViewProductEntity,
             WishEntity,
         ])],

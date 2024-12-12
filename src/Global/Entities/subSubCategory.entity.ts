@@ -19,6 +19,15 @@ export class SubSubCategoryEntity {
     @Column({ nullable: true })
     filename: string;
 
+    @Column({ default: false })
+    isEnablePremium: boolean
+
+    @Column({ default: false })
+    isPremium: boolean
+
+    @Column({ default: false })
+    isRegular: boolean
+
     @ManyToOne(() => GenderEntity, (gender) => gender.subSubs)
     gender: GenderEntity
 

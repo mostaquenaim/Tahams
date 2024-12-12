@@ -189,6 +189,16 @@ export class AdminController {
     return this.adminService.createNewBuy(myDto);
   }
 
+  // send message to customer   
+  @Post('send-message-to-customer')
+  @UsePipes(ValidationPipe)
+  sendMessageToCustomer(
+    @Body() myDto: any,
+  ) {
+    // console.log("134", myDto);
+    return this.adminService.sendMessageToCustomer(myDto);
+  }
+
   // update buying history 
   @Patch('update-history/:token')
   updateBuyingHistory(
@@ -690,7 +700,7 @@ export class AdminController {
   ) {
     // console.log('object');
     // console.log(query);
-    return this.adminService.viewAllProducts(query);
+    return this.adminService.viewAllProducts(query && query);
   }
 
   // view size

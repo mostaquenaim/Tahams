@@ -3,6 +3,8 @@ import { CartsEntity } from 'src/Global/Entities/cart.entity';
 import { WishEntity } from 'src/Global/Entities/wish.entity';
 import { Entity, Column, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { ViewProductEntity } from './viewProduct.entity';
+import { MessageEntity } from './messages.entity';
+import { UnreadMessageEntity } from './unreadMessage.entity';
 
 @Entity('users')
 export class UserEntity {
@@ -71,4 +73,13 @@ export class UserEntity {
 
     @OneToMany(() => ViewProductEntity, (view) => view.user)
     views: ViewProductEntity[];
+
+    @OneToMany(() => MessageEntity, (msg) => msg.sender)
+    msgss: MessageEntity[];
+
+    @OneToMany(() => MessageEntity, (msg) => msg.receiver)
+    msgsr: MessageEntity[];
+
+    @OneToMany(() => UnreadMessageEntity, (msg) => msg.user)
+    msgcnt: UnreadMessageEntity[];
 }

@@ -32,6 +32,8 @@ import { OtpEntity } from 'src/Global/Entities/otp.entity';
 import { ViewProductEntity } from 'src/Global/Entities/viewProduct.entity';
 import { ReturnEntity } from 'src/Global/Entities/return.entity';
 import { GenderEntity } from 'src/Global/Entities/gender.entity';
+import { MessageEntity } from 'src/Global/Entities/messages.entity';
+import { UnreadMessageEntity } from 'src/Global/Entities/unreadMessage.entity';
 
 @Injectable()
 export class AdminService {
@@ -68,6 +70,9 @@ export class AdminService {
     @InjectRepository(ColorEntity)
     private colorRepo: Repository<ColorEntity>,
 
+    @InjectRepository(MessageEntity)
+    private messageRepo: Repository<MessageEntity>,
+
     @InjectRepository(OtpEntity)
     private otpRepository: Repository<OtpEntity>,
 
@@ -82,6 +87,9 @@ export class AdminService {
 
     @InjectRepository(ReturnEntity)
     private returnRepo: Repository<ReturnEntity>,
+
+    @InjectRepository(UnreadMessageEntity)
+    private unreadRepo: Repository<UnreadMessageEntity>,
 
     @InjectRepository(ViewProductEntity)
     private viewRepo: Repository<ViewProductEntity>,
@@ -1334,6 +1342,21 @@ export class AdminService {
     const savedBuy = await this.buyingHistoryRepo.save(newBuy);
     // console.log(myDto.carts, 'carts');
     this.createNewCartObject(savedBuy, myDto.carts)
+    return savedBuy;
+  }
+
+  // send message to customer 
+  async sendMessageToCustomer(myDto) {
+    myDto.deliveryStatus = await this.getDeliveryStatusById(myDto?.deliveryStatusId || 1)
+    myDto.paymentMethod = await this.getPaymentMethodById(myDto?.paymentMethodId || 1)
+    myDto.trackingToken = uuidv4();
+    const newBuy = this.buyingHistoryRepo.create({
+      ...myDto
+    })
+
+    // console.log(myDto,844);
+    const savedBuy = await this.buyingHistoryRepo.save(newBuy);
+    // console.log(myDto.carts, 'carts');
     return savedBuy;
   }
 
