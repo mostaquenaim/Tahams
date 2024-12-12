@@ -16,6 +16,9 @@ export class SubCategoryEntity {
     @Column({ nullable: true })
     filename: string;
 
+    @Column({ default: false })
+    isEnablePremium: boolean
+
     @ManyToOne(() => CategoryEntity, (category) => category.subs)
     category: CategoryEntity
 
