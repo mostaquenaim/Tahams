@@ -165,9 +165,11 @@ export class AdminService {
       }
 
       // Hash the password
-      const salt = await bcrypt.genSalt();
-      const hashedPass = await bcrypt.hash(myDto.password, salt);
-      myDto.password = hashedPass;
+      if (myDto.password) {
+        const salt = await bcrypt.genSalt();
+        const hashedPass = await bcrypt.hash(myDto.password, salt);
+        myDto.password = hashedPass;
+      }
 
       // Save the new user
       const savedUser = await this.userRepo.save(myDto);
@@ -659,36 +661,43 @@ export class AdminService {
     return sizes;
   }
 
+  // view all views
+  async viewAllProductsViews() {
+    const options: FindManyOptions<ViewProductEntity> = {};
+    const views = await this.viewRepo.find(options);
+    return views;
+  }
+
   // sync view count 
   async syncViewCount() {
     try {
       // Step 1: Fetch all products
       const products = await this.productRepo.find();
-  
+
       // Step 2: Iterate through products and calculate total views
       for (const product of products) {
         const { id: productId } = product;
-  
+
         // Aggregate total views from the view_product table
         const result = await this.viewRepo
           .createQueryBuilder("view_product")
           .select("SUM(view_product.count)", "totalViews")
           .where("view_product.productId = :productId", { productId })
           .getRawOne();
-  
+
         const totalViews = parseInt(result.totalViews || 0, 10);
-  
+
         // Update the product's totalViews field
         return await this.productRepo.update(productId, { totalViews });
       }
-  
+
       console.log("View counts synced successfully");
     } catch (error) {
       console.error("Error syncing view counts:", error.message);
       throw error;
     }
   }
-  
+
 
   // get category by name 
   async getCategoryByName(name) {
@@ -1200,7 +1209,7 @@ export class AdminService {
     await this.updateProductTotalViews(productId);
   }
 
-// update product views
+  // update product views
   private async updateProductTotalViews(productId: number) {
     const product = await this.productRepo.findOne({ where: { id: productId } });
 
@@ -1416,7 +1425,21 @@ export class AdminService {
     myDto.product = selectedProduct
     myDto.uniqueId = uuidv4()
     myDto.category = myDto?.category && await this.getSubSubCategoryById(myDto.category)
-    myDto.customer = myDto?.customerEmail && await this.getUserByEmail(myDto?.customerEmail)
+
+    // Check if customer exists, create one if not
+    if (myDto?.customerEmail) {
+      let customer = await this.getUserByEmail(myDto.customerEmail);
+      if (!customer) {
+        // Create a new customer if not found
+        customer = await this.userRepo.save({
+          email: myDto.customerEmail,
+        });
+      }
+      myDto.customer = customer;
+    } else {
+      myDto.customer = null; // Explicitly set to null if no email is provided
+    }
+
     myDto.coupon = myDto?.couponId && await this.getCouponById(myDto?.couponId)
     const selectedColor = await this.getColorById(myDto.colorId)
     myDto.ProductName = selectedColor.name + " " + selectedProduct.name

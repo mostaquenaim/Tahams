@@ -709,6 +709,12 @@ export class AdminController {
     return this.adminService.viewProductSizes();
   }
 
+  // view all views
+  @Get('view-all-products-views')
+  viewAllProductsViews() {
+    return this.adminService.viewAllProductsViews();
+  }
+
   // get product by id 
   @Get('get-product-by-id/:id')
   @UsePipes(ValidationPipe)

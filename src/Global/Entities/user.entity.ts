@@ -11,13 +11,13 @@ export class UserEntity {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column()
+    @Column({ nullable: true })
     name: string;
 
-    @Column({nullable:true})
+    @Column({ nullable: true })
     uniqueId: string;
 
-    @Column()
+    @Column({ nullable: true })
     password: string;
 
     @Column({ unique: true })
