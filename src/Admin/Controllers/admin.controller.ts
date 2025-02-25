@@ -325,6 +325,15 @@ export class AdminController {
     return response
   }
 
+  // add new wish 
+  @Post('add-Wish')
+  @UsePipes(ValidationPipe)
+  createNewWish(
+    @Body() myDto,
+  ) {
+    return this.adminService.createNewWish(myDto);
+  }
+
   // delete a cart 
   @Delete('delete-cart/:uniqueId')
   deleteCartItem(
@@ -865,15 +874,6 @@ export class AdminController {
 
     return this.adminService.updateAdmin(myDto, myDto.email);
 
-  }
-
-  // add new wish 
-  @Post('add-Wish')
-  @UsePipes(ValidationPipe)
-  createNewWish(
-    @Body() myDto,
-  ) {
-    return this.adminService.createNewWish(myDto);
   }
 
   // remove wish list item

@@ -1465,9 +1465,11 @@ export class AdminService {
         throw new NotFoundException('Product not found');
       }
 
-      const customer = await this.getUserByEmail(myDto.customerEmail);
+      let customer = await this.getUserByEmail(myDto.customerEmail);
       if (!customer) {
-        throw new NotFoundException('Customer not found');
+        customer = await this.userRepo.save({
+          email: myDto.customerEmail,
+        });
       }
 
       const newWish = this.wishRepo.create({
@@ -1534,7 +1536,7 @@ export class AdminService {
     });
 
     // console.log(JSON.stringify(processedCatsInfo, null, 2));
-
+ 
     for (const item of processedCatsInfo) {
       const catInfoItem = new ProductSizeCategoryEntity();
 
