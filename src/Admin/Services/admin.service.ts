@@ -219,6 +219,7 @@ export class AdminService {
     }
 
   }
+
   // send otp 
   async sendOtp(email: string) {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -313,7 +314,6 @@ export class AdminService {
     return { status: HttpStatus.OK, message: 'Email updated successfully' };
   }
 
-
   // update admin profile 
   async updateAdmin(myDto: AdminForm, email: string) {
     try {
@@ -341,7 +341,6 @@ export class AdminService {
     product.publishable = publishable;
     await this.productRepo.save(product);
   }
-
 
   // delete banner  
   async deleteBanner(id: number) {
@@ -387,7 +386,6 @@ export class AdminService {
     const res = await this.buyingHistoryRepo.save(historyEntry)
     return res;
   }
-
 
   // delete carts  
   async deleteCarts(cartArray: string[]) {
@@ -491,7 +489,7 @@ export class AdminService {
   }
 
   async getBuyingHistoryStatusByToken(token: string) {
-    console.log(token);
+    // console.log(token);
     const query = {
       where: {
         trackingToken: token,
@@ -553,7 +551,7 @@ export class AdminService {
     const user = await this.userRepo.findOneBy({ email });
     const isAdmin = user?.role == 'admin';
 
-    console.log(isAdmin);
+    // console.log(isAdmin);
 
     const cartsWithHistory = await this.cartRepo.find({
       where: {
@@ -698,7 +696,6 @@ export class AdminService {
     }
   }
 
-
   // get category by name 
   async getCategoryByName(name) {
     return await this.categoryRepo.findOneBy({ name: name });
@@ -715,12 +712,12 @@ export class AdminService {
   }
 
   // check if wished 
-  async checkIfWished(productId, customerId) {
-    console.log(productId, customerId, "okk");
+  async checkIfWished(productId, customerEmail) {
+    // console.log(productId, customerEmail, "okk");
     const wished = await this.wishRepo.findOne({
       where: {
         product: { id: productId },
-        customer: { id: customerId },
+        customer: { email: customerEmail },
       },
     });
 
@@ -851,7 +848,7 @@ export class AdminService {
 
   // ProductService
   async getProductById(id: number) {
-    console.log(id, 'id');
+    // console.log(id, 'id');
     return await this.productRepo.findOne({
       where: { id },
       relations: ['color', 'fabric', 'productPictures', 'pscs', 'pscs.category', 'pscs.category.category.category', 'pscs.size']
@@ -939,7 +936,7 @@ export class AdminService {
       relations: ['cart']
     })
 
-    console.log(entity);
+    // console.log(entity);
 
     if (!entity) {
       throw new Error(`Entity with id ${id} not found`);
@@ -1050,7 +1047,7 @@ export class AdminService {
 
   // update buying history / order status 
   async updateBuyingHistoryStatusByToken(token: string, updates: any, email: string) {
-    console.log(updates);
+    // console.log(updates);
     const user = await this.userRepo.findOneBy({ email });
 
     if (!user) {
@@ -1135,7 +1132,7 @@ export class AdminService {
 
   // remove wish list item
   async removeWish(productId, customerEmail) {
-    console.log('myData', productId, customerEmail);
+    // console.log('myData', productId, customerEmail);
     try {
       const wish = await this.wishRepo.findOne({
         where: {
@@ -1276,7 +1273,7 @@ export class AdminService {
 
     for (const product of selectedProducts) {
       const cart = await this.cartRepo.findOne({ where: { id: product.cartId } });
-      console.log(cart);
+      // console.log(cart);
 
       if (cart) {
         const returnEntity = new ReturnEntity();
@@ -1453,9 +1450,9 @@ export class AdminService {
 
   // create new wish 
   async createNewWish(myDto) {
-    console.log('myDto', myDto);
+    // console.log('myDto', myDto);
     if (!myDto.productId || !myDto.customerEmail) {
-      console.log("object");
+      // console.log("object");
       throw new BadRequestException('Product ID and customer email are required');
     }
 
@@ -1472,6 +1469,7 @@ export class AdminService {
         });
       }
 
+      // console.log(customer, 'cust', product);
       const newWish = this.wishRepo.create({
         product,
         customer,
@@ -1493,7 +1491,7 @@ export class AdminService {
 
   // create new product 
   async createNewProduct(myDto) {
-    console.log(myDto, 720);
+    // console.log(myDto, 720);
     const selectedColor = await this.getColorByName(myDto.color)
 
     myDto.color = selectedColor
@@ -1536,7 +1534,7 @@ export class AdminService {
     });
 
     // console.log(JSON.stringify(processedCatsInfo, null, 2));
- 
+
     for (const item of processedCatsInfo) {
       const catInfoItem = new ProductSizeCategoryEntity();
 

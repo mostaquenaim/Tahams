@@ -441,10 +441,10 @@ export class AdminController {
   // check if wished 
   @Get('check-wish-by-user-and-product')
   checkIfWished(
-    @Query('customerId') customerId: number,
+    @Query('customerEmail') customerEmail: string,
     @Query('productId') productId: number
   ) {
-    return this.adminService.checkIfWished(productId, customerId)
+    return this.adminService.checkIfWished(productId, customerEmail)
   }
 
   // get sub category by id 
