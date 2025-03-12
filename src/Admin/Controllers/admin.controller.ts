@@ -185,7 +185,7 @@ export class AdminController {
   createNewBuy(
     @Body() myDto: any,
   ) {
-    // console.log("134", myDto);
+    console.log("134", myDto);
     return this.adminService.createNewBuy(myDto);
   }
 

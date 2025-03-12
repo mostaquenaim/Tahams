@@ -22,6 +22,9 @@ export class BuyingHistoryEntity {
   @Column({ default: false })
   isDraft: boolean
 
+  @Column({ nullable: true })
+  fullName: string
+
   @Column()
   trackingToken: string
 
