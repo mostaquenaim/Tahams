@@ -824,7 +824,7 @@ export class AdminController {
   ))
   @UsePipes(new ValidationPipe)
   addNewArrivals(@Body() mydata, @UploadedFile() imageobj: Express.Multer.File) {
-    console.log(imageobj.filename,mydata);
+    // console.log(imageobj.filename,mydata);
     mydata.filename = imageobj.filename;
     return this.adminService.addNewArrivals(mydata);
   }

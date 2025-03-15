@@ -604,10 +604,13 @@ export class AdminService {
 
   // view new arrivals
   async viewNewArrivals() {
-    const options: FindManyOptions<NewArrivalEntity> = {};
+    const options: FindManyOptions<NewArrivalEntity> = {
+      relations: ['subsub'], // Ensure this matches your entity relation
+    };
     const arrivals = await this.newArrivalRepo.find(options);
     return arrivals;
   }
+
 
   // view genders 
   async viewGenders() {
@@ -1530,14 +1533,25 @@ export class AdminService {
 
   // create new arrivals 
   async addNewArrivals(myDto) {
-    // console.log(myDto, 720);
-    const newArrival = this.newArrivalRepo.create({
-      ...myDto
+    const cat = await this.subSubCategoryRepo.findOne({
+      where: { id: parseInt(myDto.category) }
+    })
+
+    myDto.subsub = cat
+    // Check if a product with the same serial already exists
+    const existingProduct = await this.newArrivalRepo.findOne({
+      where: { serial: myDto.serial },
     });
 
+    if (existingProduct) {
+      // Delete the existing product
+      await this.newArrivalRepo.delete(existingProduct.id);
+    }
+
+    // Create a new product
+    const newArrival = this.newArrivalRepo.create(myDto);
     const savedProduct = await this.newArrivalRepo.save(newArrival);
-    
-    return savedProduct
+    return savedProduct;
   }
 
   async createProductExtension(product, catsInfo) {

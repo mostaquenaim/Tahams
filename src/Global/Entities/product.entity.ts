@@ -103,7 +103,7 @@ export class ProductEntity {
     @OneToMany(() => ViewProductEntity, (view) => view.product)
     views: ViewProductEntity[]
 
-    @OneToMany(() => NewArrivalEntity, (arrive) => arrive.product)
-    arrivals: NewArrivalEntity[]
+    // @OneToMany(() => NewArrivalEntity, (arrive) => arrive.product)
+    // arrivals: NewArrivalEntity[]
 
 }

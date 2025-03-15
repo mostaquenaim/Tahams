@@ -1,6 +1,7 @@
 /* eslint-disable prettier/prettier */
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
 import { ProductEntity } from './product.entity';
+import { SubSubCategoryEntity } from './subSubCategory.entity';
 
 @Entity('new-arrival')
 export class NewArrivalEntity {
@@ -22,6 +23,9 @@ export class NewArrivalEntity {
     @Column({ nullable: true })
     filename: string
 
-    @ManyToOne(() => ProductEntity, (product) => product.arrivals)
-    product: ProductEntity
+    // @ManyToOne(() => ProductEntity, (product) => product.arrivals)
+    // product: ProductEntity
+
+    @ManyToOne(() => SubSubCategoryEntity, (subsub) => subsub.arrivals)
+    subsub: SubSubCategoryEntity
 }

@@ -6,10 +6,11 @@ import { SubCategoryEntity } from './subCategory.entity';
 import { ProductSizeCategoryEntity } from './productSizeCategory.entity';
 import { CartsEntity } from './cart.entity';
 import { GenderEntity } from './gender.entity';
+import { NewArrivalEntity } from './new-arrival.entity';
 
 @Entity('sub-sub-category')
 export class SubSubCategoryEntity {
-    
+
     @PrimaryGeneratedColumn()
     id: number;
 
@@ -39,4 +40,7 @@ export class SubSubCategoryEntity {
 
     @OneToMany(() => CartsEntity, (cart) => cart.category)
     carts: CartsEntity[]
+
+    @OneToMany(() => NewArrivalEntity, (arrive) => arrive.subsub)
+    arrivals: NewArrivalEntity[]
 }
