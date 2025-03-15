@@ -17,6 +17,7 @@ import { ProductPictureEntity } from './product-pictures.entity';
 import { ProductSizeCategoryEntity } from './productSizeCategory.entity';
 import { FabricEntity } from './fabrics.entity';
 import { ViewProductEntity } from './viewProduct.entity';
+import { NewArrivalEntity } from './new-arrival.entity';
 // import { CouponEntity } from './coupon.entity';
 
 @Entity('product')
@@ -101,5 +102,8 @@ export class ProductEntity {
 
     @OneToMany(() => ViewProductEntity, (view) => view.product)
     views: ViewProductEntity[]
+
+    @OneToMany(() => NewArrivalEntity, (arrive) => arrive.product)
+    arrivals: NewArrivalEntity[]
 
 }

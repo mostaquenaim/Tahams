@@ -34,6 +34,7 @@ import { ReturnEntity } from "src/Global/Entities/return.entity";
 import { GenderEntity } from "src/Global/Entities/gender.entity";
 import { UnreadMessageEntity } from "src/Global/Entities/unreadMessage.entity";
 import { MessageEntity } from "src/Global/Entities/messages.entity";
+import { NewArrivalEntity } from "src/Global/Entities/new-arrival.entity";
 dotenv.config();
 
 @Module({
@@ -52,7 +53,7 @@ dotenv.config();
         }
 
         ),
-        TypeOrmModule.forFeature([AdminEntity, BannerEntity, BuyingHistoryEntity, CategoryEntity, ColorSizeEntity, ColorEntity, CartsEntity, CouponEntity, DeliveryStatusEntity, EmployeeEntity, FabricEntity, GenderEntity, MessageEntity, OtpEntity, PaymentInfo, PaymentMethodEntity, ProductPictureEntity, ProductEntity, ProductSizeCategoryEntity, PartnerEntity, ReturnEntity, SizeEntity, SubCategoryEntity, SubSubCategoryEntity, UserEntity, UnreadMessageEntity, ViewProductEntity, WishEntity])],
+        TypeOrmModule.forFeature([AdminEntity, BannerEntity, BuyingHistoryEntity, CategoryEntity, ColorSizeEntity, ColorEntity, CartsEntity, CouponEntity, DeliveryStatusEntity, EmployeeEntity, FabricEntity, GenderEntity, MessageEntity, NewArrivalEntity, OtpEntity, PaymentInfo, PaymentMethodEntity, ProductPictureEntity, ProductEntity, ProductSizeCategoryEntity, PartnerEntity, ReturnEntity, SizeEntity, SubCategoryEntity, SubSubCategoryEntity, UserEntity, UnreadMessageEntity, ViewProductEntity, WishEntity])],
     controllers: [AdminController],
     providers: [AdminService],
 })

@@ -28,6 +28,7 @@ import { ReturnEntity } from '../Entities/return.entity';
 import { GenderEntity } from '../Entities/gender.entity';
 import { MessageEntity } from '../Entities/messages.entity';
 import { UnreadMessageEntity } from '../Entities/unreadMessage.entity';
+import { NewArrivalEntity } from '../Entities/new-arrival.entity';
 // Load environment variables
 dotenv.config();
 
@@ -57,6 +58,7 @@ dotenv.config();
             FabricEntity,
             GenderEntity,
             MessageEntity,
+            NewArrivalEntity,
             OtpEntity,
             PaymentInfo,
             PaymentMethodEntity,

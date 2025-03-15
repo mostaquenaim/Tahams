@@ -34,6 +34,7 @@ import { ReturnEntity } from 'src/Global/Entities/return.entity';
 import { GenderEntity } from 'src/Global/Entities/gender.entity';
 import { MessageEntity } from 'src/Global/Entities/messages.entity';
 import { UnreadMessageEntity } from 'src/Global/Entities/unreadMessage.entity';
+import { NewArrivalEntity } from 'src/Global/Entities/new-arrival.entity';
 
 @Injectable()
 export class AdminService {
@@ -90,6 +91,9 @@ export class AdminService {
 
     @InjectRepository(UnreadMessageEntity)
     private unreadRepo: Repository<UnreadMessageEntity>,
+
+    @InjectRepository(NewArrivalEntity)
+    private newArrivalRepo: Repository<NewArrivalEntity>,
 
     @InjectRepository(ViewProductEntity)
     private viewRepo: Repository<ViewProductEntity>,
@@ -596,6 +600,13 @@ export class AdminService {
     const options: FindManyOptions<CategoryEntity> = {};
     const categories = await this.categoryRepo.find(options);
     return categories;
+  }
+
+  // view new arrivals
+  async viewNewArrivals() {
+    const options: FindManyOptions<NewArrivalEntity> = {};
+    const arrivals = await this.newArrivalRepo.find(options);
+    return arrivals;
   }
 
   // view genders 
@@ -1515,6 +1526,18 @@ export class AdminService {
     const savedProduct = await this.productRepo.save(newProduct);
 
     return await this.createProductExtension(savedProduct, myDto.catsInfo);
+  }
+
+  // create new arrivals 
+  async addNewArrivals(myDto) {
+    // console.log(myDto, 720);
+    const newArrival = this.newArrivalRepo.create({
+      ...myDto
+    });
+
+    const savedProduct = await this.newArrivalRepo.save(newArrival);
+    
+    return savedProduct
   }
 
   async createProductExtension(product, catsInfo) {

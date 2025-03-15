@@ -378,13 +378,20 @@ export class AdminController {
     return result;
   }
 
+  // view new arrivals 
+  @Get('view-new-arrivals')
+  async viewNewArrivals() {
+    const result = await this.adminService.viewNewArrivals();
+    return result;
+  }
+
   // view genders
   @Get('view-genders')
   async viewGenders() {
     const result = await this.adminService.viewGenders();
     return result;
   }
- 
+
   // view cancellation or return requests
   @Get('view-cancellation-or-return-requests')
   async viewRequests(
@@ -769,6 +776,7 @@ export class AdminController {
     return this.adminService.createNewFabric(myDto);
   }
 
+  //add new product
   @Post('/add-product')
   @UseInterceptors(FileInterceptor('myfile',
     {
@@ -792,6 +800,33 @@ export class AdminController {
   addProductFunc(@Body() mydata, @UploadedFile() imageobj: Express.Multer.File) {
     mydata.filename = imageobj.filename;
     return this.adminService.createNewProduct(mydata);
+  }
+
+  //add new arrivals
+  @Post('/add-new-arrivals')
+  @UseInterceptors(FileInterceptor('filename',
+    {
+      fileFilter: (req, file, cb) => {
+        if (file.originalname.match(/^.*\.(jpg|webp|png|jpeg|gif)$/))
+          cb(null, true);
+        else {
+          cb(new MulterError('LIMIT_UNEXPECTED_FILE', 'filename'), false);
+        }
+      },
+      limits: { fileSize: 30000000 },
+      storage: diskStorage({
+        destination: './uploads',
+        filename: function (req, file, cb) {
+          cb(null, Date.now() + file.originalname)
+        },
+      })
+    }
+  ))
+  @UsePipes(new ValidationPipe)
+  addNewArrivals(@Body() mydata, @UploadedFile() imageobj: Express.Multer.File) {
+    console.log(imageobj.filename,mydata);
+    mydata.filename = imageobj.filename;
+    return this.adminService.addNewArrivals(mydata);
   }
 
   // product pictures add 
