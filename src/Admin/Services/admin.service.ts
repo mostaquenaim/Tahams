@@ -1,7 +1,7 @@
 /* eslint-disable prettier/prettier */
 import { BadRequestException, ForbiddenException, HttpException, HttpStatus, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In } from 'typeorm';
+import { ILike, In, Like } from 'typeorm';
 import { AdminForm } from '../DTOs/adminform.dto';
 import { Repository, FindManyOptions } from 'typeorm';
 import { AdminEntity } from '../Entities/admin.entity';
@@ -432,6 +432,27 @@ export class AdminService {
     }
   }
 
+  // get product by query 
+  async getProductByQuery(searchQuery: string) {
+    try {
+        const products = await this.productRepo
+            .createQueryBuilder('product')
+            .leftJoinAndSelect('product.color', 'color')
+            .leftJoinAndSelect('product.fabric', 'fabric')
+            .leftJoinAndSelect('product.productPictures', 'productPicture')
+            .leftJoinAndSelect('product.pscs', 'psc')
+            .leftJoinAndSelect('psc.category', 'subSubCategory')
+            .leftJoinAndSelect('psc.size', 'size')
+            .where('product.name ILIKE :searchQuery', { searchQuery: `%${searchQuery}%` }) // Case-insensitive search
+            .getMany();
+
+        return products;
+    } catch (error) {
+        console.error('Error searching products:', error);
+        throw error;
+    }
+}
+
   // view all buying histories 
   async getAllBuyingHistories(email: string) {
     if (email) {
@@ -824,6 +845,7 @@ export class AdminService {
     return products
   }
 
+  // get publishabe products 
   async getPublishableProductsBySubSubCatId(subCategoryId) {
     try {
       const products = await this.getProductBySubSubCatId(subCategoryId);

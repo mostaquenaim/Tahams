@@ -719,6 +719,15 @@ export class AdminController {
     return this.adminService.viewAllProducts(query && query);
   }
 
+  // get product by search query
+  @Get('search-products')
+  async getProductByQuery(@Query('q') searchQuery: string) {
+    console.log('Search Query:', searchQuery);  // Debugging
+    const products = await this.adminService.getProductByQuery(searchQuery);
+    return products;
+  }
+
+
   // view size
   @Get('view-product-sizes')
   viewProductSizes() {
