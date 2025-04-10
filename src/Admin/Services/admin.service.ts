@@ -35,6 +35,8 @@ import { GenderEntity } from 'src/Global/Entities/gender.entity';
 import { MessageEntity } from 'src/Global/Entities/messages.entity';
 import { UnreadMessageEntity } from 'src/Global/Entities/unreadMessage.entity';
 import { NewArrivalEntity } from 'src/Global/Entities/new-arrival.entity';
+import { PopUpEntity } from 'src/Global/Entities/pop-up.entity';
+import { ActivePopUpEntity } from 'src/Global/Entities/active-pop-up.entity';
 
 @Injectable()
 export class AdminService {
@@ -46,6 +48,9 @@ export class AdminService {
 
     @InjectRepository(UserEntity)
     private userRepo: Repository<UserEntity>,
+
+    @InjectRepository(ActivePopUpEntity)
+    private activePopRepo: Repository<ActivePopUpEntity>,
 
     @InjectRepository(ProductEntity)
     private productRepo: Repository<ProductEntity>,
@@ -94,6 +99,9 @@ export class AdminService {
 
     @InjectRepository(NewArrivalEntity)
     private newArrivalRepo: Repository<NewArrivalEntity>,
+
+    @InjectRepository(PopUpEntity)
+    private popUpRepo: Repository<PopUpEntity>,
 
     @InjectRepository(ViewProductEntity)
     private viewRepo: Repository<ViewProductEntity>,
@@ -435,23 +443,23 @@ export class AdminService {
   // get product by query 
   async getProductByQuery(searchQuery: string) {
     try {
-        const products = await this.productRepo
-            .createQueryBuilder('product')
-            .leftJoinAndSelect('product.color', 'color')
-            .leftJoinAndSelect('product.fabric', 'fabric')
-            .leftJoinAndSelect('product.productPictures', 'productPicture')
-            .leftJoinAndSelect('product.pscs', 'psc')
-            .leftJoinAndSelect('psc.category', 'subSubCategory')
-            .leftJoinAndSelect('psc.size', 'size')
-            .where('product.name ILIKE :searchQuery', { searchQuery: `%${searchQuery}%` }) // Case-insensitive search
-            .getMany();
+      const products = await this.productRepo
+        .createQueryBuilder('product')
+        .leftJoinAndSelect('product.color', 'color')
+        .leftJoinAndSelect('product.fabric', 'fabric')
+        .leftJoinAndSelect('product.productPictures', 'productPicture')
+        .leftJoinAndSelect('product.pscs', 'psc')
+        .leftJoinAndSelect('psc.category', 'subSubCategory')
+        .leftJoinAndSelect('psc.size', 'size')
+        .where('product.name ILIKE :searchQuery', { searchQuery: `%${searchQuery}%` }) // Case-insensitive search
+        .getMany();
 
-        return products;
+      return products;
     } catch (error) {
-        console.error('Error searching products:', error);
-        throw error;
+      console.error('Error searching products:', error);
+      throw error;
     }
-}
+  }
 
   // view all buying histories 
   async getAllBuyingHistories(email: string) {
@@ -632,6 +640,26 @@ export class AdminService {
     return arrivals;
   }
 
+  // view active pop up
+  async viewActivePopUp() {
+    const activePop = await this.activePopRepo.find(
+      {
+        take: 1,
+        relations: ['popup']
+      }
+    );
+
+    // console.log(activePop, 'acc');
+    return activePop.length > 0 && activePop[0]?.popup;
+  }
+
+  // view all pop up
+  async viewAllPopUp() {
+    const options: FindManyOptions<PopUpEntity> = {};
+
+    const popUps = await this.popUpRepo.find(options);
+    return popUps;
+  }
 
   // view genders 
   async viewGenders() {
@@ -898,6 +926,37 @@ export class AdminService {
       throw new NotFoundException(`User with ID ${id} not found.`);
     }
     await this.categoryRepo.update(id, { ...category });
+  }
+
+  // update category by id 
+  async updateActivePop(id: number) {
+    // 1. Find the popup you want to make active
+    const popup = await this.popUpRepo.findOneBy({ id });
+    if (!popup) {
+      throw new NotFoundException(`Popup with ID ${id} not found.`);
+    }
+
+    popup.isActive = true
+    await this.popUpRepo.save(popup)
+
+    // 2. Get the current active popup (first record)
+    const [activePop] = await this.activePopRepo.find({
+      take: 1,
+      relations: ['popup'] // This ensures the related PopUpEntity is loaded
+    });
+
+    if (!activePop) {
+      // If no active popup exists, create one
+      const newActivePop = this.activePopRepo.create({ popup });
+      return await this.activePopRepo.save(newActivePop);
+    }
+
+    activePop.popup.isActive = false
+    await this.popUpRepo.save(activePop.popup)
+
+    // 3. Update the relationship (not the properties)
+    activePop.popup = popup;
+    return await this.activePopRepo.save(activePop);
   }
 
   // update sub sub category by id 
@@ -1574,6 +1633,50 @@ export class AdminService {
     const newArrival = this.newArrivalRepo.create(myDto);
     const savedProduct = await this.newArrivalRepo.save(newArrival);
     return savedProduct;
+  }
+
+  // create new pop up 
+  async addNewPopUp(myDto) {
+    // Check for existing active popup
+    const activePopups = await this.activePopRepo.find({
+      order: { id: 'ASC' },
+      relations: ['popup'],
+    });
+
+    const existingActive = activePopups[0]; // first row, if any
+
+    const now = new Date();
+
+    const newPopUp = this.popUpRepo.create({
+      filename: myDto.filename,
+      title: myDto?.title || null,
+      url: myDto?.url || null,
+      isActive: existingActive ? existingActive?.popup?.endDate < now && (myDto.isActive === 'true' || myDto.isActive === true) : (myDto.isActive === 'true' || myDto.isActive === true),
+      startDate: myDto.startDate ? new Date(myDto.startDate) : null,
+      endDate: myDto.endDate ? new Date(myDto.endDate) : null,
+    });
+
+    const savedPopUp = await this.popUpRepo.save(newPopUp);
+
+    if (existingActive) {
+      const existingEndDate = existingActive.popup?.endDate;
+
+      if (!existingEndDate || existingEndDate < now) {
+        // expired, update
+        await this.activePopRepo.update({ id: 1 }, { popup: savedPopUp });
+      } else {
+        // still valid, do not update
+        console.log('Current active popup is still valid. No update done.');
+      }
+    } else {
+      // No active popup row, create new one
+      const newActive = this.activePopRepo.create({
+        popup: savedPopUp,
+      });
+      await this.activePopRepo.save(newActive);
+    }
+
+    return savedPopUp;
   }
 
   async createProductExtension(product, catsInfo) {

@@ -35,6 +35,8 @@ import { GenderEntity } from "src/Global/Entities/gender.entity";
 import { UnreadMessageEntity } from "src/Global/Entities/unreadMessage.entity";
 import { MessageEntity } from "src/Global/Entities/messages.entity";
 import { NewArrivalEntity } from "src/Global/Entities/new-arrival.entity";
+import { PopUpEntity } from "src/Global/Entities/pop-up.entity";
+import { ActivePopUpEntity } from "src/Global/Entities/active-pop-up.entity";
 dotenv.config();
 
 @Module({
@@ -53,7 +55,7 @@ dotenv.config();
         }
 
         ),
-        TypeOrmModule.forFeature([AdminEntity, BannerEntity, BuyingHistoryEntity, CategoryEntity, ColorSizeEntity, ColorEntity, CartsEntity, CouponEntity, DeliveryStatusEntity, EmployeeEntity, FabricEntity, GenderEntity, MessageEntity, NewArrivalEntity, OtpEntity, PaymentInfo, PaymentMethodEntity, ProductPictureEntity, ProductEntity, ProductSizeCategoryEntity, PartnerEntity, ReturnEntity, SizeEntity, SubCategoryEntity, SubSubCategoryEntity, UserEntity, UnreadMessageEntity, ViewProductEntity, WishEntity])],
+        TypeOrmModule.forFeature([ActivePopUpEntity, AdminEntity, BannerEntity, BuyingHistoryEntity, CategoryEntity, ColorSizeEntity, ColorEntity, CartsEntity, CouponEntity, DeliveryStatusEntity, EmployeeEntity, FabricEntity, GenderEntity, MessageEntity, NewArrivalEntity, OtpEntity, PaymentInfo, PaymentMethodEntity, PopUpEntity, ProductPictureEntity, ProductEntity, ProductSizeCategoryEntity, PartnerEntity, ReturnEntity, SizeEntity, SubCategoryEntity, SubSubCategoryEntity, UserEntity, UnreadMessageEntity, ViewProductEntity, WishEntity])],
     controllers: [AdminController],
     providers: [AdminService],
 })

@@ -385,6 +385,20 @@ export class AdminController {
     return result;
   }
 
+  // view active pop up 
+  @Get('view-active-pop-up')
+  async viewActivePopUp() {
+    const result = await this.adminService.viewActivePopUp();
+    return result;
+  }
+
+  // view all pop up 
+  @Get('view-all-pop-up')
+  async viewAllPopUp() {
+    const result = await this.adminService.viewAllPopUp();
+    return result;
+  }
+
   // view genders
   @Get('view-genders')
   async viewGenders() {
@@ -516,6 +530,18 @@ export class AdminController {
       @Body() myDto,
     ) {
     await this.adminService.updateCategory(id, myDto);
+  }
+
+  //update active pop up
+  @Put('update-active-pop-up/:id')
+  // @UsePipes(ValidationPipe)
+  async updateActivePop
+    (
+      @Param('id') id: number,
+      // @Body() myDto,
+    ) {
+    // console.log(id);
+    return this.adminService.updateActivePop(id);
   }
 
   //update sub sub category by id
@@ -836,6 +862,33 @@ export class AdminController {
     // console.log(imageobj.filename,mydata);
     mydata.filename = imageobj.filename;
     return this.adminService.addNewArrivals(mydata);
+  }
+
+  //add pop up
+  @Post('/add-new-pop-up')
+  @UseInterceptors(FileInterceptor('filename',
+    {
+      fileFilter: (req, file, cb) => {
+        if (file.originalname.match(/^.*\.(jpg|webp|png|jpeg|gif)$/))
+          cb(null, true);
+        else {
+          cb(new MulterError('LIMIT_UNEXPECTED_FILE', 'filename'), false);
+        }
+      },
+      limits: { fileSize: 30000000 },
+      storage: diskStorage({
+        destination: './uploads',
+        filename: function (req, file, cb) {
+          cb(null, Date.now() + file.originalname)
+        },
+      })
+    }
+  ))
+  @UsePipes(new ValidationPipe)
+  addNewPopUp(@Body() mydata, @UploadedFile() imageobj: Express.Multer.File) {
+    // console.log(imageobj.filename,mydata);
+    mydata.filename = imageobj.filename;
+    return this.adminService.addNewPopUp(mydata);
   }
 
   // product pictures add 

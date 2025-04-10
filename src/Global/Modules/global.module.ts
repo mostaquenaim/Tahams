@@ -29,6 +29,8 @@ import { GenderEntity } from '../Entities/gender.entity';
 import { MessageEntity } from '../Entities/messages.entity';
 import { UnreadMessageEntity } from '../Entities/unreadMessage.entity';
 import { NewArrivalEntity } from '../Entities/new-arrival.entity';
+import { PopUpEntity } from '../Entities/pop-up.entity';
+import { ActivePopUpEntity } from '../Entities/active-pop-up.entity';
 // Load environment variables
 dotenv.config();
 
@@ -47,6 +49,7 @@ dotenv.config();
             }
         }),
         TypeOrmModule.forFeature([
+            ActivePopUpEntity,
             BannerEntity,
             BuyingHistoryEntity,
             CategoryEntity,
@@ -62,6 +65,7 @@ dotenv.config();
             OtpEntity,
             PaymentInfo,
             PaymentMethodEntity,
+            PopUpEntity,
             ProductPictureEntity,
             ProductSizeCategoryEntity,
             ProductEntity,
