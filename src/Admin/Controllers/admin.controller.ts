@@ -24,6 +24,8 @@ import {
   ParseFilePipeBuilder,
   HttpStatus,
   BadRequestException,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { AdminService } from '../Services/admin.service';
 import { AdminForm } from '../DTOs/adminform.dto';
@@ -34,16 +36,20 @@ import ProductForm from 'src/Global/DTOs/productForm.dto';
 import * as path from 'path';
 import { extname } from 'path';
 import * as fs from 'fs';
+import { AuthGuard } from '@nestjs/passport';
+import { Roles } from '../decorators/roles.decorator';
+import { RolesGuard } from '../Guards/roles.guard';
 
 @Controller('admin')
 export class AdminController {
   constructor(private readonly adminService: AdminService) { }
 
-  //Login to admin account 
+  //Login to account 
   @Post('/signin')
   async signIn(@Body() myDto) {
-
-    const res = await (this.adminService.signIn(myDto));
+    // console.log('ekhane ashche');
+    const res = await this.adminService.signIn(myDto);
+    // console.log(res,'reposne');
     return res
   }
 
@@ -77,24 +83,16 @@ export class AdminController {
   @Post('send-otp')
   @UsePipes(ValidationPipe)
   async sendOtp(@Body() sendOtpDto) {
-    // try {
     const result = await this.adminService.checkEmailAndSendOTP(sendOtpDto.email);
     return result
-    //   return { success: true, message: 'OTP sent successfully' };
-    // } catch (error) {
-    //   throw new BadRequestException('Error sending OTP');
-    // }
   }
 
+  // verify otp 
   @Post('verify-otp')
   @UsePipes(ValidationPipe)
   async verifyOtp(@Body() verifyOtpDto) {
-    // try {
+    // console.log(verifyOtpDto);
     return await this.adminService.verifyOtp(verifyOtpDto.email, verifyOtpDto.otp);
-    //   return { success: true, message: 'OTP verified successfully' };
-    // } catch (error) {
-    //   throw new BadRequestException('Invalid or expired OTP');
-    // }
   }
 
   // add banner 
@@ -716,17 +714,17 @@ export class AdminController {
   }
 
   //logout
-  @Get('/logout')
-  logout(@Session() session) {
 
-    if (session) {
-      session.destroy()
-      return { message: "you are logged out successfully" };
-    }
+  @Post('logout')
+  @UseGuards(AuthGuard('jwt'))
+  async logout(@Req() req: any) {
+    const tokenJti = req.user.jti; // Get the JWT ID from user payload
+    const exp = 3600; // Token expiry time (same as in sign)
 
-    else {
-      throw new UnauthorizedException("Can't log out");
-    }
+    // Save blacklisted token in DB (replace with your DB service logic)
+    await this.adminService.addToBlacklist(tokenJti, exp);
+
+    return { message: 'Logged out successfully' };
   }
 
   // create new account 
@@ -973,6 +971,15 @@ export class AdminController {
 
   }
 
+  // check admin
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Get('/checkIfAdmin')
+  isAdminCheck() {
+    console.log('tes');
+    return { isAdmin: true };
+  }
+ 
   // remove wish list item
   @Delete('remove-wish/:productId')
   // @UsePipes(ValidationPipe)

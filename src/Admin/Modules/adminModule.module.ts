@@ -28,7 +28,7 @@ import { FabricEntity } from "src/Global/Entities/fabrics.entity";
 import { ProductSizeCategoryEntity } from "src/Global/Entities/productSizeCategory.entity";
 import { OtpEntity } from "src/Global/Entities/otp.entity";
 // Load environment variables
-import * as dotenv from 'dotenv';
+// import * as dotenv from 'dotenv';
 import { ViewProductEntity } from "src/Global/Entities/viewProduct.entity";
 import { ReturnEntity } from "src/Global/Entities/return.entity";
 import { GenderEntity } from "src/Global/Entities/gender.entity";
@@ -37,27 +37,85 @@ import { MessageEntity } from "src/Global/Entities/messages.entity";
 import { NewArrivalEntity } from "src/Global/Entities/new-arrival.entity";
 import { PopUpEntity } from "src/Global/Entities/pop-up.entity";
 import { ActivePopUpEntity } from "src/Global/Entities/active-pop-up.entity";
-dotenv.config();
+import { JwtModule, JwtService } from "@nestjs/jwt";
+import { BlacklistToken } from "src/Global/Entities/blacklist-token.entity";
+import { PassportModule } from "@nestjs/passport";
+import { RolesGuard } from "../Guards/roles.guard";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { JwtStrategy } from "../strategies/jwt.strategy";
+// dotenv.config();
 
 @Module({
     imports: [
-        MailerModule.forRoot({
-            transport: {
-                host: 'smtp.gmail.com',
-                port: 465,
-                ignoreTLS: true,
-                secure: true,
-                auth: {
-                    user: process.env.EMAIL_USER,
-                    pass: process.env.EMAIL_PASSWORD
-                },
-            } 
-        }
-
-        ),
-        TypeOrmModule.forFeature([ActivePopUpEntity, AdminEntity, BannerEntity, BuyingHistoryEntity, CategoryEntity, ColorSizeEntity, ColorEntity, CartsEntity, CouponEntity, DeliveryStatusEntity, EmployeeEntity, FabricEntity, GenderEntity, MessageEntity, NewArrivalEntity, OtpEntity, PaymentInfo, PaymentMethodEntity, PopUpEntity, ProductPictureEntity, ProductEntity, ProductSizeCategoryEntity, PartnerEntity, ReturnEntity, SizeEntity, SubCategoryEntity, SubSubCategoryEntity, UserEntity, UnreadMessageEntity, ViewProductEntity, WishEntity])],
-    controllers: [AdminController],
-    providers: [AdminService],
+        ConfigModule,
+        PassportModule.register({ defaultStrategy: 'jwt' }),
+        JwtModule.registerAsync({
+            imports: [ConfigModule],
+            useFactory: async (configService: ConfigService) => ({
+                secret: configService.get<string>('JWT_SECRET'),
+                signOptions: { expiresIn: '1h' },
+            }),
+            inject: [ConfigService],
+        }),
+        MailerModule.forRootAsync({
+            imports: [ConfigModule],
+            useFactory: (configService: ConfigService) => ({
+                transport: {
+                    host: 'smtp.gmail.com',
+                    port: 465,
+                    ignoreTLS: true,
+                    secure: true,
+                    auth: {
+                        user: configService.get<string>('EMAIL_USER'),
+                        pass: configService.get<string>('EMAIL_PASSWORD'),
+                    },
+                }
+            }),
+            inject: [ConfigService],
+        }),
+        TypeOrmModule.forFeature([
+            ActivePopUpEntity,
+            AdminEntity,
+            BannerEntity,
+            BlacklistToken,
+            BuyingHistoryEntity,
+            CategoryEntity,
+            ColorSizeEntity,
+            ColorEntity,
+            CartsEntity,
+            CouponEntity,
+            DeliveryStatusEntity,
+            EmployeeEntity,
+            FabricEntity,
+            GenderEntity,
+            MessageEntity,
+            NewArrivalEntity,
+            OtpEntity,
+            PaymentInfo,
+            PaymentMethodEntity,
+            PopUpEntity,
+            ProductPictureEntity,
+            ProductEntity,
+            ProductSizeCategoryEntity,
+            PartnerEntity,
+            ReturnEntity,
+            SizeEntity,
+            SubCategoryEntity,
+            SubSubCategoryEntity,
+            UserEntity,
+            UnreadMessageEntity,
+            ViewProductEntity,
+            WishEntity,
+        ])],
+    controllers: [
+        AdminController
+    ],
+    providers: [
+        AdminService,
+        JwtStrategy,
+        RolesGuard,
+        ConfigService
+    ],
 })
 
 export class AdminModule { }

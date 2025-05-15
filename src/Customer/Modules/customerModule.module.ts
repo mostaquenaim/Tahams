@@ -5,26 +5,30 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { CustomerController } from "../Controllers/customer.controller"
 import { UserEntity } from "src/Global/Entities/user.entity";
 import { CustomerService } from "../Services/customer.service"
-import * as dotenv from 'dotenv';
+import { ConfigModule, ConfigService } from "@nestjs/config";
+// import * as dotenv from 'dotenv';
 // Load environment variables
-dotenv.config();
+// dotenv.config();
 
 @Module({
     imports: [
-        MailerModule.forRoot({
-            transport: {
-                host: 'smtp.gmail.com',
-                port: 465,
-                ignoreTLS: true,
-                secure: true,
-                auth: {
-                    user: process.env.EMAIL_USER,
-                    pass: process.env.EMAIL_PASSWORD
-                },
-            }
-        }
-
-        ),
+        ConfigModule,
+        MailerModule.forRootAsync({
+            imports: [ConfigModule],
+            useFactory: (configService: ConfigService) => ({
+                transport: {
+                    host: 'smtp.gmail.com',
+                    port: 465,
+                    ignoreTLS: true,
+                    secure: true,
+                    auth: {
+                        user: configService.get<string>('EMAIL_USER'),
+                        pass: configService.get<string>('EMAIL_PASSWORD'),
+                    },
+                }
+            }),
+            inject: [ConfigService],
+        }),
         TypeOrmModule.forFeature([UserEntity])],
     controllers: [CustomerController],
     providers: [CustomerService],

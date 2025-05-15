@@ -19,7 +19,7 @@ import { PaymentMethodEntity } from "../Entities/paymentMethod.entity";
 import { SubSubCategoryEntity } from "../Entities/subSubCategory.entity";
 import { ColorSizeEntity } from "../Entities/color-size-combined.entity";
 import { PaymentInfo } from "../Entities/paymentInfo.entity";
-import * as dotenv from 'dotenv';
+// import * as dotenv from 'dotenv';
 import { FabricEntity } from '../Entities/fabrics.entity';
 import { ProductSizeCategoryEntity } from '../Entities/productSizeCategory.entity';
 import { OtpEntity } from '../Entities/otp.entity';
@@ -31,26 +31,34 @@ import { UnreadMessageEntity } from '../Entities/unreadMessage.entity';
 import { NewArrivalEntity } from '../Entities/new-arrival.entity';
 import { PopUpEntity } from '../Entities/pop-up.entity';
 import { ActivePopUpEntity } from '../Entities/active-pop-up.entity';
+import { BlacklistToken } from '../Entities/blacklist-token.entity';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 // Load environment variables
-dotenv.config();
+// dotenv.config();
 
 @Module({
     imports: [
-        MailerModule.forRoot({
-            transport: {
-                host: 'smtp.gmail.com',
-                port: 465,
-                ignoreTLS: true,
-                secure: true,
-                auth: {
-                    user: process.env.EMAIL_USER,
-                    pass: process.env.EMAIL_PASSWORD
-                },
-            }
+        ConfigModule,
+        MailerModule.forRootAsync({
+            imports: [ConfigModule],
+            useFactory: (configService: ConfigService) => ({
+                transport: {
+                    host: 'smtp.gmail.com',
+                    port: 465,
+                    ignoreTLS: true,
+                    secure: true,
+                    auth: {
+                        user: configService.get<string>('EMAIL_USER'),
+                        pass: configService.get<string>('EMAIL_PASSWORD'),
+                    },
+                }
+            }),
+            inject: [ConfigService],
         }),
         TypeOrmModule.forFeature([
             ActivePopUpEntity,
             BannerEntity,
+            BlacklistToken,
             BuyingHistoryEntity,
             CategoryEntity,
             ColorEntity,

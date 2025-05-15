@@ -37,14 +37,18 @@ import { UnreadMessageEntity } from 'src/Global/Entities/unreadMessage.entity';
 import { NewArrivalEntity } from 'src/Global/Entities/new-arrival.entity';
 import { PopUpEntity } from 'src/Global/Entities/pop-up.entity';
 import { ActivePopUpEntity } from 'src/Global/Entities/active-pop-up.entity';
+import { JwtService } from '@nestjs/jwt';
+import { BlacklistToken } from 'src/Global/Entities/blacklist-token.entity';
 
 @Injectable()
 export class AdminService {
 
   constructor(
+    private jwtService: JwtService,
+    private mailerService: MailerService,
+    
     @InjectRepository(AdminEntity)
     private adminRepo: Repository<AdminEntity>,
-    private mailerService: MailerService,
 
     @InjectRepository(UserEntity)
     private userRepo: Repository<UserEntity>,
@@ -129,6 +133,9 @@ export class AdminService {
 
     @InjectRepository(ColorSizeEntity)
     private colorSizeRepo: Repository<ColorSizeEntity>,
+
+    @InjectRepository(BlacklistToken)
+    private blackListRepo: Repository<BlacklistToken>,
   ) { }
 
   async addBanner(myDto) {
@@ -186,10 +193,22 @@ export class AdminService {
       // Save the new user
       const savedUser = await this.userRepo.save(myDto);
 
+      const jti = uuidv4();
+      const payload = {
+        email: savedUser.email,
+        sub: savedUser.id,
+        role: savedUser.role,
+        jti
+      };
+
+      const { password, ...userWithoutPassword } = savedUser;
+
       return {
         status: HttpStatus.CREATED,
         message: 'User created successfully',
-        data: savedUser,
+        access_token: this.jwtService.sign(payload),
+        jti,
+        data: userWithoutPassword,
       };
     } catch (error) {
       return {
@@ -209,6 +228,7 @@ export class AdminService {
 
   // Method to send email
   async sendEmail(myDto) {
+    console.log('ekhane');
     try {
       await this.mailerService.sendMail({
         to: myDto.email,
@@ -216,6 +236,7 @@ export class AdminService {
         text: myDto.text,
       });
     } catch (error) {
+      console.log(error.message);
       throw new BadRequestException('Failed to send email');
     }
   }
@@ -242,6 +263,7 @@ export class AdminService {
     const otpEntity = this.otpRepository.create({ email, otp });
     await this.otpRepository.save(otpEntity);
 
+    console.log('thik ');
     // Send OTP email
     await this.sendEmail({
       email,
@@ -251,12 +273,14 @@ export class AdminService {
 
     return { success: true, message: 'OTP sent' }
   }
-
+ 
   // verify otp 
   async verifyOtp(email: string, otp: string) {
     const otpData = await this.otpRepository.findOne({ where: { email, otp } });
-
+    console.log(otpData,'otpdd');
+ 
     if (!otpData) {
+      console.log('bad otp');
       throw new BadRequestException('Invalid or expired OTP');
     }
 
@@ -265,6 +289,7 @@ export class AdminService {
     const timeDifference = (currentTime.getTime() - otpCreationTime.getTime()) / (1000 * 60); // Time difference in minutes
 
     if (otpData.otp !== otp || timeDifference > 10) {
+      console.log('otp error');
       throw new BadRequestException('Invalid or expired OTP');
     }
 
@@ -275,8 +300,15 @@ export class AdminService {
   // admin login 
   async signIn(myDto) {
     try {
-      // console.log(process.env.GOOGLE_PASS,'222');
       const myData = await this.userRepo.findOne({ where: { email: myDto.email } });
+
+      const jti = uuidv4();
+      const payload = {
+        email: myData.email,
+        sub: myData.id,
+        role: myData.role,
+        jti
+      };
 
       if (!myData) {
         return { status: HttpStatus.NOT_FOUND, message: 'User not found' };
@@ -293,11 +325,26 @@ export class AdminService {
             },
           };
         }
-        return { status: HttpStatus.OK, message: 'Login successful', data: myData };
+        console.log('emailpass');
+        return {
+          status: HttpStatus.OK,
+          message: 'Login successful',
+          access_token: this.jwtService.sign(payload),
+          jti,
+          data: myData
+        };
       }
 
       if (myData.loggedInWith === 'Google' || myDto.password === process.env.GOOGLE_PASS) {
-        return { status: HttpStatus.OK, message: 'Login with google successful', data: myData };
+        console.log('google');
+        // console.log('object =', this.jwtService.sign(payload));
+        return {
+          status: HttpStatus.OK,
+          message: 'Login with google successful',
+          access_token: this.jwtService.sign(payload),
+          jti,
+          data: myData
+        };
       }
 
       return { status: HttpStatus.UNAUTHORIZED, message: 'Invalid password' };
@@ -308,6 +355,21 @@ export class AdminService {
         error: error.message,
       };
     }
+  }
+
+  // Store blacklisted token in the database
+  async addToBlacklist(jti: string, exp: number) {
+    const token = new BlacklistToken();
+    token.jti = jti;
+    token.expiry = Date.now() + exp * 1000; // Expiry in ms
+
+    await this.blackListRepo.save(token);
+  }
+
+  // Check if token is blacklisted
+  async isTokenBlacklisted(jti: string): Promise<boolean> {
+    const token = await this.blackListRepo.findOne({ where: { jti } });
+    return token && token.expiry > Date.now(); // Token expired check
   }
 
   // check email 

@@ -1,19 +1,22 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as session from 'express-session';
-import * as dotenv from 'dotenv';
+// import * as dotenv from 'dotenv';
+import { ConfigService } from '@nestjs/config';
 // Load environment variables
-dotenv.config();
+// dotenv.config();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
+
   app.use(
     session({
-      secret: 'my-secret',
+      secret: configService.get('SESSION_SECRET'),
       resave: true,
       saveUninitialized: false,
       cookie: {
-        maxAge: parseInt(process.env.SESSION_MAX_AGE),
+        maxAge: parseInt(configService.get('SESSION_MAX_AGE')),
       },
     }),
   );
