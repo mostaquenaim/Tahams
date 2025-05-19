@@ -732,13 +732,12 @@ export class AdminController {
   createUser(@Body() myDto) {
     return this.adminService.createUser(myDto);
   }
-
+ 
   // view all product 
   @Get('view-all-products')
   viewAllProducts(
     @Query('filter') query: any
   ) {
-    // console.log('object');
     // console.log(query);
     return this.adminService.viewAllProducts(query && query);
   }

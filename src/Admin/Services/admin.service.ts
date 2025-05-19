@@ -493,7 +493,9 @@ export class AdminService {
         .leftJoinAndSelect('psc.category', 'subSubCategory')
         .leftJoinAndSelect('psc.size', 'size')
         .andWhere(filters)
-        .getMany();
+        .getMany(); 
+
+        console.log(products,'prdsts');
 
       return products;
     } catch (error) {
@@ -1332,10 +1334,12 @@ export class AdminService {
 
   // increase product view 
   async increaseProductView(productId: number, email: string) {
-    const customer = await this.getUserByEmail(email);
+    let customer = await this.getUserByEmail(email);
 
     if (!customer) {
-      throw new Error('Customer not found');
+      customer = await this.userRepo.save({
+          email: email,
+        });
     }
 
     // Find the existing view record for the user and product
