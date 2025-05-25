@@ -28,7 +28,6 @@ import { FabricEntity } from "src/Global/Entities/fabrics.entity";
 import { ProductSizeCategoryEntity } from "src/Global/Entities/productSizeCategory.entity";
 import { OtpEntity } from "src/Global/Entities/otp.entity";
 // Load environment variables
-// import * as dotenv from 'dotenv';
 import { ViewProductEntity } from "src/Global/Entities/viewProduct.entity";
 import { ReturnEntity } from "src/Global/Entities/return.entity";
 import { GenderEntity } from "src/Global/Entities/gender.entity";
@@ -37,7 +36,7 @@ import { MessageEntity } from "src/Global/Entities/messages.entity";
 import { NewArrivalEntity } from "src/Global/Entities/new-arrival.entity";
 import { PopUpEntity } from "src/Global/Entities/pop-up.entity";
 import { ActivePopUpEntity } from "src/Global/Entities/active-pop-up.entity";
-import { JwtModule, JwtService } from "@nestjs/jwt";
+import { JwtModule } from "@nestjs/jwt";
 import { BlacklistToken } from "src/Global/Entities/blacklist-token.entity";
 import { PassportModule } from "@nestjs/passport";
 import { RolesGuard } from "../Guards/roles.guard";

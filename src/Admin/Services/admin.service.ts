@@ -46,7 +46,7 @@ export class AdminService {
   constructor(
     private jwtService: JwtService,
     private mailerService: MailerService,
-    
+
     @InjectRepository(AdminEntity)
     private adminRepo: Repository<AdminEntity>,
 
@@ -273,12 +273,12 @@ export class AdminService {
 
     return { success: true, message: 'OTP sent' }
   }
- 
+
   // verify otp 
   async verifyOtp(email: string, otp: string) {
     const otpData = await this.otpRepository.findOne({ where: { email, otp } });
-    console.log(otpData,'otpdd');
- 
+    console.log(otpData, 'otpdd');
+
     if (!otpData) {
       console.log('bad otp');
       throw new BadRequestException('Invalid or expired OTP');
@@ -493,9 +493,9 @@ export class AdminService {
         .leftJoinAndSelect('psc.category', 'subSubCategory')
         .leftJoinAndSelect('psc.size', 'size')
         .andWhere(filters)
-        .getMany(); 
+        .getMany();
 
-        console.log(products,'prdsts');
+      console.log(products, 'prdsts');
 
       return products;
     } catch (error) {
@@ -1338,8 +1338,8 @@ export class AdminService {
 
     if (!customer) {
       customer = await this.userRepo.save({
-          email: email,
-        });
+        email: email,
+      });
     }
 
     // Find the existing view record for the user and product
@@ -1654,9 +1654,7 @@ export class AdminService {
   async createNewProduct(myDto) {
     // console.log(myDto, 720);
     const selectedColor = await this.getColorByName(myDto.color)
-
     myDto.color = selectedColor
-
     myDto.ifStock = false
 
     const catsInfoArray = JSON.parse(myDto.catsInfo)
@@ -1677,6 +1675,37 @@ export class AdminService {
 
     return await this.createProductExtension(savedProduct, myDto.catsInfo);
   }
+
+  // update discount 
+  async updateDiscount(myDto: { categoryIds: number[], discountPercentage: number }) {
+  const { categoryIds, discountPercentage } = myDto;
+
+  const products = await this.productRepo
+    .createQueryBuilder('product')
+    .leftJoin('product.pscs', 'psc')
+    .leftJoin('psc.category', 'category')
+    .where('category.id IN (:...categoryIds)', { categoryIds })
+    .select('product.id')
+    .getMany();
+
+  const productIds = products.map(p => p.id);
+
+  if (productIds.length === 0) {
+    return { message: 'No products found in the given categories.' };
+  }
+
+  const result = await this.productRepo
+    .createQueryBuilder()
+    .update()
+    .set({ discountPercentage })
+    .whereInIds(productIds)
+    .execute();
+
+  return {
+    message: 'Updated discount successfully',
+    updatedCount: result.affected,
+  };
+}
 
   // create new arrivals 
   async addNewArrivals(myDto) {

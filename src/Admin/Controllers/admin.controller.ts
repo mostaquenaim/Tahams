@@ -834,6 +834,15 @@ export class AdminController {
     return this.adminService.createNewProduct(mydata);
   }
 
+  // update discount 
+  @Put('update-discount')
+  updateDiscount(
+    @Body() mydata
+  ){
+    console.log(mydata,'md');
+    return this.adminService.updateDiscount(mydata);
+  }
+
   //add new arrivals
   @Post('/add-new-arrivals')
   @UseInterceptors(FileInterceptor('filename',
