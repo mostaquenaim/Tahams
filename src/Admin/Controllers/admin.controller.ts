@@ -96,6 +96,8 @@ export class AdminController {
   }
 
   // add banner 
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Post('add-banner')
   @UseInterceptors(FileInterceptor('filename',
     {
@@ -134,12 +136,16 @@ export class AdminController {
   }
 
   // delete banner 
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Delete('deleteBanner/:id')
   async deleteBanner(@Param('id', ParseIntPipe) id: number) {
     return this.adminService.deleteBanner(id);
   }
 
   //update banner by id
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Put('updateBanner/:id')
   @UsePipes(ValidationPipe)
   async updateBanner
@@ -151,6 +157,8 @@ export class AdminController {
   }
 
   // publish product 
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Put('publish-product/:id')
   async publishProduct(
     @Param('id') id: number,
@@ -160,6 +168,8 @@ export class AdminController {
   }
 
   // change banner image 
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Post(('changeBannerImage/:id'))
   @UseInterceptors(FileInterceptor('filename',
     {
@@ -204,11 +214,13 @@ export class AdminController {
     @Query('email') email: string,
     @Body() updates: { [key: string]: any },
   ) {
-    console.log('in', updates);
+    // console.log('in', updates);
     return this.adminService.updateBuyingHistory(tt, updates, email)
   }
 
   // approve req  
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Patch('approve-request')
   updateApproveReq(
     @Body() updateObj
@@ -218,6 +230,8 @@ export class AdminController {
   }
 
   // update product
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Put('update-product/:id')
   @UseInterceptors(
     FileInterceptor('filename', {
@@ -531,6 +545,8 @@ export class AdminController {
   }
 
   //update active pop up
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Put('update-active-pop-up/:id')
   // @UsePipes(ValidationPipe)
   async updateActivePop
@@ -579,6 +595,8 @@ export class AdminController {
   }
 
   // add new category 
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Post('add-category')
   @UsePipes(ValidationPipe)
   createNewCategory(
@@ -615,6 +633,8 @@ export class AdminController {
   }
 
   // add new sub-category 
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Post('add-subCategory')
   @UsePipes(ValidationPipe)
   createNewSubCategory(
@@ -624,6 +644,8 @@ export class AdminController {
   }
 
   // add new sub-sub-category 
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Post('add-sub-subCategory')
   @UsePipes(ValidationPipe)
   createNewSubSubCategory(
@@ -642,6 +664,8 @@ export class AdminController {
   }
 
   // change category image 
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Post(('changeCategoryImage/:id'))
   @UseInterceptors(FileInterceptor('filename',
     {
@@ -714,7 +738,6 @@ export class AdminController {
   }
 
   //logout
-
   @Post('logout')
   @UseGuards(AuthGuard('jwt'))
   async logout(@Req() req: any) {
@@ -750,7 +773,6 @@ export class AdminController {
     return products;
   }
 
-
   // view size
   @Get('view-product-sizes')
   viewProductSizes() {
@@ -774,6 +796,8 @@ export class AdminController {
   }
 
   // delete product by id  
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Delete('delete-product/:id')
   async deleteProductById(
     @Param('id') id: number,
@@ -784,6 +808,8 @@ export class AdminController {
   }
 
   // delete size by id 
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Delete('deleteSize/:id')
   async deleteSizeById(@Param('id', ParseIntPipe) id: number) {
 
@@ -809,6 +835,8 @@ export class AdminController {
   }
 
   //add new product
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Post('/add-product')
   @UseInterceptors(FileInterceptor('myfile',
     {
@@ -844,6 +872,8 @@ export class AdminController {
   }
 
   //add new arrivals
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Post('/add-new-arrivals')
   @UseInterceptors(FileInterceptor('filename',
     {
@@ -871,6 +901,8 @@ export class AdminController {
   }
 
   //add pop up
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Post('/add-new-pop-up')
   @UseInterceptors(FileInterceptor('filename',
     {
