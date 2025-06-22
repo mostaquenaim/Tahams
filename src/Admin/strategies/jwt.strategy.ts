@@ -21,7 +21,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    console.log('JWT Payload:', payload); // Debug log 
+    // console.log('JWT Payload:', payload); // Debug log 
 
     // Check if the token is blacklisted
     const isBlacklisted = await this.adminService.isTokenBlacklisted(payload.jti);

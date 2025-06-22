@@ -544,6 +544,18 @@ export class AdminController {
     await this.adminService.updateCategory(id, myDto);
   }
 
+  //update product type name
+  @Put('update-product-type-name/:id')
+  @UsePipes(ValidationPipe)
+  async updateProductTypeName
+    (
+      @Param('id', ParseIntPipe) id: number,
+      @Body() myDto,
+    ) {
+      console.log(myDto, id);
+    await this.adminService.updateProductTypeName(id, myDto);
+  }
+
   //update active pop up
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
@@ -554,7 +566,7 @@ export class AdminController {
       @Param('id') id: number,
       // @Body() myDto,
     ) {
-    // console.log(id);
+    console.log(id);
     return this.adminService.updateActivePop(id);
   }
 
@@ -807,6 +819,17 @@ export class AdminController {
     return this.adminService.deleteProductById(id, email);
   }
 
+  // delete product type by id  
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Delete('delete-product-type/:id')
+  async deleteProductTypeById(
+    @Param('id') id: number,
+  ) {
+    console.log(id);
+    return this.adminService.deleteProductTypeById(id);
+  }
+
   // delete size by id 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
@@ -925,6 +948,7 @@ export class AdminController {
   @UsePipes(new ValidationPipe)
   addNewPopUp(@Body() mydata, @UploadedFile() imageobj: Express.Multer.File) {
     // console.log(imageobj.filename,mydata);
+    console.log('test');
     mydata.filename = imageobj.filename;
     return this.adminService.addNewPopUp(mydata);
   }

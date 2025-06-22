@@ -992,6 +992,22 @@ export class AdminService {
     await this.categoryRepo.update(id, { ...category });
   }
 
+  // update product type name 
+  async updateProductTypeName(id: number, myDto: { name: string }) {
+    const existing = await this.subSubCategoryRepo.findOne({
+      where: { id: Number(id) },
+    });
+
+    if (!existing) {
+      throw new NotFoundException(`Product type with ID ${id} not found`);
+    }
+
+    return this.subSubCategoryRepo.update(
+      { id: Number(id) },
+      { name: myDto.name }
+    );
+  }
+
   // update category by id 
   async updateActivePop(id: number) {
     // 1. Find the popup you want to make active
@@ -1269,6 +1285,25 @@ export class AdminService {
 
     } catch (error) {
       console.error('Error deleting product:', error);
+    }
+  }
+
+  // delete product type by id 
+  async deleteProductTypeById(id: number) {
+    try {
+      const productType = await this.subSubCategoryRepo.findOneBy({ id });
+      console.log(productType);
+
+      if (!productType) {
+        throw new NotFoundException(`Product type with ID ${id} not found.`);
+      }
+
+      const deleted = this.subSubCategoryRepo.delete(productType.id);
+      console.log(deleted);
+
+      return deleted;
+    } catch (error) {
+      console.error('Error deleting product type:', error);
     }
   }
 
@@ -1678,34 +1713,34 @@ export class AdminService {
 
   // update discount 
   async updateDiscount(myDto: { categoryIds: number[], discountPercentage: number }) {
-  const { categoryIds, discountPercentage } = myDto;
+    const { categoryIds, discountPercentage } = myDto;
 
-  const products = await this.productRepo
-    .createQueryBuilder('product')
-    .leftJoin('product.pscs', 'psc')
-    .leftJoin('psc.category', 'category')
-    .where('category.id IN (:...categoryIds)', { categoryIds })
-    .select('product.id')
-    .getMany();
+    const products = await this.productRepo
+      .createQueryBuilder('product')
+      .leftJoin('product.pscs', 'psc')
+      .leftJoin('psc.category', 'category')
+      .where('category.id IN (:...categoryIds)', { categoryIds })
+      .select('product.id')
+      .getMany();
 
-  const productIds = products.map(p => p.id);
+    const productIds = products.map(p => p.id);
 
-  if (productIds.length === 0) {
-    return { message: 'No products found in the given categories.' };
+    if (productIds.length === 0) {
+      return { message: 'No products found in the given categories.' };
+    }
+
+    const result = await this.productRepo
+      .createQueryBuilder()
+      .update()
+      .set({ discountPercentage })
+      .whereInIds(productIds)
+      .execute();
+
+    return {
+      message: 'Updated discount successfully',
+      updatedCount: result.affected,
+    };
   }
-
-  const result = await this.productRepo
-    .createQueryBuilder()
-    .update()
-    .set({ discountPercentage })
-    .whereInIds(productIds)
-    .execute();
-
-  return {
-    message: 'Updated discount successfully',
-    updatedCount: result.affected,
-  };
-}
 
   // create new arrivals 
   async addNewArrivals(myDto) {
