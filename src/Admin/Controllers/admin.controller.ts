@@ -544,6 +544,17 @@ export class AdminController {
     await this.adminService.updateCategory(id, myDto);
   }
 
+  //update category by id
+  @Put('updateSubCategory/:id')
+  @UsePipes(ValidationPipe)
+  async updateSubCategory
+    (
+      @Param('id', ParseIntPipe) id: number,
+      @Body() myDto,
+    ) {
+    await this.adminService.updateSubCategory(id, myDto);
+  }
+
   //update product type name
   @Put('update-product-type-name/:id')
   @UsePipes(ValidationPipe)
@@ -552,7 +563,6 @@ export class AdminController {
       @Param('id', ParseIntPipe) id: number,
       @Body() myDto,
     ) {
-      console.log(myDto, id);
     await this.adminService.updateProductTypeName(id, myDto);
   }
 
@@ -566,7 +576,6 @@ export class AdminController {
       @Param('id') id: number,
       // @Body() myDto,
     ) {
-    console.log(id);
     return this.adminService.updateActivePop(id);
   }
 
@@ -634,7 +643,6 @@ export class AdminController {
     @Param('id') id: number,
     @Query('email') email: string
   ) {
-    console.log('id', id, email);
     return this.adminService.increaseProductView(id, email);
   }
 
@@ -819,7 +827,7 @@ export class AdminController {
     return this.adminService.deleteProductById(id, email);
   }
 
-  // delete product type by id  
+  // delete product type or sub sub category by id  
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Delete('delete-product-type/:id')
@@ -828,6 +836,26 @@ export class AdminController {
   ) {
     console.log(id);
     return this.adminService.deleteProductTypeById(id);
+  }
+
+  // delete category by id  
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Delete('delete-category/:id')
+  async deleteCategoryById(
+    @Param('id') id: number,
+  ) {
+    return this.adminService.deleteCategoryById(id);
+  }
+
+  // delete sub category by id  
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Delete('delete-sub-category/:id')
+  async deleteSubCategoryById(
+    @Param('id') id: number,
+  ) {
+    return this.adminService.deleteSubCategoryById(id);
   }
 
   // delete size by id 
@@ -1040,7 +1068,6 @@ export class AdminController {
   @Roles('admin')
   @Get('/checkIfAdmin')
   isAdminCheck() {
-    console.log('tes');
     return { isAdmin: true };
   }
  

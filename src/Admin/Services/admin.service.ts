@@ -992,6 +992,15 @@ export class AdminService {
     await this.categoryRepo.update(id, { ...category });
   }
 
+  // update sub category by id 
+  async updateSubCategory(id: number, category) {
+    const user = await this.subCategoryRepo.findOneBy({ id });
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found.`);
+    }
+    await this.subCategoryRepo.update(id, { ...category });
+  }
+
   // update product type name 
   async updateProductTypeName(id: number, myDto: { name: string }) {
     const existing = await this.subSubCategoryRepo.findOne({
@@ -1292,7 +1301,7 @@ export class AdminService {
   async deleteProductTypeById(id: number) {
     try {
       const productType = await this.subSubCategoryRepo.findOneBy({ id });
-      console.log(productType);
+      // console.log(productType);
 
       if (!productType) {
         throw new NotFoundException(`Product type with ID ${id} not found.`);
@@ -1304,6 +1313,44 @@ export class AdminService {
       return deleted;
     } catch (error) {
       console.error('Error deleting product type:', error);
+    }
+  }
+
+  // delete category by id 
+  async deleteCategoryById(id: number) {
+    try {
+      const cat = await this.categoryRepo.findOneBy({ id });
+      // console.log(cat);
+
+      if (!cat) {
+        throw new NotFoundException(`Category with ID ${id} not found.`);
+      }
+
+      const deleted = this.categoryRepo.delete(cat.id);
+      console.log(deleted);
+
+      return deleted;
+    } catch (error) {
+      console.error('Error deleting product type:', error);
+    }
+  }
+
+  // delete sub category type by id 
+  async deleteSubCategoryById(id: number) {
+    try {
+      const cat = await this.subCategoryRepo.findOneBy({ id });
+      // console.log(cat);
+
+      if (!cat) {
+        throw new NotFoundException(`Category with ID ${id} not found.`);
+      }
+
+      const deleted = this.subCategoryRepo.delete(cat.id);
+      console.log(deleted);
+
+      return deleted;
+    } catch (error) {
+      console.error('Error deleting sub category:', error);
     }
   }
 
