@@ -840,7 +840,19 @@ export class AdminService {
 
   // check if wished 
   async checkIfWished(productId, customerEmail) {
-    // console.log(productId, customerEmail, "okk");
+    console.log(productId, customerEmail, "okk");
+
+    // const getAllWish = await this.wishRepo.find(
+    //   {
+    //     relations: [
+    //       'product',
+    //       'customer'
+    //     ]
+    //   }
+    // )
+
+    // console.log(getAllWish,'getAllWish');
+
     const wished = await this.wishRepo.findOne({
       where: {
         product: { id: productId },
@@ -848,7 +860,12 @@ export class AdminService {
       },
     });
 
-    return { wished: !!wished };
+    // console.log(wished,'wished');
+
+    return {
+      isWished: wished ? true : false,
+      wished
+    };
   }
 
   // get featured image by product id 
@@ -1372,15 +1389,16 @@ export class AdminService {
   }
 
   // remove wish list item
-  async removeWish(productId, customerEmail) {
-    // console.log('myData', productId, customerEmail);
+  async removeWish(wishId) {
+    console.log('myData', wishId);
     try {
       const wish = await this.wishRepo.findOne({
         where: {
-          product: { id: productId },
-          customer: { email: customerEmail }
-        }
+          id: wishId,
+        },
       });
+
+      // console.log('wishesss', wish);
 
       if (!wish) {
         throw new NotFoundException(`Wish not found.`);

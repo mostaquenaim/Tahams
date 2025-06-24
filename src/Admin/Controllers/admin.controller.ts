@@ -343,7 +343,18 @@ export class AdminController {
   createNewWish(
     @Body() myDto,
   ) {
+    console.log(myDto, 'wish dto');
     return this.adminService.createNewWish(myDto);
+  }
+
+  // remove wish list item
+  @Delete('remove-wish/:wishId')
+  // @UsePipes(ValidationPipe)
+  removeWish(
+    @Param('wishId') wishId: number,
+  ) {
+    console.log('delete wush',wishId);
+    return this.adminService.removeWish(wishId);
   }
 
   // delete a cart 
@@ -775,7 +786,7 @@ export class AdminController {
   createUser(@Body() myDto) {
     return this.adminService.createUser(myDto);
   }
- 
+
   // view all product 
   @Get('view-all-products')
   viewAllProducts(
@@ -917,8 +928,8 @@ export class AdminController {
   @Put('update-discount')
   updateDiscount(
     @Body() mydata
-  ){
-    console.log(mydata,'md');
+  ) {
+    console.log(mydata, 'md');
     return this.adminService.updateDiscount(mydata);
   }
 
@@ -1070,16 +1081,7 @@ export class AdminController {
   isAdminCheck() {
     return { isAdmin: true };
   }
- 
-  // remove wish list item
-  @Delete('remove-wish/:productId')
-  // @UsePipes(ValidationPipe)
-  removeWish(
-    @Param('productId') productId: number,
-    @Query('email') email: string
-  ) {
-    return this.adminService.removeWish(productId, email);
-  }
+
 
   // get wishlist 
   @Get('get-wish-by-user/:email')
