@@ -343,9 +343,11 @@ export class AdminController {
   createNewWish(
     @Body() myDto,
   ) {
-    console.log(myDto, 'wish dto');
+    // console.log(myDto, 'wish dto');
     return this.adminService.createNewWish(myDto);
   }
+
+
 
   // remove wish list item
   @Delete('remove-wish/:wishId')
@@ -353,7 +355,7 @@ export class AdminController {
   removeWish(
     @Param('wishId') wishId: number,
   ) {
-    console.log('delete wush',wishId);
+    // console.log('delete wush',wishId);
     return this.adminService.removeWish(wishId);
   }
 
@@ -794,6 +796,15 @@ export class AdminController {
   ) {
     // console.log(query);
     return this.adminService.viewAllProducts(query && query);
+  }
+
+  // view related products 
+ @Get('related-products')
+  viewRelatedProducts(
+    @Query('category') category: number,
+    @Query('exclude') excludeId: number,
+  ) {
+    return this.adminService.viewRelatedProducts(category, excludeId);
   }
 
   // get product by search query

@@ -504,6 +504,29 @@ export class AdminService {
     }
   }
 
+  // view related products
+ async viewRelatedProducts(category: number, excludeId: number) {
+  try {
+    const products = await this.productRepo
+      .createQueryBuilder('product')
+      .addSelect('RANDOM()', 'rand') // ✅ Include RANDOM() in select list
+      .leftJoinAndSelect('product.productPictures', 'productPicture')
+      .leftJoinAndSelect('product.pscs', 'psc')
+      .leftJoinAndSelect('psc.category', 'category')
+      .leftJoinAndSelect('psc.size', 'size')
+      .where('category.id = :catId', { catId: category })
+      .andWhere('product.id != :excludeId', { excludeId })
+      .orderBy('rand') // ✅ Order by the alias we just selected
+      .take(4)
+      .getMany();
+
+    return products;
+  } catch (error) {
+    console.error('Error finding related products:', error);
+    throw error;
+  }
+}
+
   // get product by query 
   async getProductByQuery(searchQuery: string) {
     try {
