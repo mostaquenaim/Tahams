@@ -505,27 +505,27 @@ export class AdminService {
   }
 
   // view related products
- async viewRelatedProducts(category: number, excludeId: number) {
-  try {
-    const products = await this.productRepo
-      .createQueryBuilder('product')
-      .addSelect('RANDOM()', 'rand') // ✅ Include RANDOM() in select list
-      .leftJoinAndSelect('product.productPictures', 'productPicture')
-      .leftJoinAndSelect('product.pscs', 'psc')
-      .leftJoinAndSelect('psc.category', 'category')
-      .leftJoinAndSelect('psc.size', 'size')
-      .where('category.id = :catId', { catId: category })
-      .andWhere('product.id != :excludeId', { excludeId })
-      .orderBy('rand') // ✅ Order by the alias we just selected
-      .take(4)
-      .getMany();
+  async viewRelatedProducts(category: number, excludeId: number) {
+    try {
+      const products = await this.productRepo
+        .createQueryBuilder('product')
+        .addSelect('RANDOM()', 'rand') // ✅ Include RANDOM() in select list
+        .leftJoinAndSelect('product.productPictures', 'productPicture')
+        .leftJoinAndSelect('product.pscs', 'psc')
+        .leftJoinAndSelect('psc.category', 'category')
+        .leftJoinAndSelect('psc.size', 'size')
+        .where('category.id = :catId', { catId: category })
+        .andWhere('product.id != :excludeId', { excludeId })
+        .orderBy('rand') // ✅ Order by the alias we just selected
+        .take(4)
+        .getMany();
 
-    return products;
-  } catch (error) {
-    console.error('Error finding related products:', error);
-    throw error;
+      return products;
+    } catch (error) {
+      console.error('Error finding related products:', error);
+      throw error;
+    }
   }
-}
 
   // get product by query 
   async getProductByQuery(searchQuery: string) {
@@ -1853,13 +1853,26 @@ export class AdminService {
     return savedProduct;
   }
 
+  parseBDDate(dateStr: string): Date {
+  const bdTime = new Date(dateStr);
+  // add 6 hours
+  bdTime.setHours(bdTime.getHours() + 6);
+  return bdTime;
+}
+
   // create new pop up 
   async addNewPopUp(myDto) {
+    console.log(myDto, 'date dto');
     // Check for existing active popup
     const activePopups = await this.activePopRepo.find({
       order: { id: 'ASC' },
       relations: ['popup'],
     });
+
+    const allPopUps = await this.popUpRepo.find()
+    // 2025-06-26T17:13',
+    //   endDate: '2025-06-30T17:24',
+    console.log(allPopUps, "allls");
 
     const existingActive = activePopups[0]; // first row, if any
 
@@ -1870,8 +1883,8 @@ export class AdminService {
       title: myDto?.title || null,
       url: myDto?.url || null,
       isActive: existingActive ? existingActive?.popup?.endDate < now && (myDto.isActive === 'true' || myDto.isActive === true) : (myDto.isActive === 'true' || myDto.isActive === true),
-      startDate: myDto.startDate ? new Date(myDto.startDate) : null,
-      endDate: myDto.endDate ? new Date(myDto.endDate) : null,
+      startDate: myDto.startDate ? this.parseBDDate(myDto.startDate) : null,
+      endDate: myDto.endDate ? this.parseBDDate(myDto.endDate) : null,
     });
 
     const savedPopUp = await this.popUpRepo.save(newPopUp);
