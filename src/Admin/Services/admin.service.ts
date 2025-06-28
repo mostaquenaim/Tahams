@@ -723,7 +723,7 @@ export class AdminService {
     return await this.productRepo.find({
       order: { salesCount: 'DESC' },
       relations: ['productPictures'],
-      take: 16,
+      take: 12,
     });
   }
 
