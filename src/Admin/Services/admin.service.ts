@@ -719,13 +719,18 @@ export class AdminService {
   }
 
   // view popular items 
-  async viewPopularItems() {
-    return await this.productRepo.find({
-      order: { salesCount: 'DESC' },
-      relations: ['productPictures', 'pscs'],
-      take: 12,
-    });
-  }
+async viewPopularItems() {
+  return await this.productRepo.find({
+    order: { salesCount: 'DESC' },
+    relations: [
+      'productPictures',
+      'pscs',
+      'pscs.category',
+      'pscs.size',
+    ],
+    take: 12,
+  });
+}
 
   // view new arrivals
   async viewNewArrivals() {
