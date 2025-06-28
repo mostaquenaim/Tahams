@@ -719,25 +719,12 @@ export class AdminService {
   }
 
   // view popular items 
-  async viewPopularItems(): Promise<ProductEntity | null> {
-    const result = await this.cartRepo
-      .createQueryBuilder('cart')
-      .innerJoin('cart.product', 'product')
-      .select('cart.productId', 'productId')
-      .addSelect('COUNT(cart.id)', 'salesCount')
-      .where('cart.isBought = true')
-      .groupBy('cart.productId')
-      .orderBy('salesCount', 'DESC')
-      .limit(16)
-      .getRawOne();
-
-    if (!result) return null;
-
-    const product = await this.productRepo.findOne({
-      where: { id: result.productId },
+  async viewPopularItems() {
+    return await this.productRepo.find({
+      order: { salesCount: 'DESC' },
+      relations: ['productPictures'],
+      take: 16,
     });
-
-    return product;
   }
 
   // view new arrivals
@@ -894,7 +881,7 @@ export class AdminService {
       }
 
       return carts
-      
+
     } catch (error) {
       console.error('Error syncing sales counts:', error.message);
       throw error;
