@@ -722,7 +722,7 @@ export class AdminService {
   async viewPopularItems() {
     return await this.productRepo.find({
       order: { salesCount: 'DESC' },
-      relations: ['productPictures'],
+      relations: ['productPictures', 'pscs'],
       take: 12,
     });
   }
