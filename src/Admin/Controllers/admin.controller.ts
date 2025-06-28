@@ -403,6 +403,13 @@ export class AdminController {
     return result;
   }
 
+  // view popular items
+  @Get('view-popular-items')
+  async viewPopularItems() {
+    const result = await this.adminService.viewPopularItems();
+    return result;
+  }
+
   // view new arrivals 
   @Get('view-new-arrivals')
   async viewNewArrivals() {
@@ -663,6 +670,12 @@ export class AdminController {
   @Get('sync-view-count')
   syncViewCount() {
     return this.adminService.syncViewCount();
+  }
+
+  // sync sales count
+  @Put('sync-sales-count')
+  syncSalesCount() {
+    return this.adminService.syncSalesCount();
   }
 
   // add new sub-category 

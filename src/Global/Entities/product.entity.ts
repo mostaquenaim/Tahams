@@ -71,6 +71,9 @@ export class ProductEntity {
     @Column({ default: 0 })
     totalViews: number
 
+    @Column({ default: 0 })
+    salesCount: number
+
     // Timestamp columns
     @CreateDateColumn({ type: 'timestamp' })
     createdAt: Date;

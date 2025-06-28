@@ -5,13 +5,10 @@ import {
   PrimaryGeneratedColumn,
   ManyToOne,
   OneToMany,
-  OneToOne,
-  JoinColumn,
 } from 'typeorm';
 import { DeliveryStatusEntity } from './deliveryStatus.entity';
 import { CartsEntity } from './cart.entity';
 import { PaymentMethodEntity } from './paymentMethod.entity';
-import { PaymentInfo } from './paymentInfo.entity';
 
 @Entity('buying-history')
 export class BuyingHistoryEntity {
@@ -93,9 +90,4 @@ export class BuyingHistoryEntity {
 
   @OneToMany(() => CartsEntity, (cart) => cart.history)
   carts: CartsEntity[]
-
-  // @OneToOne(() => PaymentInfo)
-  // @JoinColumn()
-  // paymentInfo: PaymentInfo
-
 }

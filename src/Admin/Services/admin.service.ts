@@ -718,6 +718,28 @@ export class AdminService {
     return categories;
   }
 
+  // view popular items 
+  async viewPopularItems(): Promise<ProductEntity | null> {
+    const result = await this.cartRepo
+      .createQueryBuilder('cart')
+      .innerJoin('cart.product', 'product')
+      .select('cart.productId', 'productId')
+      .addSelect('COUNT(cart.id)', 'salesCount')
+      .where('cart.isBought = true')
+      .groupBy('cart.productId')
+      .orderBy('salesCount', 'DESC')
+      .limit(16)
+      .getRawOne();
+
+    if (!result) return null;
+
+    const product = await this.productRepo.findOne({
+      where: { id: result.productId },
+    });
+
+    return product;
+  }
+
   // view new arrivals
   async viewNewArrivals() {
     const options: FindManyOptions<NewArrivalEntity> = {
@@ -842,6 +864,39 @@ export class AdminService {
       console.log("View counts synced successfully");
     } catch (error) {
       console.error("Error syncing view counts:", error.message);
+      throw error;
+    }
+  }
+
+  // sync sales count 
+  async syncSalesCount() {
+    try {
+      // Step 1: Get all bought carts
+      const carts = await this.cartRepo.find({
+        where: { isBought: true },
+        relations: ['product'],
+      });
+
+      // Step 2: Count how many times each product appears
+      const productCountMap: Record<number, number> = {};
+
+      for (const cart of carts) {
+        const productId = cart.product.id;
+        console.log(productId);
+        productCountMap[productId] = (productCountMap[productId] || 0) + 1;
+      }
+
+      // Step 3: Update salesCount for each product
+      for (const [productIdStr, count] of Object.entries(productCountMap)) {
+        // console.log(count);
+        const productId = parseInt(productIdStr, 10);
+        await this.productRepo.update(productId, { salesCount: count });
+      }
+
+      return carts
+      
+    } catch (error) {
+      console.error('Error syncing sales counts:', error.message);
       throw error;
     }
   }
@@ -1854,11 +1909,11 @@ export class AdminService {
   }
 
   parseBDDate(dateStr: string): Date {
-  const bdTime = new Date(dateStr);
-  // add 6 hours
-  bdTime.setHours(bdTime.getHours() + 6);
-  return bdTime;
-}
+    const bdTime = new Date(dateStr);
+    // add 6 hours
+    bdTime.setHours(bdTime.getHours() + 6);
+    return bdTime;
+  }
 
   // create new pop up 
   async addNewPopUp(myDto) {
