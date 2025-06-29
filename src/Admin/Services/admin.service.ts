@@ -39,6 +39,7 @@ import { PopUpEntity } from 'src/Global/Entities/pop-up.entity';
 import { ActivePopUpEntity } from 'src/Global/Entities/active-pop-up.entity';
 import { JwtService } from '@nestjs/jwt';
 import { BlacklistToken } from 'src/Global/Entities/blacklist-token.entity';
+import { RoleEntity } from 'src/Global/Entities/roles.entity';
 
 @Injectable()
 export class AdminService {
@@ -85,6 +86,9 @@ export class AdminService {
 
     @InjectRepository(OtpEntity)
     private otpRepository: Repository<OtpEntity>,
+
+    @InjectRepository(RoleEntity)
+    private roleRepo: Repository<RoleEntity>,
 
     @InjectRepository(SubCategoryEntity)
     private subCategoryRepo: Repository<SubCategoryEntity>,
@@ -214,6 +218,34 @@ export class AdminService {
       return {
         status: HttpStatus.INTERNAL_SERVER_ERROR,
         message: 'An error occurred while creating the user',
+        error: error.message,
+      };
+    }
+  }
+
+  // create new role 
+  async createNewRole(myDto: { name: string }) {
+    try {
+      const existing = await this.roleRepo.findOne({ where: { name: myDto.name.toLowerCase() } });
+      if (existing) {
+        return {
+          status: HttpStatus.CONFLICT,
+          message: 'Role already exists',
+        };
+      }
+
+      const newRole = this.roleRepo.create({ name: myDto.name.toLowerCase() });
+      await this.roleRepo.save(newRole);
+
+      return {
+        status: HttpStatus.CREATED,
+        message: 'Role created successfully',
+        data: newRole,
+      }
+    } catch (error) {
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: 'An error occurred while creating the role',
         error: error.message,
       };
     }
@@ -578,6 +610,16 @@ export class AdminService {
     throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
   }
 
+  // view all users / customers info 
+  async getAllUsers() {
+    return this.userRepo.find();
+  }
+
+  // view all roles 
+  async getAllRoles() {
+    return this.roleRepo.find();
+  }
+
   // get history by id 
   async getBuyingHistoryByToken(token: string, email: string) {
     if (email) {
@@ -719,18 +761,18 @@ export class AdminService {
   }
 
   // view popular items 
-async viewPopularItems() {
-  return await this.productRepo.find({
-    order: { salesCount: 'DESC' },
-    relations: [
-      'productPictures',
-      'pscs',
-      'pscs.category',
-      'pscs.size',
-    ],
-    take: 12,
-  });
-}
+  async viewPopularItems() {
+    return await this.productRepo.find({
+      order: { salesCount: 'DESC' },
+      relations: [
+        'productPictures',
+        'pscs',
+        'pscs.category',
+        'pscs.size',
+      ],
+      take: 12,
+    });
+  }
 
   // view new arrivals
   async viewNewArrivals() {
@@ -1199,6 +1241,39 @@ async viewPopularItems() {
     return result;
   }
 
+  // update role by id 
+  async updateRoleById(id: number, dto) {
+    try {
+      const role = await this.roleRepo.findOne({ where: { id } });
+
+      if (!role) {
+        throw new HttpException('Role not found', HttpStatus.NOT_FOUND);
+      }
+
+      // Check for duplicate role name
+      const existing = await this.roleRepo.findOne({
+        where: { name: dto.name.toLowerCase() },
+      });
+      if (existing && existing.id !== role.id) {
+        throw new HttpException('Role name already in use', HttpStatus.CONFLICT);
+      }
+
+      role.name = dto.name.toLowerCase();
+      await this.roleRepo.save(role);
+
+      return {
+        status: HttpStatus.OK,
+        message: 'Role updated successfully',
+        data: role,
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to update role',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   // approve req 
   async updateApproveReq(id: number) {
     // Find the entity by id
@@ -1381,6 +1456,36 @@ async viewPopularItems() {
 
     } catch (error) {
       console.error('Error deleting product:', error);
+    }
+  }
+
+  // delete role by id 
+  async deleteRoleById(id: number) {
+    try {
+      const role = await this.roleRepo.findOne({ where: { id } });
+
+      if (!role) {
+        throw new HttpException('Role not found', HttpStatus.NOT_FOUND);
+      }
+
+      // Optional: check if any users are assigned this role
+      // const usersWithRole = await this.userRepo.count({ where: { role: role.name } });
+      // if (usersWithRole > 0) {
+      //   throw new HttpException('Cannot delete role assigned to users', HttpStatus.CONFLICT);
+      // }
+
+      await this.roleRepo.remove(role);
+
+      return {
+        status: HttpStatus.OK,
+        message: 'Role deleted successfully',
+      };
+    } catch (error) {
+      console.error('Error deleting role:', error);
+      throw new HttpException(
+        error.message || 'Internal Server Error',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
