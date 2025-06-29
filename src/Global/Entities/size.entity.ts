@@ -6,7 +6,6 @@ import { ProductSizeCategoryEntity } from './productSizeCategory.entity';
 
 @Entity('size')
 export class SizeEntity {
-
     @PrimaryGeneratedColumn()
     id: number;
 

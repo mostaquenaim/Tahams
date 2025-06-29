@@ -218,6 +218,15 @@ export class AdminController {
     return this.adminService.updateBuyingHistory(tt, updates, email)
   }
 
+  // update role by id 
+  @Patch('update-role/:id')
+async updateRole(
+  @Param('id', ParseIntPipe) id: number,
+  @Body() dto,
+) {
+  return this.adminService.updateRoleById(id, dto);
+}
+
   // approve req  
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
@@ -325,6 +334,24 @@ export class AdminController {
     @Query('email') email: string,
   ) {
     return this.adminService.getAllBuyingHistories(email)
+  }
+
+  // get all customers / users  
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Get('get-all-users')
+  getAllUsers(
+  ) {
+    return this.adminService.getAllUsers()
+  }
+
+  // get all roles 
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Get('get-all-roles')
+  getAllRoles(
+  ) {
+    return this.adminService.getAllRoles()
   }
 
   // add new cart 
@@ -802,6 +829,12 @@ export class AdminController {
     return this.adminService.createUser(myDto);
   }
 
+  // create new role 
+  @Post('create-role')
+  createNewRole(@Body() myDto) {
+    return this.adminService.createNewRole(myDto);
+  }
+
   // view all product 
   @Get('view-all-products')
   viewAllProducts(
@@ -812,7 +845,7 @@ export class AdminController {
   }
 
   // view related products 
- @Get('related-products')
+  @Get('related-products')
   viewRelatedProducts(
     @Query('category') category: number,
     @Query('exclude') excludeId: number,
@@ -860,6 +893,17 @@ export class AdminController {
   ) {
     console.log(id);
     return this.adminService.deleteProductById(id, email);
+  }
+
+  // delete role by id  
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Delete('delete-role/:id')
+  async deleteRoleById(
+    @Param('id') id: number,
+  ) {
+    console.log(id);
+    return this.adminService.deleteRoleById(id);
   }
 
   // delete product type or sub sub category by id  

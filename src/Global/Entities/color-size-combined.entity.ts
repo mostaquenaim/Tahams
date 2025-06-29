@@ -1,9 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, ManyToMany, JoinTable } from 'typeorm';
-import { ProductEntity } from './product.entity';
-import { ProductPictureEntity } from './product-pictures.entity';
-import { SizeEntity } from './size.entity';
-import { ColorEntity } from './colors.entity';
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('colors-size')
 export class ColorSizeEntity {
