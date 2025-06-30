@@ -220,12 +220,12 @@ export class AdminController {
 
   // update role by id 
   @Patch('update-role/:id')
-async updateRole(
-  @Param('id', ParseIntPipe) id: number,
-  @Body() dto,
-) {
-  return this.adminService.updateRoleById(id, dto);
-}
+  async updateRole(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto,
+  ) {
+    return this.adminService.updateRoleById(id, dto);
+  }
 
   // approve req  
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -796,6 +796,16 @@ async updateRole(
     return this.adminService.disableCoupon(id);
   }
 
+  // disable sub category 
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Put('disable-or-enable-sub-category/:id')
+  disableSubSubCategory(
+    @Param('id') id: number
+  ) {
+    return this.adminService.disableSubSubCategory(id);
+  }
+
   // get all delivery status 
   @Get('get-all-delivery-status')
   getAllDeliveryStatus(
@@ -997,7 +1007,7 @@ async updateRole(
   updateDiscount(
     @Body() mydata
   ) {
-    console.log(mydata, 'md');
+    // console.log(mydata, 'md');
     return this.adminService.updateDiscount(mydata);
   }
 

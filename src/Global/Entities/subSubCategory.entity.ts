@@ -29,6 +29,9 @@ export class SubSubCategoryEntity {
     @Column({ default: false })
     isRegular: boolean
 
+    @Column({ default: false })
+    isDisabled: boolean
+
     @ManyToOne(() => GenderEntity, (gender) => gender.subSubs)
     gender: GenderEntity
 
