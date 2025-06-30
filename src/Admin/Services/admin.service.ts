@@ -704,6 +704,18 @@ export class AdminService {
     await this.couponRepo.save(coupon)
   }
 
+  // disable sub category 
+ async disableSubSubCategory(id: number) {
+  const category = await this.subCategoryRepo.findOne({ where: { id } });
+
+  if (!category) {
+    throw new NotFoundException('Sub-category not found');
+  }
+
+  category.isDisabled = true;
+  return this.subCategoryRepo.save(category);
+}
+
   // view all carts 
   async getAllCarts(email: string) {
     if (!email) {

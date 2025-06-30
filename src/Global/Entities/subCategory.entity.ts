@@ -18,6 +18,9 @@ export class SubCategoryEntity {
 
     @Column({ default: false })
     isEnablePremium: boolean
+    
+    @Column({ default: false })
+    isDisabled: boolean
 
     @ManyToOne(() => CategoryEntity, (category) => category.subs)
     category: CategoryEntity
