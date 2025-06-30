@@ -705,16 +705,16 @@ export class AdminService {
   }
 
   // disable sub category 
- async disableSubSubCategory(id: number) {
-  const category = await this.subCategoryRepo.findOne({ where: { id } });
+  async disableSubSubCategory(id: number) {
+    const category = await this.subCategoryRepo.findOne({ where: { id } });
 
-  if (!category) {
-    throw new NotFoundException('Sub-category not found');
+    if (!category) {
+      throw new NotFoundException('Sub-category not found');
+    }
+
+    category.isDisabled ? category.isDisabled = false : category.isDisabled = true;
+    return this.subCategoryRepo.save(category);
   }
-
-  category.isDisabled = true;
-  return this.subCategoryRepo.save(category);
-}
 
   // view all carts 
   async getAllCarts(email: string) {

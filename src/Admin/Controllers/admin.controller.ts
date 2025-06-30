@@ -799,7 +799,7 @@ export class AdminController {
   // disable sub category 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
-  @Put('disable-sub-category/:id')
+  @Put('disable-or-enable-sub-category/:id')
   disableSubSubCategory(
     @Param('id') id: number
   ) {
