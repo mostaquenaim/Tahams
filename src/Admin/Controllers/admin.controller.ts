@@ -276,6 +276,23 @@ export class AdminController {
     }
   }
 
+  // Shuffle category serial
+  @Post('shuffle-category')
+  async shuffleCategorySerial(
+    @Body() categoryDto,
+  ) {
+    try {
+      // console.log(id,updateProductDto);
+      // Call the service to update product
+      const updatedProduct = await this.adminService.shuffleCategorySerial(
+        categoryDto,
+      );
+      return updatedProduct;
+    } catch (error) {
+      throw new BadRequestException('Product update failed.');
+    }
+  }
+
   // update buying history by id 
   @Patch('update-buying-history-status-by-token/:token')
   async updateBuyingHistoryStatusByToken(

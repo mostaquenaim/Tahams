@@ -11,6 +11,9 @@ export class CategoryEntity {
     @Column()
     name: string
 
+    @Column({ default: 0 })
+    serial: number
+
     @Column({ nullable: true })
     filename: string
 
