@@ -580,6 +580,22 @@ export class AdminService {
     }
   }
 
+  // get product by query 
+  async getLessProductByQuery(searchQuery: string) {
+    try {
+      const products = await this.productRepo
+        .createQueryBuilder('product')
+        .where('product.name ILIKE :searchQuery', { searchQuery: `%${searchQuery}%` }) // Case-insensitive search
+        .limit(3)
+        .getMany();
+
+      return products;
+    } catch (error) {
+      console.error('Error searching products:', error);
+      throw error;
+    }
+  }
+
   // view all buying histories 
   async getAllBuyingHistories(email: string) {
     if (email) {

@@ -888,6 +888,14 @@ export class AdminController {
     return products;
   }
 
+  // get product by search query for search bar
+  @Get('search-bar-products')
+  async getLessProductByQuery(@Query('q') searchQuery: string) {
+    console.log('Search Query:', searchQuery);  // Debugging
+    const products = await this.adminService.getLessProductByQuery(searchQuery);
+    return products;
+  }
+
   // view size
   @Get('view-product-sizes')
   viewProductSizes() {
