@@ -1403,6 +1403,16 @@ export class AdminService {
     return savedProduct
   }
 
+  // shuffle category serial 
+  async shuffleCategorySerial(categoryDto: { id: number; serial: number }[]) {
+    const updatePromises = categoryDto.map(async (cat) => {
+      await this.categoryRepo.update(cat.id, { serial: cat.serial });
+    });
+
+    await Promise.all(updatePromises);
+    return { message: 'Category serials updated successfully' };
+  }
+
   // update buying history / order status 
   async updateBuyingHistoryStatusByToken(token: string, updates: any, email: string) {
     // console.log(updates);
@@ -1600,13 +1610,16 @@ export class AdminService {
   }
 
   // create new category 
-  async createNewCategory(
-    myDto,
-  ) {
-    const newCategory = this.categoryRepo.create({
-      ...myDto
+  async createNewCategory(myDto) {
+    // Step 1: Create and save to get the generated ID
+    const savedCategory = await this.categoryRepo.save({
+      ...myDto,
+      serial: 0, // temp value
     });
-    return this.categoryRepo.save(newCategory);
+
+    // Step 2: Now set serial = id and save again
+    savedCategory.serial = savedCategory.id;
+    return this.categoryRepo.save(savedCategory);
   }
 
   // create new category 
