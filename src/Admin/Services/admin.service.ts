@@ -2244,21 +2244,21 @@ export class AdminService {
     // Update the product entity with the newly added pictures
     const filenames: string[] = myDto.filenames;
 
-    await this.compressImage(
-      path.join('uploads', myDto.filenames[0]),
-      path.join(
-        'uploads/side-thumb',
-        myDto.filenames[0].replace(path.extname(myDto.filenames[0]), '.webp'),
-      ),
-    );
+    // await this.compressImage(
+    //   path.join('uploads', myDto.filenames[0]),
+    //   path.join(
+    //     'uploads/side-thumb',
+    //     myDto.filenames[0].replace(path.extname(myDto.filenames[0]), '.webp'),
+    //   ),
+    // );
 
     for (const filename of filenames) {
       const productPicture = new ProductPictureEntity();
       productPicture.filename = filename;
-      productPicture.thumb = path.join(
-        'thumb',
-        myDto.filename.replace(path.extname(myDto.filename), '.webp'),
-      );
+      // productPicture.thumb = path.join(
+      //   'thumb',
+      //   myDto.filename.replace(path.extname(myDto.filename), '.webp'),
+      // );
       productPicture.product = product;
       await this.productPicRepo.save(productPicture);
     }
