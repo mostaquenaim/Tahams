@@ -1056,7 +1056,8 @@ export class AdminController {
   @UseInterceptors(
     FilesInterceptor('myfiles', 10, {
       fileFilter: (req, file, cb) => {
-        if (file.mimetype.match(/^image\/(jpeg|png|gif|webp)$/)) { //bug fix: before it was originalname and not working, now working
+        if (file.mimetype.match(/^image\/(jpeg|png|gif|webp)$/)) {
+          //bug fix: before it was originalname and not working, now working
           cb(null, true);
         } else {
           cb(new Error('Unsupported file type'), false);
@@ -1126,10 +1127,9 @@ export class AdminController {
   }
 
   // get image by name
-  @Get('/getimage/:name')
-  getImages(@Param('name') name, @Res() res) {
-    // console.log(name,"568");
-    res.sendFile(name, { root: './uploads' });
+  @Get('/getimage/*')
+  getImages(@Req() req, @Res() res) {
+    const filePath = req.params[0]; // gets the path after /getimage/
+    res.sendFile(filePath, { root: './uploads' });
   }
 }
- 
