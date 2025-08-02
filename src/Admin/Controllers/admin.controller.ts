@@ -29,8 +29,13 @@ import {
 } from '@nestjs/common';
 import { AdminService } from '../Services/admin.service';
 import { AdminForm } from '../DTOs/adminform.dto';
-import { MulterError, diskStorage } from "multer";
-import { AnyFilesInterceptor, FileFieldsInterceptor, FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { MulterError, diskStorage } from 'multer';
+import {
+  AnyFilesInterceptor,
+  FileFieldsInterceptor,
+  FileInterceptor,
+  FilesInterceptor,
+} from '@nestjs/platform-express';
 import CouponForm from 'src/Global/DTOs/couponform.dto';
 import ProductForm from 'src/Global/DTOs/productForm.dto';
 import * as path from 'path';
@@ -42,100 +47,104 @@ import { RolesGuard } from '../Guards/roles.guard';
 
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) { }
+  constructor(private readonly adminService: AdminService) {}
 
-  //Login to account 
+  //Login to account
   @Post('/signin')
   async signIn(@Body() myDto) {
     // console.log('ekhane ashche');
     const res = await this.adminService.signIn(myDto);
     // console.log(res,'reposne');
-    return res
+    return res;
   }
 
-  // check email 
+  // check email
   @Get('/check-email')
-  async checkEmail(
-    @Query('email') email: string
-  ) {
-    return await this.adminService.checkEmail(email)
+  async checkEmail(@Query('email') email: string) {
+    return await this.adminService.checkEmail(email);
   }
 
-  // customerlogin 
+  // customerlogin
   @Post('customer-login')
   @UsePipes(ValidationPipe)
-  async customerLogin(
-    @Body() myDto,
-  ) {
+  async customerLogin(@Body() myDto) {
     // console.log(myDto,"197");
     const response = await this.adminService.customerLogin(myDto);
     // console.log(response,"198");
-    return response
+    return response;
   }
 
-  // send mail 
+  // send mail
   @Post('sendemail')
   sendEmail(@Body() mydata) {
     return this.adminService.sendEmail(mydata);
   }
 
-  // otp 
+  // otp
   @Post('send-otp')
   @UsePipes(ValidationPipe)
   async sendOtp(@Body() sendOtpDto) {
-    const result = await this.adminService.checkEmailAndSendOTP(sendOtpDto.email);
-    return result
+    const result = await this.adminService.checkEmailAndSendOTP(
+      sendOtpDto.email,
+    );
+    return result;
   }
 
-  // verify otp 
+  // verify otp
   @Post('verify-otp')
   @UsePipes(ValidationPipe)
   async verifyOtp(@Body() verifyOtpDto) {
     // console.log(verifyOtpDto);
-    return await this.adminService.verifyOtp(verifyOtpDto.email, verifyOtpDto.otp);
+    return await this.adminService.verifyOtp(
+      verifyOtpDto.email,
+      verifyOtpDto.otp,
+    );
   }
 
-  // add banner 
+  // add banner
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Post('add-banner')
-  @UseInterceptors(FileInterceptor('filename',
-    {
+  @UseInterceptors(
+    FileInterceptor('filename', {
       storage: diskStorage({
         destination: './uploads',
         filename: function (req, file, cb) {
-          cb(null, Date.now() + file.originalname)
-        }
-      })
-
-    }))
-  addBanner(@Body() myDto, @UploadedFile(new ParseFilePipe({
-    validators: [
-      new MaxFileSizeValidator({ maxSize: 160000 }),
-      new FileTypeValidator({ fileType: 'png|jpg|jpeg|' }),
-    ],
-  }),) file: Express.Multer.File) {
-
+          cb(null, Date.now() + file.originalname);
+        },
+      }),
+    }),
+  )
+  addBanner(
+    @Body() myDto,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 160000 }),
+          new FileTypeValidator({ fileType: 'png|jpg|jpeg|' }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
     myDto.filename = file.filename;
     // console.log(myDto)
     return this.adminService.addBanner(myDto);
   }
 
-  // get all banners 
+  // get all banners
   @Get('all-banners')
   viewAllBanners() {
     return this.adminService.viewAllBanners();
   }
 
-  // get banner by id 
+  // get banner by id
   @Get('banner-by-id/:id')
-  viewBannerById(
-    @Param('id', ParseIntPipe) id: number
-  ) {
+  viewBannerById(@Param('id', ParseIntPipe) id: number) {
     return this.adminService.getBannerById(id);
   }
 
-  // delete banner 
+  // delete banner
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Delete('deleteBanner/:id')
@@ -148,15 +157,11 @@ export class AdminController {
   @Roles('admin')
   @Put('updateBanner/:id')
   @UsePipes(ValidationPipe)
-  async updateBanner
-    (
-      @Param('id', ParseIntPipe) id: number,
-      @Body() myDto,
-    ) {
+  async updateBanner(@Param('id', ParseIntPipe) id: number, @Body() myDto) {
     await this.adminService.updateBanner(id, myDto);
   }
 
-  // publish product 
+  // publish product
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Put('publish-product/:id')
@@ -167,47 +172,45 @@ export class AdminController {
     return this.adminService.publishProduct(id, publishable);
   }
 
-  // change banner image 
+  // change banner image
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
-  @Post(('changeBannerImage/:id'))
-  @UseInterceptors(FileInterceptor('filename',
-    {
+  @Post('changeBannerImage/:id')
+  @UseInterceptors(
+    FileInterceptor('filename', {
       storage: diskStorage({
         destination: './uploads',
         filename: function (req, file, cb) {
-          cb(null, Date.now() + file.originalname)
-        }
-      })
-    }))
+          cb(null, Date.now() + file.originalname);
+        },
+      }),
+    }),
+  )
   changeBannerImage(
     @Param('id') id,
     // @Body('file') filename,
-    @UploadedFile() file: Express.Multer.File): object {
+    @UploadedFile() file: Express.Multer.File,
+  ): object {
     return this.adminService.changeBannerImage(id, file.filename);
   }
 
-  // add new buying   
+  // add new buying
   @Post('add-to-buy')
   @UsePipes(ValidationPipe)
-  createNewBuy(
-    @Body() myDto: any,
-  ) {
-    console.log("134", myDto);
+  createNewBuy(@Body() myDto: any) {
+    console.log('134', myDto);
     return this.adminService.createNewBuy(myDto);
   }
 
-  // send message to customer   
+  // send message to customer
   @Post('send-message-to-customer')
   @UsePipes(ValidationPipe)
-  sendMessageToCustomer(
-    @Body() myDto: any,
-  ) {
+  sendMessageToCustomer(@Body() myDto: any) {
     // console.log("134", myDto);
     return this.adminService.sendMessageToCustomer(myDto);
   }
 
-  // update buying history 
+  // update buying history
   @Patch('update-history/:token')
   updateBuyingHistory(
     @Param('token') tt: string,
@@ -215,27 +218,22 @@ export class AdminController {
     @Body() updates: { [key: string]: any },
   ) {
     // console.log('in', updates);
-    return this.adminService.updateBuyingHistory(tt, updates, email)
+    return this.adminService.updateBuyingHistory(tt, updates, email);
   }
 
-  // update role by id 
+  // update role by id
   @Patch('update-role/:id')
-  async updateRole(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto,
-  ) {
+  async updateRole(@Param('id', ParseIntPipe) id: number, @Body() dto) {
     return this.adminService.updateRoleById(id, dto);
   }
 
-  // approve req  
+  // approve req
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Patch('approve-request')
-  updateApproveReq(
-    @Body() updateObj
-  ) {
+  updateApproveReq(@Body() updateObj) {
     // console.log(updateObj);
-    return this.adminService.updateApproveReq(updateObj.id)
+    return this.adminService.updateApproveReq(updateObj.id);
   }
 
   // update product
@@ -278,166 +276,151 @@ export class AdminController {
 
   // Shuffle category serial
   @Post('shuffle-category')
-  async shuffleCategorySerial(
-    @Body() categoryDto,
-  ) {
+  async shuffleCategorySerial(@Body() categoryDto) {
     try {
       // console.log(id,updateProductDto);
       // Call the service to update product
-      const updatedProduct = await this.adminService.shuffleCategorySerial(
-        categoryDto,
-      );
+      const updatedProduct =
+        await this.adminService.shuffleCategorySerial(categoryDto);
       return updatedProduct;
     } catch (error) {
       throw new BadRequestException('Product update failed.');
     }
   }
 
-  // update buying history by id 
+  // update buying history by id
   @Patch('update-buying-history-status-by-token/:token')
   async updateBuyingHistoryStatusByToken(
     @Param('token') token: string,
     @Query('email') email: string,
     @Body() updates: any,
   ) {
-    const result = await this.adminService.updateBuyingHistoryStatusByToken(token, updates, email)
+    const result = await this.adminService.updateBuyingHistoryStatusByToken(
+      token,
+      updates,
+      email,
+    );
     // console.log(result);
-    return result
+    return result;
   }
 
-  // get buying histoy by id 
+  // get buying histoy by id
   @Get('get-buying-history-by-token/:token')
   async getBuyingHistoryByToken(
     @Param('token') token,
     @Query('email') email: string,
   ) {
-    const result = await this.adminService.getBuyingHistoryByToken(token, email)
-    return result
+    const result = await this.adminService.getBuyingHistoryByToken(
+      token,
+      email,
+    );
+    return result;
   }
 
-  // get buying history by id 
+  // get buying history by id
   @Get('get-buying-history-status-by-token/:token')
   async getBuyingHistoryStatusByToken(
     @Param('token') token,
     // @Query('email') email: string,
   ) {
-    const result = await this.adminService.getBuyingHistoryStatusByToken(token)
+    const result = await this.adminService.getBuyingHistoryStatusByToken(token);
     // console.log(result);
-    return result
+    return result;
   }
 
-  // add payment info 
+  // add payment info
   @Post('/add-payment')
-  @UseInterceptors(FileInterceptor('screenshot',
-    {
+  @UseInterceptors(
+    FileInterceptor('screenshot', {
       storage: diskStorage({
         destination: './uploads',
         filename: function (req, file, cb) {
-          cb(null, Date.now() + file.originalname)
-        }
-      })
-    }))
+          cb(null, Date.now() + file.originalname);
+        },
+      }),
+    }),
+  )
   addPaymentInfo(
     // @Param('token') token: string,
     @Body() PaymentDetails,
-    @UploadedFile() file: Express.Multer.File) {
-    PaymentDetails.screenshot = file?.filename
-    return this.adminService.addPaymentInfo(PaymentDetails)
-  }
-
-  // get particular customer all buying history 
-  @Get('get-all-buying-history')
-  getAllBuyingHistories(
-    @Query('email') email: string,
+    @UploadedFile() file: Express.Multer.File,
   ) {
-    return this.adminService.getAllBuyingHistories(email)
+    PaymentDetails.screenshot = file?.filename;
+    return this.adminService.addPaymentInfo(PaymentDetails);
   }
 
-  // get all customers / users  
+  // get particular customer all buying history
+  @Get('get-all-buying-history')
+  getAllBuyingHistories(@Query('email') email: string) {
+    return this.adminService.getAllBuyingHistories(email);
+  }
+
+  // get all customers / users
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Get('get-all-users')
-  getAllUsers(
-  ) {
-    return this.adminService.getAllUsers()
+  getAllUsers() {
+    return this.adminService.getAllUsers();
   }
 
-  // get all roles 
+  // get all roles
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Get('get-all-roles')
-  getAllRoles(
-  ) {
-    return this.adminService.getAllRoles()
+  getAllRoles() {
+    return this.adminService.getAllRoles();
   }
 
-  // add new cart 
+  // add new cart
   @Post('add-to-cart')
   @UsePipes(ValidationPipe)
-  async createNewCart(
-    @Body() myDto,
-  ) {
+  async createNewCart(@Body() myDto) {
     const response = await this.adminService.createNewCart(myDto);
-    return response
+    return response;
   }
 
-  // add new wish 
+  // add new wish
   @Post('add-Wish')
   @UsePipes(ValidationPipe)
-  createNewWish(
-    @Body() myDto,
-  ) {
+  createNewWish(@Body() myDto) {
     // console.log(myDto, 'wish dto');
     return this.adminService.createNewWish(myDto);
   }
 
-
-
   // remove wish list item
   @Delete('remove-wish/:wishId')
   // @UsePipes(ValidationPipe)
-  removeWish(
-    @Param('wishId') wishId: number,
-  ) {
+  removeWish(@Param('wishId') wishId: number) {
     // console.log('delete wush',wishId);
     return this.adminService.removeWish(wishId);
   }
 
-  // delete a cart 
+  // delete a cart
   @Delete('delete-cart/:uniqueId')
-  deleteCartItem(
-    @Param('uniqueId') id,
-  ) {
+  deleteCartItem(@Param('uniqueId') id) {
     // console.log(id,"210");
     return this.adminService.deleteCartItem(id);
   }
 
-  // delete history 
+  // delete history
   @Put('delete-history/:id')
-  deleteHistory(
-    @Param('id') id,
-    @Query('email') email,
-  ) {
+  deleteHistory(@Param('id') id, @Query('email') email) {
     // console.log(id,"210");
     return this.adminService.deleteHistory(id, email);
   }
 
-  // delete carts 
+  // delete carts
   @Delete('delete-carts')
-  deleteCarts(
-    @Body() myDto
-  ) {
+  deleteCarts(@Body() myDto) {
     // console.log(myDto,"220");
     return this.adminService.deleteCarts(myDto.checkedItems);
   }
 
-  // get particular customer cart history 
+  // get particular customer cart history
   @Get('get-all-carts')
-  getAllCarts(
-    @Query('email') email: string,
-  ) {
+  getAllCarts(@Query('email') email: string) {
     // console.log(email, "209");
-    return this.adminService.getAllCarts(email)
+    return this.adminService.getAllCarts(email);
   }
 
   // view category
@@ -454,21 +437,21 @@ export class AdminController {
     return result;
   }
 
-  // view new arrivals 
+  // view new arrivals
   @Get('view-new-arrivals')
   async viewNewArrivals() {
     const result = await this.adminService.viewNewArrivals();
     return result;
   }
 
-  // view active pop up 
+  // view active pop up
   @Get('view-active-pop-up')
   async viewActivePopUp() {
     const result = await this.adminService.viewActivePopUp();
     return result;
   }
 
-  // view all pop up 
+  // view all pop up
   @Get('view-all-pop-up')
   async viewAllPopUp() {
     const result = await this.adminService.viewAllPopUp();
@@ -484,9 +467,7 @@ export class AdminController {
 
   // view cancellation or return requests
   @Get('view-cancellation-or-return-requests')
-  async viewRequests(
-    @Query('email') email: string,
-  ) {
+  async viewRequests(@Query('email') email: string) {
     const result = await this.adminService.viewRequests(email);
     return result;
   }
@@ -521,60 +502,48 @@ export class AdminController {
 
   // view sub category by category
   @Get('view-product-sub-category/:id')
-  viewProductSubCategories(
-    @Param('id') id: number
-  ) {
+  viewProductSubCategories(@Param('id') id: number) {
     return this.adminService.viewProductSubCategories(id);
   }
 
   // view sub sub-category by category
   @Get('view-product-sub-sub-category/:catId')
-  viewProductSubSubCategories(
-    @Param('catId') catId: number
-  ) {
+  viewProductSubSubCategories(@Param('catId') catId: number) {
     return this.adminService.viewProductSubSubCategories(catId);
   }
 
-  // check if wished 
+  // check if wished
   @Get('check-wish-by-user-and-product')
   checkIfWished(
     @Query('customerEmail') customerEmail: string,
-    @Query('productId') productId: number
+    @Query('productId') productId: number,
   ) {
-    return this.adminService.checkIfWished(productId, customerEmail)
+    return this.adminService.checkIfWished(productId, customerEmail);
   }
 
-  // get sub category by id 
+  // get sub category by id
   @Get('get-sub-sub-cat-by-id/:id')
-  getSubCatById(
-    @Param('id') id: number
-  ) {
+  getSubCatById(@Param('id') id: number) {
     return this.adminService.getSubSubCategoryById(id);
   }
 
-  // get sub category by id 
+  // get sub category by id
   @Get('get-ft-photo-by-product-id/:id')
-  getProductFtImage(
-    @Param('id') id: number
-  ) {
+  getProductFtImage(@Param('id') id: number) {
     return this.adminService.getProductFtImage(id);
   }
 
-  // get category by id 
+  // get category by id
   @Get('getCategoryById/:id')
   @UsePipes(ValidationPipe)
-  getCategoryById(
-    @Param('id') id,
-  ) {
+  getCategoryById(@Param('id') id) {
     return this.adminService.getCategoryByName(id);
   }
 
   // get products by category id
   @Get('get-product-by-cat/:name')
   @UsePipes(ValidationPipe)
-  getProductByCat(
-    @Param('name') name,
-  ) {
+  getProductByCat(@Param('name') name) {
     // console.log(name);
     return this.adminService.getProductByCat(name);
   }
@@ -582,51 +551,41 @@ export class AdminController {
   // get products by sub sub category id
   @Get('get-product-by-sub-sub-cat/:id')
   @UsePipes(ValidationPipe)
-  getProductBySubSubCatId(
-    @Param('id') id,
-  ) {
+  getProductBySubSubCatId(@Param('id') id) {
     return this.adminService.getPublishableProductsBySubSubCatId(id);
   }
 
   // get user by email
   @Get('get-user-by-email/:email')
   @UsePipes(ValidationPipe)
-  getUserByEmail(
-    @Param('email') email,
-  ) {
+  getUserByEmail(@Param('email') email) {
     return this.adminService.getUserByEmail(email);
   }
 
   //update category by id
   @Put('updateCategory/:id')
   @UsePipes(ValidationPipe)
-  async updateCategory
-    (
-      @Param('id', ParseIntPipe) id: number,
-      @Body() myDto,
-    ) {
+  async updateCategory(@Param('id', ParseIntPipe) id: number, @Body() myDto) {
     await this.adminService.updateCategory(id, myDto);
   }
 
   //update category by id
   @Put('updateSubCategory/:id')
   @UsePipes(ValidationPipe)
-  async updateSubCategory
-    (
-      @Param('id', ParseIntPipe) id: number,
-      @Body() myDto,
-    ) {
+  async updateSubCategory(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() myDto,
+  ) {
     await this.adminService.updateSubCategory(id, myDto);
   }
 
   //update product type name
   @Put('update-product-type-name/:id')
   @UsePipes(ValidationPipe)
-  async updateProductTypeName
-    (
-      @Param('id', ParseIntPipe) id: number,
-      @Body() myDto,
-    ) {
+  async updateProductTypeName(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() myDto,
+  ) {
     await this.adminService.updateProductTypeName(id, myDto);
   }
 
@@ -635,11 +594,10 @@ export class AdminController {
   @Roles('admin')
   @Put('update-active-pop-up/:id')
   // @UsePipes(ValidationPipe)
-  async updateActivePop
-    (
-      @Param('id') id: number,
-      // @Body() myDto,
-    ) {
+  async updateActivePop(
+    @Param('id') id: number,
+    // @Body() myDto,
+  ) {
     return this.adminService.updateActivePop(id);
   }
 
@@ -670,43 +628,33 @@ export class AdminController {
     await this.adminService.updateSubSubCategory(id, myFile.filename);
   }
 
-  // update user address 
+  // update user address
   @Put('update-user-address/:id')
-  async updateUserAddress(
-    @Param('id') id: number,
-    @Body() updateAddressDto
-  ) {
+  async updateUserAddress(@Param('id') id: number, @Body() updateAddressDto) {
     return this.adminService.updateUserAddress(id, updateAddressDto);
   }
 
-  // add new category 
+  // add new category
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Post('add-category')
   @UsePipes(ValidationPipe)
-  createNewCategory(
-    @Body() myDto,
-  ) {
+  createNewCategory(@Body() myDto) {
     // console.log(myDto,"337");
     return this.adminService.createNewCategory(myDto);
   }
 
-  // add new payment method 
+  // add new payment method
   @Post('add-payment-method')
   @UsePipes(ValidationPipe)
-  createPaymentMethod(
-    @Body() myDto,
-  ) {
+  createPaymentMethod(@Body() myDto) {
     return this.adminService.createPaymentMethod(myDto);
   }
 
-  // increase product view 
+  // increase product view
   @Post('increase-product-view/:id')
   @UsePipes(ValidationPipe)
-  increaseProductView(
-    @Param('id') id: number,
-    @Query('email') email: string
-  ) {
+  increaseProductView(@Param('id') id: number, @Query('email') email: string) {
     return this.adminService.increaseProductView(id, email);
   }
 
@@ -722,25 +670,21 @@ export class AdminController {
     return this.adminService.syncSalesCount();
   }
 
-  // add new sub-category 
+  // add new sub-category
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Post('add-subCategory')
   @UsePipes(ValidationPipe)
-  createNewSubCategory(
-    @Body() myDto,
-  ) {
+  createNewSubCategory(@Body() myDto) {
     return this.adminService.createNewSubCategory(myDto);
   }
 
-  // add new sub-sub-category 
+  // add new sub-sub-category
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Post('add-sub-subCategory')
   @UsePipes(ValidationPipe)
-  createNewSubSubCategory(
-    @Body() myDto,
-  ) {
+  createNewSubSubCategory(@Body() myDto) {
     return this.adminService.createNewSubSubCategory(myDto);
   }
 
@@ -750,91 +694,84 @@ export class AdminController {
     @Body('selectedProducts') selectedProducts: string[],
     @Body('reason') reason: string,
   ) {
-    return await this.adminService.confirmReturnOrCancellation(selectedProducts, reason);
+    return await this.adminService.confirmReturnOrCancellation(
+      selectedProducts,
+      reason,
+    );
   }
 
-  // change category image 
+  // change category image
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
-  @Post(('changeCategoryImage/:id'))
-  @UseInterceptors(FileInterceptor('filename',
-    {
+  @Post('changeCategoryImage/:id')
+  @UseInterceptors(
+    FileInterceptor('filename', {
       storage: diskStorage({
         destination: './uploads',
         filename: function (req, file, cb) {
-          cb(null, Date.now() + file.originalname)
-        }
-      })
-    }))
+          cb(null, Date.now() + file.originalname);
+        },
+      }),
+    }),
+  )
   changeCategoryImage(
     @Param('id') id,
     // @Body('file') filename,
-    @UploadedFile() file: Express.Multer.File): object {
+    @UploadedFile() file: Express.Multer.File,
+  ): object {
     return this.adminService.changeCategoryImage(id, file.filename);
   }
 
-  // add new coupon 
+  // add new coupon
   @Post('add-coupon')
   @UsePipes(ValidationPipe)
-  createNewCoupon(
-    @Body() myDto: CouponForm,
-  ) {
+  createNewCoupon(@Body() myDto: CouponForm) {
     return this.adminService.createNewCoupon(myDto);
   }
 
-  // add new color 
+  // add new color
   @Post('add-color')
   @UsePipes(ValidationPipe)
-  createNewColor(
-    @Body() myDto,
-  ) {
+  createNewColor(@Body() myDto) {
     return this.adminService.createNewColor(myDto);
   }
 
-  // get all coupons 
+  // get all coupons
   @Get('get-coupons')
   getAllCoupons() {
     return this.adminService.getAllCoupons();
   }
 
-  // get particular coupon 
+  // get particular coupon
   @Get('get-coupons/:id')
-  getParticularCoupon(
-    @Param('id') id: number
-  ) {
+  getParticularCoupon(@Param('id') id: number) {
     return this.adminService.getParticularCoupon(id);
   }
 
-  // disable coupon 
+  // disable coupon
   @Patch('disable-coupon/:id')
-  disableCoupon(
-    @Param('id') id: number
-  ) {
+  disableCoupon(@Param('id') id: number) {
     return this.adminService.disableCoupon(id);
   }
 
-  // disable sub category 
+  // disable sub category
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Put('disable-or-enable-sub-category/:id')
-  disableSubSubCategory(
-    @Param('id') id: number
-  ) {
+  disableSubSubCategory(@Param('id') id: number) {
     return this.adminService.disableSubSubCategory(id);
   }
 
-  // get all delivery status 
+  // get all delivery status
   @Get('get-all-delivery-status')
-  getAllDeliveryStatus(
-  ) {
-    return this.adminService.getAllDeliveryStatus()
+  getAllDeliveryStatus() {
+    return this.adminService.getAllDeliveryStatus();
   }
 
   // get all payment methods
   @Get('get-all-payment-methods')
-  getAllPaymentMethod(
-  ) {
-    return this.adminService.getAllPaymentMethod()
+  getAllPaymentMethod() {
+    return this.adminService.getAllPaymentMethod();
   }
 
   //logout
@@ -850,28 +787,26 @@ export class AdminController {
     return { message: 'Logged out successfully' };
   }
 
-  // create new account 
+  // create new account
   @Post('create')
   createUser(@Body() myDto) {
     return this.adminService.createUser(myDto);
   }
 
-  // create new role 
+  // create new role
   @Post('create-role')
   createNewRole(@Body() myDto) {
     return this.adminService.createNewRole(myDto);
   }
 
-  // view all product 
+  // view all product
   @Get('view-all-products')
-  viewAllProducts(
-    @Query('filter') query: any
-  ) {
+  viewAllProducts(@Query('filter') query: any) {
     // console.log(query);
     return this.adminService.viewAllProducts(query && query);
   }
 
-  // view related products 
+  // view related products
   @Get('related-products')
   viewRelatedProducts(
     @Query('category') category: number,
@@ -883,7 +818,7 @@ export class AdminController {
   // get product by search query
   @Get('search-products')
   async getProductByQuery(@Query('q') searchQuery: string) {
-    console.log('Search Query:', searchQuery);  // Debugging
+    console.log('Search Query:', searchQuery); // Debugging
     const products = await this.adminService.getProductByQuery(searchQuery);
     return products;
   }
@@ -891,7 +826,7 @@ export class AdminController {
   // get product by search query for search bar
   @Get('search-bar-products')
   async getLessProductByQuery(@Query('q') searchQuery: string) {
-    console.log('Search Query:', searchQuery);  // Debugging
+    console.log('Search Query:', searchQuery); // Debugging
     const products = await this.adminService.getLessProductByQuery(searchQuery);
     return products;
   }
@@ -908,94 +843,79 @@ export class AdminController {
     return this.adminService.viewAllProductsViews();
   }
 
-  // get product by id 
+  // get product by id
   @Get('get-product-by-id/:id')
   @UsePipes(ValidationPipe)
-  async getProductById(
-    @Param('id') id,
-  ) {
-    const result = await this.adminService.getProductById(id)
-    return result
+  async getProductById(@Param('id') id) {
+    const result = await this.adminService.getProductById(id);
+    return result;
   }
 
-  // delete product by id  
+  // delete product by id
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Delete('delete-product/:id')
   async deleteProductById(
     @Param('id') id: number,
-    @Query('email') email: string
+    @Query('email') email: string,
   ) {
     console.log(id);
     return this.adminService.deleteProductById(id, email);
   }
 
-  // delete role by id  
+  // delete role by id
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Delete('delete-role/:id')
-  async deleteRoleById(
-    @Param('id') id: number,
-  ) {
+  async deleteRoleById(@Param('id') id: number) {
     console.log(id);
     return this.adminService.deleteRoleById(id);
   }
 
-  // delete product type or sub sub category by id  
+  // delete product type or sub sub category by id
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Delete('delete-product-type/:id')
-  async deleteProductTypeById(
-    @Param('id') id: number,
-  ) {
+  async deleteProductTypeById(@Param('id') id: number) {
     console.log(id);
     return this.adminService.deleteProductTypeById(id);
   }
 
-  // delete category by id  
+  // delete category by id
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Delete('delete-category/:id')
-  async deleteCategoryById(
-    @Param('id') id: number,
-  ) {
+  async deleteCategoryById(@Param('id') id: number) {
     return this.adminService.deleteCategoryById(id);
   }
 
-  // delete sub category by id  
+  // delete sub category by id
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Delete('delete-sub-category/:id')
-  async deleteSubCategoryById(
-    @Param('id') id: number,
-  ) {
+  async deleteSubCategoryById(@Param('id') id: number) {
     return this.adminService.deleteSubCategoryById(id);
   }
 
-  // delete size by id 
+  // delete size by id
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Delete('deleteSize/:id')
   async deleteSizeById(@Param('id', ParseIntPipe) id: number) {
-
     return this.adminService.deleteSizeById(id);
   }
 
-  // add new size 
+  // add new size
   @Post('add-size')
   @UsePipes(ValidationPipe)
-  createNewSize(
-    @Body() myDto,
-  ) {
+  createNewSize(@Body() myDto) {
     return this.adminService.createNewSize(myDto);
   }
 
-  // add new fabric 
+  // add new fabric
   @Post('add-fabric')
   @UsePipes(ValidationPipe)
-  createNewFabric(
-    @Body() myDto,
-  ) {
+  createNewFabric(@Body() myDto) {
     return this.adminService.createNewFabric(myDto);
   }
 
@@ -1003,8 +923,8 @@ export class AdminController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Post('/add-product')
-  @UseInterceptors(FileInterceptor('myfile',
-    {
+  @UseInterceptors(
+    FileInterceptor('myfile', {
       fileFilter: (req, file, cb) => {
         if (file.originalname.match(/^.*\.(jpg|webp|png|jpeg|gif)$/))
           cb(null, true);
@@ -1016,22 +936,23 @@ export class AdminController {
       storage: diskStorage({
         destination: './uploads',
         filename: function (req, file, cb) {
-          cb(null, Date.now() + file.originalname)
+          cb(null, Date.now() + file.originalname);
         },
-      })
-    }
-  ))
-  @UsePipes(new ValidationPipe)
-  addProductFunc(@Body() mydata, @UploadedFile() imageobj: Express.Multer.File) {
+      }),
+    }),
+  )
+  @UsePipes(new ValidationPipe())
+  addProductFunc(
+    @Body() mydata,
+    @UploadedFile() imageobj: Express.Multer.File,
+  ) {
     mydata.filename = imageobj.filename;
     return this.adminService.createNewProduct(mydata);
   }
 
-  // update discount 
+  // update discount
   @Put('update-discount')
-  updateDiscount(
-    @Body() mydata
-  ) {
+  updateDiscount(@Body() mydata) {
     // console.log(mydata, 'md');
     return this.adminService.updateDiscount(mydata);
   }
@@ -1040,8 +961,8 @@ export class AdminController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Post('/add-new-arrivals')
-  @UseInterceptors(FileInterceptor('filename',
-    {
+  @UseInterceptors(
+    FileInterceptor('filename', {
       fileFilter: (req, file, cb) => {
         if (file.originalname.match(/^.*\.(jpg|webp|png|jpeg|gif)$/))
           cb(null, true);
@@ -1053,13 +974,16 @@ export class AdminController {
       storage: diskStorage({
         destination: './uploads',
         filename: function (req, file, cb) {
-          cb(null, Date.now() + file.originalname)
+          cb(null, Date.now() + file.originalname);
         },
-      })
-    }
-  ))
-  @UsePipes(new ValidationPipe)
-  addNewArrivals(@Body() mydata, @UploadedFile() imageobj: Express.Multer.File) {
+      }),
+    }),
+  )
+  @UsePipes(new ValidationPipe())
+  addNewArrivals(
+    @Body() mydata,
+    @UploadedFile() imageobj: Express.Multer.File,
+  ) {
     // console.log(imageobj.filename,mydata);
     mydata.filename = imageobj.filename;
     return this.adminService.addNewArrivals(mydata);
@@ -1069,8 +993,8 @@ export class AdminController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Post('/add-new-pop-up')
-  @UseInterceptors(FileInterceptor('filename',
-    {
+  @UseInterceptors(
+    FileInterceptor('filename', {
       fileFilter: (req, file, cb) => {
         if (file.originalname.match(/^.*\.(jpg|webp|png|jpeg|gif)$/))
           cb(null, true);
@@ -1082,12 +1006,12 @@ export class AdminController {
       storage: diskStorage({
         destination: './uploads',
         filename: function (req, file, cb) {
-          cb(null, Date.now() + file.originalname)
+          cb(null, Date.now() + file.originalname);
         },
-      })
-    }
-  ))
-  @UsePipes(new ValidationPipe)
+      }),
+    }),
+  )
+  @UsePipes(new ValidationPipe())
   addNewPopUp(@Body() mydata, @UploadedFile() imageobj: Express.Multer.File) {
     // console.log(imageobj.filename,mydata);
     console.log('test');
@@ -1095,86 +1019,93 @@ export class AdminController {
     return this.adminService.addNewPopUp(mydata);
   }
 
-  // product pictures add 
+  // product pictures add
   @Post('/add-product-pictures')
-  @UseInterceptors(FilesInterceptor('myfiles', 10, {
-    fileFilter: (req, file, cb) => {
-      if (file.originalname.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
-        cb(null, true);
-      } else {
-        cb(new Error('Unsupported file type'), false);
-      }
-    },
-    storage: diskStorage({
-      destination: './uploads',
-      filename: (req, file, cb) => {
-        const randomName = Array(32)
-          .fill(null)
-          .map(() => Math.round(Math.random() * 16).toString(16))
-          .join('');
-        cb(null, `${randomName}${extname(file.originalname)}`);
+  @UseInterceptors(
+    FilesInterceptor('myfiles', 10, {
+      fileFilter: (req, file, cb) => {
+        if (file.originalname.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Unsupported file type'), false);
+        }
       },
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+          const randomName = Array(32)
+            .fill(null)
+            .map(() => Math.round(Math.random() * 16).toString(16))
+            .join('');
+          cb(null, `${randomName}${extname(file.originalname)}`);
+        },
+      }),
     }),
-  }))
+  )
   async addProductPictures(@UploadedFiles() files, @Body() mydata) {
     // console.log(files,"523");
     // console.log(mydata); // Log other data sent with the request
-    const filenames = files.map(file => file.filename);
+    const filenames = files.map((file) => file.filename);
     // console.log(filenames,"525"); // Log filenames of uploaded files
     mydata.filenames = filenames; // Assuming your service method expects an array of filenames
     return this.adminService.addProductPictures(mydata);
   }
 
+  // update product pictures
   @Post('/update-product-pictures')
-  @UseInterceptors(FilesInterceptor('myfiles', 10, {
-    fileFilter: (req, file, cb) => {
-      if (file.originalname.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
-        cb(null, true);
-      } else {
-        cb(new Error('Unsupported file type'), false);
-      }
-    },
-    storage: diskStorage({
-      destination: './uploads',
-      filename: (req, file, cb) => {
-        const randomName = Array(32)
-          .fill(null)
-          .map(() => Math.round(Math.random() * 16).toString(16))
-          .join('');
-        cb(null, `${randomName}${extname(file.originalname)}`);
+  @UseInterceptors(
+    FilesInterceptor('myfiles', 10, {
+      fileFilter: (req, file, cb) => {
+        if (file.mimetype.match(/^image\/(jpeg|png|gif|webp)$/)) { //bug fix: before it was originalname and not working, now working
+          cb(null, true);
+        } else {
+          cb(new Error('Unsupported file type'), false);
+        }
       },
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+          const randomName = Array(32)
+            .fill(null)
+            .map(() => Math.round(Math.random() * 16).toString(16))
+            .join('');
+          cb(null, `${randomName}${extname(file.originalname)}`);
+        },
+      }),
     }),
-  }))
+  )
   async updateProductPictures(@UploadedFiles() files, @Body() mydata) {
-    // console.log(files,"523");
-    // console.log(mydata); // Log other data sent with the request
-    const filenames = files.map(file => file.filename);
-    // console.log(filenames,"525"); // Log filenames of uploaded files
-    mydata.filenames = filenames; // Assuming your service method expects an array of filenames
+    console.log(files, 'filess');
+    const filenames = files.map((file) => file.filename);
+    mydata.filenames = filenames;
     return this.adminService.updateProductPictures(mydata);
   }
 
-  // update admin profile  
+  // update admin profile
   @Put('/updateProfile')
-  @UseInterceptors(FileInterceptor('filename',
-    {
+  @UseInterceptors(
+    FileInterceptor('filename', {
       storage: diskStorage({
         destination: './uploads',
         filename: function (req, file, cb) {
-          cb(null, Date.now() + file.originalname)
-        }
-      })
-    }))
+          cb(null, Date.now() + file.originalname);
+        },
+      }),
+    }),
+  )
   updateAdmin(
-    @Body() myDto: AdminForm, @UploadedFile(new ParseFilePipe({
-      validators: [
-        new MaxFileSizeValidator({ maxSize: 160000 }),
-        new FileTypeValidator({ fileType: 'png|jpg|jpeg|' }),
-      ],
-    }),) file: Express.Multer.File) {
-
+    @Body() myDto: AdminForm,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 160000 }),
+          new FileTypeValidator({ fileType: 'png|jpg|jpeg|' }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
     return this.adminService.updateAdmin(myDto, myDto.email);
-
   }
 
   // check admin
@@ -1185,21 +1116,20 @@ export class AdminController {
     return { isAdmin: true };
   }
 
-
-  // get wishlist 
+  // get wishlist
   @Get('get-wish-by-user/:email')
   async getWishByUser(@Param('email') email: string) {
     // console.log(email,"572");
     const res = await this.adminService.getWishByUser(email);
     // console.log(res,"574");
-    return res
+    return res;
   }
 
-  // testing 
+  // get image by name
   @Get('/getimage/:name')
   getImages(@Param('name') name, @Res() res) {
     // console.log(name,"568");
-    res.sendFile(name, { root: './uploads' })
+    res.sendFile(name, { root: './uploads' });
   }
-
 }
+ 

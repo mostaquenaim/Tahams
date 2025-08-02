@@ -1,5 +1,14 @@
 /* eslint-disable prettier/prettier */
-import { BadRequestException, ForbiddenException, HttpException, HttpStatus, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, In, Like } from 'typeorm';
 import { AdminForm } from '../DTOs/adminform.dto';
@@ -9,7 +18,7 @@ import { UserEntity } from 'src/Global/Entities/user.entity';
 import { ProductEntity } from 'src/Global/Entities/product.entity';
 import { BannerEntity } from 'src/Global/Entities/banner.entity';
 import * as bcrypt from 'bcrypt';
-import { MailerService } from "@nestjs-modules/mailer/dist";
+import { MailerService } from '@nestjs-modules/mailer/dist';
 import { CategoryEntity } from 'src/Global/Entities/category.entity';
 import { SizeEntity } from 'src/Global/Entities/size.entity';
 import { SubCategoryEntity } from 'src/Global/Entities/subCategory.entity';
@@ -40,10 +49,12 @@ import { ActivePopUpEntity } from 'src/Global/Entities/active-pop-up.entity';
 import { JwtService } from '@nestjs/jwt';
 import { BlacklistToken } from 'src/Global/Entities/blacklist-token.entity';
 import { RoleEntity } from 'src/Global/Entities/roles.entity';
+import * as sharp from 'sharp';
+import * as path from 'path';
+import * as fs from 'fs';
 
 @Injectable()
 export class AdminService {
-
   constructor(
     private jwtService: JwtService,
     private mailerService: MailerService,
@@ -140,46 +151,49 @@ export class AdminService {
 
     @InjectRepository(BlacklistToken)
     private blackListRepo: Repository<BlacklistToken>,
-  ) { }
+  ) {}
 
   async addBanner(myDto) {
     return this.bannerRepo.save(myDto);
   }
 
-  // add payment info 
+  // add payment info
   async addPaymentInfo(myDto) {
     // console.log(myDto, 'payment')
 
     // Get the buying history associated with the token and customer
-    const cart = await this.getBuyingHistoryByToken(myDto.history, myDto.customer);
+    const cart = await this.getBuyingHistoryByToken(
+      myDto.history,
+      myDto.customer,
+    );
     const history = cart[0].history;
 
-
-    const paymentMethod = await this.getPaymentMethodById(myDto.paymentMethod)
-    history.paymentMethod = paymentMethod
+    const paymentMethod = await this.getPaymentMethodById(myDto.paymentMethod);
+    history.paymentMethod = paymentMethod;
 
     // Mark the payment as done unless it's 'Cash on Delivery' or 'Pick-Up Point'
     if (myDto.paymentMethod == '1' || myDto.paymentMethod == '8') {
-      history.PaymentDetails = paymentMethod.name
+      history.PaymentDetails = paymentMethod.name;
     } else {
       history.PaymentDone = true;
-      history.screenshot = myDto.screenshot
-      history.PaymentDetails =
-        `
+      history.screenshot = myDto.screenshot;
+      history.PaymentDetails = `
       Payment by: ${paymentMethod.name} \n
       Account number: ${myDto.accountNumber}
-      `
+      `;
     }
 
     // Save the updated history back to the database
     await this.buyingHistoryRepo.save(history);
   }
 
-  // create user 
+  // create user
   async createUser(myDto) {
     try {
       // Check if email is already in use
-      const existingUser = await this.userRepo.findOne({ where: { email: myDto.email } });
+      const existingUser = await this.userRepo.findOne({
+        where: { email: myDto.email },
+      });
       if (existingUser) {
         return {
           status: HttpStatus.CONFLICT,
@@ -202,7 +216,7 @@ export class AdminService {
         email: savedUser.email,
         sub: savedUser.id,
         role: savedUser.role,
-        jti
+        jti,
       };
 
       const { password, ...userWithoutPassword } = savedUser;
@@ -223,15 +237,14 @@ export class AdminService {
     }
   }
 
-  // create new role 
+  // create new role
   async createNewRole(myDto: { name: string }) {
     try {
-      const existing = await this.roleRepo.findOne({ where: { name: myDto.name.toLowerCase() } });
+      const existing = await this.roleRepo.findOne({
+        where: { name: myDto.name.toLowerCase() },
+      });
       if (existing) {
-        return {
-          status: HttpStatus.CONFLICT,
-          message: 'Role already exists',
-        };
+        return { status: HttpStatus.CONFLICT, message: 'Role already exists' };
       }
 
       const newRole = this.roleRepo.create({ name: myDto.name.toLowerCase() });
@@ -241,7 +254,7 @@ export class AdminService {
         status: HttpStatus.CREATED,
         message: 'Role created successfully',
         data: newRole,
-      }
+      };
     } catch (error) {
       return {
         status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -274,18 +287,20 @@ export class AdminService {
   }
 
   async checkEmailAndSendOTP(email: string) {
-    const user = await this.getUserByEmail(email)
+    const user = await this.getUserByEmail(email);
     if (!user) {
-      const result = await this.sendOtp(email)
-      return result
+      const result = await this.sendOtp(email);
+      return result;
+    } else {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        message: 'Email already exists',
+        data: null,
+      };
     }
-    else {
-      return { status: HttpStatus.BAD_REQUEST, message: 'Email already exists', data: null }
-    }
-
   }
 
-  // send otp 
+  // send otp
   async sendOtp(email: string) {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date();
@@ -303,10 +318,10 @@ export class AdminService {
       text: `Your OTP code is ${otp}. It is valid for 10 minutes.`,
     });
 
-    return { success: true, message: 'OTP sent' }
+    return { success: true, message: 'OTP sent' };
   }
 
-  // verify otp 
+  // verify otp
   async verifyOtp(email: string, otp: string) {
     const otpData = await this.otpRepository.findOne({ where: { email, otp } });
     console.log(otpData, 'otpdd');
@@ -318,7 +333,8 @@ export class AdminService {
 
     const currentTime = new Date();
     const otpCreationTime = new Date(otpData.createdAt);
-    const timeDifference = (currentTime.getTime() - otpCreationTime.getTime()) / (1000 * 60); // Time difference in minutes
+    const timeDifference =
+      (currentTime.getTime() - otpCreationTime.getTime()) / (1000 * 60); // Time difference in minutes
 
     if (otpData.otp !== otp || timeDifference > 10) {
       console.log('otp error');
@@ -326,27 +342,32 @@ export class AdminService {
     }
 
     await this.otpRepository.delete({ email });
-    return { success: true, message: 'OTP verified successfully' }
+    return { success: true, message: 'OTP verified successfully' };
   }
 
-  // admin login 
+  // admin login
   async signIn(myDto) {
     try {
-      const myData = await this.userRepo.findOne({ where: { email: myDto.email } });
+      const myData = await this.userRepo.findOne({
+        where: { email: myDto.email },
+      });
 
       const jti = uuidv4();
       const payload = {
         email: myData.email,
         sub: myData.id,
         role: myData.role,
-        jti
+        jti,
       };
 
       if (!myData) {
         return { status: HttpStatus.NOT_FOUND, message: 'User not found' };
       }
 
-      const isPasswordValid = await bcrypt.compare(myDto.password, myData.password);
+      const isPasswordValid = await bcrypt.compare(
+        myDto.password,
+        myData.password,
+      );
 
       if (isPasswordValid) {
         if (myData.loggedInWith === 'Google') {
@@ -363,11 +384,14 @@ export class AdminService {
           message: 'Login successful',
           access_token: this.jwtService.sign(payload),
           jti,
-          data: myData
+          data: myData,
         };
       }
 
-      if (myData.loggedInWith === 'Google' || myDto.password === process.env.GOOGLE_PASS) {
+      if (
+        myData.loggedInWith === 'Google' ||
+        myDto.password === process.env.GOOGLE_PASS
+      ) {
         console.log('google');
         // console.log('object =', this.jwtService.sign(payload));
         return {
@@ -375,7 +399,7 @@ export class AdminService {
           message: 'Login with google successful',
           access_token: this.jwtService.sign(payload),
           jti,
-          data: myData
+          data: myData,
         };
       }
 
@@ -404,8 +428,10 @@ export class AdminService {
     return token && token.expiry > Date.now(); // Token expired check
   }
 
-  // check email 
-  async checkEmail(email: string): Promise<{ status: HttpStatus; message: string }> {
+  // check email
+  async checkEmail(
+    email: string,
+  ): Promise<{ status: HttpStatus; message: string }> {
     const existingUser = await this.userRepo.findOne({ where: { email } });
 
     if (!existingUser) {
@@ -420,7 +446,7 @@ export class AdminService {
     return { status: HttpStatus.OK, message: 'Email updated successfully' };
   }
 
-  // update admin profile 
+  // update admin profile
   async updateAdmin(myDto: AdminForm, email: string) {
     try {
       const result = await this.adminRepo.update({ email: email }, myDto);
@@ -436,7 +462,7 @@ export class AdminService {
     }
   }
 
-  // publish product 
+  // publish product
   async publishProduct(id: number, publishable: boolean): Promise<void> {
     const product = await this.productRepo.findOneBy({ id });
 
@@ -448,15 +474,14 @@ export class AdminService {
     await this.productRepo.save(product);
   }
 
-  // delete banner  
+  // delete banner
   async deleteBanner(id: number) {
     const myData = await this.bannerRepo.findOneBy({ id });
-    if (myData)
-      return this.bannerRepo.delete(myData);
-    throw new NotFoundException(`Banner with ID ${id} not found.`);;
+    if (myData) return this.bannerRepo.delete(myData);
+    throw new NotFoundException(`Banner with ID ${id} not found.`);
   }
 
-  // delete a cart item  
+  // delete a cart item
   async deleteCartItem(id: string) {
     const myData = await this.cartRepo.findOneBy({ uniqueId: id });
     // console.log(myData, "169");
@@ -464,14 +489,14 @@ export class AdminService {
       // console.log(myData, "171");
       return this.cartRepo.delete(myData.id);
     }
-    throw new NotFoundException(`Banner with ID ${id} not found.`);;
+    throw new NotFoundException(`Banner with ID ${id} not found.`);
   }
 
-  // delete a history  
+  // delete a history
   async deleteHistory(id: string, email: string) {
     // Check if the user is an admin
     const user = await this.userRepo.findOne({
-      where: { email, role: 'admin' }
+      where: { email, role: 'admin' },
     });
 
     if (!user) {
@@ -479,7 +504,9 @@ export class AdminService {
     }
 
     // Find the cart entry by unique ID
-    const historyEntry = await this.buyingHistoryRepo.findOneBy({ trackingToken: id });
+    const historyEntry = await this.buyingHistoryRepo.findOneBy({
+      trackingToken: id,
+    });
 
     // console.log(historyEntry);
 
@@ -488,17 +515,17 @@ export class AdminService {
     }
 
     // Delete the cart entry / make draft
-    historyEntry.isDraft = true
-    const res = await this.buyingHistoryRepo.save(historyEntry)
+    historyEntry.isDraft = true;
+    const res = await this.buyingHistoryRepo.save(historyEntry);
     return res;
   }
 
-  // delete carts  
+  // delete carts
   async deleteCarts(cartArray: string[]) {
     try {
       // Find all carts with unique IDs in the provided array
       // const cartsToDelete = await this.cartRepo.find({ where: { uniqueId: In(cartArray) }});
-      const deletionResult = await this.cartRepo.delete({ id: In(cartArray) })
+      const deletionResult = await this.cartRepo.delete({ id: In(cartArray) });
       return deletionResult;
 
       // if (cartsToDelete.length > 0) {
@@ -513,7 +540,7 @@ export class AdminService {
     }
   }
 
-  // view all product 
+  // view all product
   async viewAllProducts(filters: any) {
     try {
       const products = await this.productRepo
@@ -559,7 +586,7 @@ export class AdminService {
     }
   }
 
-  // get product by query 
+  // get product by query
   async getProductByQuery(searchQuery: string) {
     try {
       const products = await this.productRepo
@@ -570,7 +597,9 @@ export class AdminService {
         .leftJoinAndSelect('product.pscs', 'psc')
         .leftJoinAndSelect('psc.category', 'subSubCategory')
         .leftJoinAndSelect('psc.size', 'size')
-        .where('product.name ILIKE :searchQuery', { searchQuery: `%${searchQuery}%` }) // Case-insensitive search
+        .where('product.name ILIKE :searchQuery', {
+          searchQuery: `%${searchQuery}%`,
+        }) // Case-insensitive search
         .getMany();
 
       return products;
@@ -580,12 +609,14 @@ export class AdminService {
     }
   }
 
-  // get product by query 
+  // get product by query
   async getLessProductByQuery(searchQuery: string) {
     try {
       const products = await this.productRepo
         .createQueryBuilder('product')
-        .where('product.name ILIKE :searchQuery', { searchQuery: `%${searchQuery}%` }) // Case-insensitive search
+        .where('product.name ILIKE :searchQuery', {
+          searchQuery: `%${searchQuery}%`,
+        }) // Case-insensitive search
         .limit(3)
         .getMany();
 
@@ -596,17 +627,17 @@ export class AdminService {
     }
   }
 
-  // view all buying histories 
+  // view all buying histories
   async getAllBuyingHistories(email: string) {
     if (email) {
       // console.log('in');
-      const user = await this.getUserByEmail(email)
+      const user = await this.getUserByEmail(email);
       // console.log('user',user,'user');
       const cartsWithHistory = await this.cartRepo.find({
         where: {
           ...(user.role != 'admin' && { customer: { email: email } }),
           // isBought: true || false
-          isBought: true
+          isBought: true,
         },
         relations: [
           'history',
@@ -616,7 +647,7 @@ export class AdminService {
           'product',
           'category',
           'category.category',
-          'category.category.category'
+          'category.category.category',
         ],
       });
 
@@ -626,21 +657,21 @@ export class AdminService {
     throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
   }
 
-  // view all users / customers info 
+  // view all users / customers info
   async getAllUsers() {
     return this.userRepo.find();
   }
 
-  // view all roles 
+  // view all roles
   async getAllRoles() {
     return this.roleRepo.find();
   }
 
-  // get history by id 
+  // get history by id
   async getBuyingHistoryByToken(token: string, email: string) {
     if (email) {
       // console.log('in');
-      const user = await this.getUserByEmail(email)
+      const user = await this.getUserByEmail(email);
       // console.log('user',user,'user');
       const cartsWithHistory = await this.cartRepo.find({
         where: {
@@ -656,7 +687,7 @@ export class AdminService {
           'product',
           'category',
           'category.category',
-          'category.category.category'
+          'category.category.category',
         ],
       });
 
@@ -669,18 +700,12 @@ export class AdminService {
   async getBuyingHistoryStatusByToken(token: string) {
     // console.log(token);
     const query = {
-      where: {
-        trackingToken: token,
-      },
-      relations: [
-        'deliveryStatus',
-        'paymentMethod',
-      ]
-    }
+      where: { trackingToken: token },
+      relations: ['deliveryStatus', 'paymentMethod'],
+    };
 
     try {
-      const cartsWithHistory = await this.buyingHistoryRepo.findOne(query
-      );
+      const cartsWithHistory = await this.buyingHistoryRepo.findOne(query);
       return cartsWithHistory;
     } catch (error) {
       // Handle error logging or other error handling mechanisms
@@ -689,38 +714,38 @@ export class AdminService {
     }
   }
 
-  // view all coupons 
+  // view all coupons
   async getAllCoupons() {
     const coupons = await this.couponRepo.find();
     return coupons;
   }
 
-  // get all delivery status 
+  // get all delivery status
   async getAllDeliveryStatus() {
     const statuses = await this.deliveryStatusRepo.find();
     return statuses;
   }
 
-  // get all payment methods 
+  // get all payment methods
   async getAllPaymentMethod() {
     const methods = await this.paymentMethodRepo.find();
     return methods;
   }
 
-  // view particular coupon 
+  // view particular coupon
   async getParticularCoupon(id) {
     const coupon = await this.couponRepo.findOne(id);
-    return coupon
+    return coupon;
   }
 
-  // disable coupon 
+  // disable coupon
   async disableCoupon(id) {
-    const coupon = await this.getParticularCoupon(id)
-    coupon.isEnable = false
-    await this.couponRepo.save(coupon)
+    const coupon = await this.getParticularCoupon(id);
+    coupon.isEnable = false;
+    await this.couponRepo.save(coupon);
   }
 
-  // disable sub category 
+  // disable sub category
   async disableSubSubCategory(id: number) {
     const category = await this.subCategoryRepo.findOne({ where: { id } });
 
@@ -728,11 +753,13 @@ export class AdminService {
       throw new NotFoundException('Sub-category not found');
     }
 
-    category.isDisabled ? category.isDisabled = false : category.isDisabled = true;
+    category.isDisabled
+      ? (category.isDisabled = false)
+      : (category.isDisabled = true);
     return this.subCategoryRepo.save(category);
   }
 
-  // view all carts 
+  // view all carts
   async getAllCarts(email: string) {
     if (!email) {
       throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
@@ -743,61 +770,59 @@ export class AdminService {
 
     // console.log(isAdmin);
 
+    // const allCarts = await this.cartRepo.find()
+    // console.log('allCarts',allCarts,'allCarts');
+
     const cartsWithHistory = await this.cartRepo.find({
-      where: {
-        ...(isAdmin ? {} : { customer: { email } }),
-      },
+      where: { ...(isAdmin ? {} : { customer: { email } }) },
       relations: [
         'product',
         'coupon',
         'category',
         'category.category',
-        'category.category.category'
-      ]
+        'category.category.category',
+      ],
     });
+
+    // console.log('cartsWithHistory',cartsWithHistory,'cartsWithHistory');
 
     // console.log(cartsWithHistory, "259");
     return cartsWithHistory;
   }
 
-  // view all product 
+  // view all product
   async viewAllBanners() {
     const options: FindManyOptions<BannerEntity> = {};
     const banners = await this.bannerRepo.find(options);
     return banners;
   }
 
-  // view all colors 
+  // view all colors
   async viewColors() {
     const options: FindManyOptions<ColorEntity> = {};
     const colors = await this.colorRepo.find(options);
     return colors;
   }
 
-  // view all fabrics 
+  // view all fabrics
   async viewFabrics() {
     const options: FindManyOptions<FabricEntity> = {};
     const fabrics = await this.fabricRepo.find(options);
     return fabrics;
   }
 
-  // view product category 
+  // view product category
   async viewProductCategories() {
     const options: FindManyOptions<CategoryEntity> = {};
     const categories = await this.categoryRepo.find(options);
     return categories;
   }
 
-  // view popular items 
+  // view popular items
   async viewPopularItems() {
     return await this.productRepo.find({
       order: { salesCount: 'DESC' },
-      relations: [
-        'productPictures',
-        'pscs',
-        'pscs.category',
-        'pscs.size',
-      ],
+      relations: ['productPictures', 'pscs', 'pscs.category', 'pscs.size'],
       take: 12,
     });
   }
@@ -813,12 +838,10 @@ export class AdminService {
 
   // view active pop up
   async viewActivePopUp() {
-    const activePop = await this.activePopRepo.find(
-      {
-        take: 1,
-        relations: ['popup']
-      }
-    );
+    const activePop = await this.activePopRepo.find({
+      take: 1,
+      relations: ['popup'],
+    });
 
     // console.log(activePop, 'acc');
     return activePop.length > 0 && activePop[0]?.popup;
@@ -832,7 +855,7 @@ export class AdminService {
     return popUps;
   }
 
-  // view genders 
+  // view genders
   async viewGenders() {
     const options: FindManyOptions<GenderEntity> = {};
     const genders = await this.genderRepo.find(options);
@@ -857,7 +880,7 @@ export class AdminService {
     return requests;
   }
 
-  // view product sub sub category 
+  // view product sub sub category
   async viewAllProductSubSubCategories() {
     // const options: FindManyOptions<SubSubCategoryEntity> = {};
     const subCategories = await this.subSubCategoryRepo.find({
@@ -866,7 +889,7 @@ export class AdminService {
     return subCategories;
   }
 
-  // view product sub category 
+  // view product sub category
   async viewAllProductSubCategories() {
     const subCategories = await this.subCategoryRepo.find({
       relations: ['category'],
@@ -874,19 +897,23 @@ export class AdminService {
     return subCategories;
   }
 
-  // view product sub-category 
+  // view product sub-category
   async viewProductSubCategories(id: number) {
-    const subCats = await this.subCategoryRepo.find({ where: { category: { id: id } } })
+    const subCats = await this.subCategoryRepo.find({
+      where: { category: { id: id } },
+    });
     return subCats;
   }
 
-  // view product sub sub-category 
+  // view product sub sub-category
   async viewProductSubSubCategories(id: number) {
-    const subCats = await this.subSubCategoryRepo.find({ where: { category: { id: id } } })
+    const subCats = await this.subSubCategoryRepo.find({
+      where: { category: { id: id } },
+    });
     return subCats;
   }
 
-  // view product size 
+  // view product size
   async viewProductSizes() {
     const options: FindManyOptions<SizeEntity> = {};
     const sizes = await this.sizeRepo.find(options);
@@ -900,7 +927,7 @@ export class AdminService {
     return views;
   }
 
-  // sync view count 
+  // sync view count
   async syncViewCount() {
     try {
       // Step 1: Fetch all products
@@ -912,9 +939,9 @@ export class AdminService {
 
         // Aggregate total views from the view_product table
         const result = await this.viewRepo
-          .createQueryBuilder("view_product")
-          .select("SUM(view_product.count)", "totalViews")
-          .where("view_product.productId = :productId", { productId })
+          .createQueryBuilder('view_product')
+          .select('SUM(view_product.count)', 'totalViews')
+          .where('view_product.productId = :productId', { productId })
           .getRawOne();
 
         const totalViews = parseInt(result.totalViews || 0, 10);
@@ -923,14 +950,14 @@ export class AdminService {
         return await this.productRepo.update(productId, { totalViews });
       }
 
-      console.log("View counts synced successfully");
+      console.log('View counts synced successfully');
     } catch (error) {
-      console.error("Error syncing view counts:", error.message);
+      console.error('Error syncing view counts:', error.message);
       throw error;
     }
   }
 
-  // sync sales count 
+  // sync sales count
   async syncSalesCount() {
     try {
       // Step 1: Get all bought carts
@@ -955,32 +982,31 @@ export class AdminService {
         await this.productRepo.update(productId, { salesCount: count });
       }
 
-      return carts
-
+      return carts;
     } catch (error) {
       console.error('Error syncing sales counts:', error.message);
       throw error;
     }
   }
 
-  // get category by name 
+  // get category by name
   async getCategoryByName(name) {
     return await this.categoryRepo.findOneBy({ name: name });
   }
 
-  // get sub category by name 
+  // get sub category by name
   async getSubCategoryById(id) {
     return await this.subCategoryRepo.findOneBy({ id: id });
   }
 
-  // get sub cat by id 
+  // get sub cat by id
   async getSubSubCategoryById(id) {
     return await this.subSubCategoryRepo.findOneBy({ id });
   }
 
-  // check if wished 
+  // check if wished
   async checkIfWished(productId, customerEmail) {
-    console.log(productId, customerEmail, "okk");
+    console.log(productId, customerEmail, 'okk');
 
     // const getAllWish = await this.wishRepo.find(
     //   {
@@ -994,111 +1020,108 @@ export class AdminService {
     // console.log(getAllWish,'getAllWish');
 
     const wished = await this.wishRepo.findOne({
-      where: {
-        product: { id: productId },
-        customer: { email: customerEmail },
-      },
+      where: { product: { id: productId }, customer: { email: customerEmail } },
     });
 
     // console.log(wished,'wished');
 
-    return {
-      isWished: wished ? true : false,
-      wished
-    };
+    return { isWished: wished ? true : false, wished };
   }
 
-  // get featured image by product id 
+  // get featured image by product id
   async getProductFtImage(productId) {
     const result = await this.productPicRepo.findOne({
-      where: {
-        isThumbnail: true,
-        product: {
-          id: productId,
-        },
-      },
+      where: { isThumbnail: true, product: { id: productId } },
       // relations: ['color'],
     });
-    return result
+    return result;
   }
 
-  // get category by id 
+  // get category by id
   async getBannerById(id) {
     return await this.bannerRepo.findOneBy({ id });
   }
 
-  // get size by id 
+  // get size by id
   async getSizeById(id) {
     return await this.sizeRepo.findOneBy({ id });
   }
 
-  // get size by name 
+  // get size by name
   async getSizeByName(name: string) {
     return await this.sizeRepo.findOneBy({ name });
   }
 
-  // get cart by id 
+  // get cart by id
   async getCartById(id) {
     return await this.cartRepo.findOneBy({ id });
   }
 
-  // get Product by id 
+  // get Product by id
   async getPaymentMethodById(id) {
     return await this.paymentMethodRepo.findOneBy({ id });
   }
 
-  // get color by id 
+  // get color by id
   async getColorById(id) {
     return await this.colorRepo.findOneBy({ id });
   }
 
-  // get customer by id 
+  // get customer by id
   async getCustomerById(id) {
     return await this.userRepo.findOneBy({ uniqueId: id });
   }
 
-  // get customer by email 
+  // get customer by email
   async getUserByEmail(email) {
     return await this.userRepo.findOneBy({ email: email });
   }
 
-  // get color by name 
+  // get color by name
   async getColorByName(name: string) {
     return await this.colorRepo.findOneBy({ name: name });
   }
 
-  // get customer by id 
+  // get customer by id
   async getDeliveryStatusById(id) {
     return await this.deliveryStatusRepo.findOneBy({ id });
   }
 
-  // get coupon by id 
+  // get coupon by id
   async getCouponById(id) {
     return await this.couponRepo.findOneBy({ id });
   }
 
-  // get Product by category id 
+  // get Product by category id
   async getProductByCat(name) {
     //get all the products where category name == name
     const products = await this.productRepo.find({
       where: {
-        pscs: {
-          category: { category: { category: { name } } }
-        },
-        publishable: true
+        pscs: { category: { category: { category: { name } } } },
+        publishable: true,
       },
-      relations: ['color', 'fabric', 'productPictures', 'pscs', 'pscs.category', 'pscs.category.category.category', 'pscs.size']
+      relations: [
+        'color',
+        'fabric',
+        'productPictures',
+        'pscs',
+        'pscs.category',
+        'pscs.category.category.category',
+        'pscs.size',
+      ],
     });
 
     // console.log(products);
-    return products
+    return products;
   }
 
-  // get publishabe products 
+  // get publishabe products
   async getPublishableProductsBySubSubCatId(subCategoryId) {
     try {
       const products = await this.getProductBySubSubCatId(subCategoryId);
-      const publishableProducts = products.filter(product => product.publishable);
+      const publishableProducts = products.filter(
+        (product) => product.publishable,
+      );
 
       // console.log(products, 'break', publishableProducts);
       return publishableProducts;
@@ -1108,7 +1131,7 @@ export class AdminService {
     }
   }
 
-  // get Product by sub sub category id 
+  // get Product by sub sub category id
   async getProductBySubSubCatId(subCategoryId) {
     try {
       const products = await this.productRepo
@@ -1136,11 +1159,19 @@ export class AdminService {
     // console.log(id, 'id');
     return await this.productRepo.findOne({
       where: { id },
-      relations: ['color', 'fabric', 'productPictures', 'pscs', 'pscs.category', 'pscs.category.category.category', 'pscs.size']
+      relations: [
+        'color',
+        'fabric',
+        'productPictures',
+        'pscs',
+        'pscs.category',
+        'pscs.category.category.category',
+        'pscs.size',
+      ],
     });
   }
 
-  // update category by id 
+  // update category by id
   async updateCategory(id: number, category) {
     const user = await this.categoryRepo.findOneBy({ id });
     if (!user) {
@@ -1149,7 +1180,7 @@ export class AdminService {
     await this.categoryRepo.update(id, { ...category });
   }
 
-  // update sub category by id 
+  // update sub category by id
   async updateSubCategory(id: number, category) {
     const user = await this.subCategoryRepo.findOneBy({ id });
     if (!user) {
@@ -1158,7 +1189,7 @@ export class AdminService {
     await this.subCategoryRepo.update(id, { ...category });
   }
 
-  // update product type name 
+  // update product type name
   async updateProductTypeName(id: number, myDto: { name: string }) {
     const existing = await this.subSubCategoryRepo.findOne({
       where: { id: Number(id) },
@@ -1170,11 +1201,11 @@ export class AdminService {
 
     return this.subSubCategoryRepo.update(
       { id: Number(id) },
-      { name: myDto.name }
+      { name: myDto.name },
     );
   }
 
-  // update category by id 
+  // update category by id
   async updateActivePop(id: number) {
     // 1. Find the popup you want to make active
     const popup = await this.popUpRepo.findOneBy({ id });
@@ -1182,13 +1213,13 @@ export class AdminService {
       throw new NotFoundException(`Popup with ID ${id} not found.`);
     }
 
-    popup.isActive = true
-    await this.popUpRepo.save(popup)
+    popup.isActive = true;
+    await this.popUpRepo.save(popup);
 
     // 2. Get the current active popup (first record)
     const [activePop] = await this.activePopRepo.find({
       take: 1,
-      relations: ['popup'] // This ensures the related PopUpEntity is loaded
+      relations: ['popup'], // This ensures the related PopUpEntity is loaded
     });
 
     if (!activePop) {
@@ -1197,26 +1228,24 @@ export class AdminService {
       return await this.activePopRepo.save(newActivePop);
     }
 
-    activePop.popup.isActive = false
-    await this.popUpRepo.save(activePop.popup)
+    activePop.popup.isActive = false;
+    await this.popUpRepo.save(activePop.popup);
 
     // 3. Update the relationship (not the properties)
     activePop.popup = popup;
     return await this.activePopRepo.save(activePop);
   }
 
-  // update sub sub category by id 
+  // update sub sub category by id
   async updateSubSubCategory(id: number, filename: string) {
-    const res = await this.subSubCategoryRepo.update(id, {
-      filename
-    });
+    const res = await this.subSubCategoryRepo.update(id, { filename });
 
     // console.log(res);
 
-    return res
+    return res;
   }
 
-  // update user address 
+  // update user address
   async updateUserAddress(userId: number, updateAddressDto) {
     const user = await this.userRepo.findOne({ where: { id: userId } });
 
@@ -1224,17 +1253,17 @@ export class AdminService {
       throw new NotFoundException(`User with ID ${userId} not found.`);
     }
 
-    user.name = updateAddressDto?.name || user.name
-    user.city = updateAddressDto?.city || user.city
-    user.region = updateAddressDto?.region || user.region
+    user.name = updateAddressDto?.name || user.name;
+    user.city = updateAddressDto?.city || user.city;
+    user.region = updateAddressDto?.region || user.region;
     // user.postal_code = updateAddressDto?.postal_code
-    user.address = updateAddressDto?.address || user.address
-    user.mbl_no = updateAddressDto?.mbl_no || user.mbl_no
+    user.address = updateAddressDto?.address || user.address;
+    user.mbl_no = updateAddressDto?.mbl_no || user.mbl_no;
 
     return await this.userRepo.save(user);
   }
 
-  // update banner by id 
+  // update banner by id
   async updateBanner(id: number, bannerDto) {
     const banner = await this.bannerRepo.findOneBy({ id });
     if (!banner) {
@@ -1243,7 +1272,7 @@ export class AdminService {
     await this.bannerRepo.update(id, { ...bannerDto });
   }
 
-  // update buying by id 
+  // update buying by id
   async updateBuyingHistory(token: string, updates: any, email: string) {
     // console.log(updates);
     const user = await this.userRepo.findOneBy({ email });
@@ -1256,7 +1285,9 @@ export class AdminService {
       throw new ForbiddenException(`Only admins can update buying history.`);
     }
 
-    const history = await this.buyingHistoryRepo.findOneBy({ trackingToken: token });
+    const history = await this.buyingHistoryRepo.findOneBy({
+      trackingToken: token,
+    });
 
     if (!history) {
       throw new NotFoundException(`Buying history not found.`);
@@ -1269,7 +1300,7 @@ export class AdminService {
     return result;
   }
 
-  // update role by id 
+  // update role by id
   async updateRoleById(id: number, dto) {
     try {
       const role = await this.roleRepo.findOne({ where: { id } });
@@ -1283,7 +1314,10 @@ export class AdminService {
         where: { name: dto.name.toLowerCase() },
       });
       if (existing && existing.id !== role.id) {
-        throw new HttpException('Role name already in use', HttpStatus.CONFLICT);
+        throw new HttpException(
+          'Role name already in use',
+          HttpStatus.CONFLICT,
+        );
       }
 
       role.name = dto.name.toLowerCase();
@@ -1302,13 +1336,13 @@ export class AdminService {
     }
   }
 
-  // approve req 
+  // approve req
   async updateApproveReq(id: number) {
     // Find the entity by id
     const entity = await this.returnRepo.findOne({
       where: { id },
-      relations: ['cart']
-    })
+      relations: ['cart'],
+    });
 
     // console.log(entity);
 
@@ -1321,105 +1355,106 @@ export class AdminService {
     // Update the isApproved field to true
     entity.isApproved = true;
 
-    await this.cartRepo.save(entity.cart)
+    await this.cartRepo.save(entity.cart);
     // Save the updated entity back to the database
     const res = await this.returnRepo.save(entity);
 
     console.log(`Entity with id ${id} updated to isApproved: true`);
 
-    return res
+    return res;
   }
 
-  // update product 
-  async updateProduct(
-    id: number,
-    updateProductDto: any,
-    filename: any,
-  ) {
-    // console.log(updateProductDto);
-    // Find the product with its related 'pscs' and 'size' relations
-    const productObj = await this.productRepo.findOne({
-      where: { id },
-      relations: ['pscs', 'pscs.size', 'pscs.category'],
-    });
+  // update product
+ async updateProduct(id: number, updateProductDto: any, filename: any) {
+  const productObj = await this.productRepo.findOne({
+    where: { id },
+    relations: ['pscs', 'pscs.size', 'pscs.category'],
+  });
 
-    if (!productObj) {
-      throw new NotFoundException(`Product with ID ${id} not found.`);
-    }
-
-    // color 
-    if (updateProductDto.colorCode) {
-      const color = await this.colorRepo.findOne({ where: { colorCode: updateProductDto.colorCode } })
-      productObj.color = color
-    }
-
-    updateProductDto.ifStock == 'true'
-      ? updateProductDto.ifStock = true
-      : updateProductDto.ifStock = false
-
-    // Update the product entity itself
-    Object.assign(productObj, updateProductDto);
-
-    // Update the filename if provided
-    if (filename) {
-      productObj.filename = filename.filename;
-    }
-
-    // Save the updated product entity
-    const savedProduct = await this.productRepo.save(productObj);
-
-    // extract catsinfo 
-    const catsInfoArray = JSON.parse(updateProductDto.catsInfo)
-
-    // update part 
-    const processedCatsInfo = [];
-    let previousCategory = null;
-
-    catsInfoArray.forEach(item => {
-      if (!Array.isArray(item)) {
-        previousCategory = { categoryId: item, sizes: [] };
-        processedCatsInfo.push(previousCategory);
-      } else {
-        const size = { sizeId: item[0], quantity: item[1] || 0 };
-        previousCategory.sizes.push(size);
-      }
-    });
-
-    await this.productSizeCategoryRepo.delete({ product: productObj });
-
-    // Loop through the processedCatsInfo array to add new pcsc objects
-    for (const item of processedCatsInfo) {
-      const catInfoItem = new ProductSizeCategoryEntity();
-
-      // Associate the product and category with the new pcsc object
-      catInfoItem.product = productObj;
-      catInfoItem.category = await this.subSubCategoryRepo.findOne({ where: { id: item.categoryId } });
-
-      if (item.sizes.length <= 0) {
-        // If no sizes, save the pcsc object without size
-        await this.productSizeCategoryRepo.save(catInfoItem);
-      } else {
-        for (const sizeItem of item.sizes) {
-          // Fetch size if sizeId exists, otherwise set it to null
-          const sizeObject = sizeItem.sizeId ? await this.getSizeById(sizeItem.sizeId) : null;
-
-          // Create a new instance for the size-specific pcsc object
-          const newCatInfoItem = new ProductSizeCategoryEntity();
-          newCatInfoItem.product = productObj;
-          newCatInfoItem.category = catInfoItem.category;
-          newCatInfoItem.size = sizeObject;
-          newCatInfoItem.quantity = sizeItem.quantity;
-
-          // Save the size-specific pcsc object
-          await this.productSizeCategoryRepo.save(newCatInfoItem);
-        }
-      }
-    }
-
-    return savedProduct
+  if (!productObj) {
+    throw new NotFoundException(`Product with ID ${id} not found.`);
   }
 
-  // shuffle category serial 
+  // ✅ Update color
+  if (updateProductDto.colorCode) {
+    const color = await this.colorRepo.findOne({
+      where: { colorCode: updateProductDto.colorCode },
+    });
+    productObj.color = color;
+  }
+
+  updateProductDto.ifStock == 'true'
+    ? (updateProductDto.ifStock = true)
+    : (updateProductDto.ifStock = false);
+
+  Object.assign(productObj, updateProductDto);
+
+  // ✅ If new file is uploaded
+  if (filename) {
+    const originalFileName = filename.filename;
+    productObj.filename = originalFileName;
+
+    const inputPath = path.join('uploads', originalFileName);
+    const outputPath = path.join(
+      'uploads',
+      'thumb',
+      originalFileName.replace(path.extname(originalFileName), '.webp'),
+    );
+
+    await this.compressImage(inputPath, outputPath);
+  }
+
+  const savedProduct = await this.productRepo.save(productObj);
+
+  // ✅ Category/size update
+  const catsInfoArray = JSON.parse(updateProductDto.catsInfo);
+
+  const processedCatsInfo = [];
+  let previousCategory = null;
+
+  catsInfoArray.forEach((item) => {
+    if (!Array.isArray(item)) {
+      previousCategory = { categoryId: item, sizes: [] };
+      processedCatsInfo.push(previousCategory);
+    } else {
+      const size = { sizeId: item[0], quantity: item[1] || 0 };
+      previousCategory.sizes.push(size);
+    }
+  });
+
+  await this.productSizeCategoryRepo.delete({ product: productObj });
+
+  for (const item of processedCatsInfo) {
+    const catInfoItem = new ProductSizeCategoryEntity();
+    catInfoItem.product = productObj;
+    catInfoItem.category = await this.subSubCategoryRepo.findOne({
+      where: { id: item.categoryId },
+    });
+
+    if (item.sizes.length <= 0) {
+      await this.productSizeCategoryRepo.save(catInfoItem);
+    } else {
+      for (const sizeItem of item.sizes) {
+        const sizeObject = sizeItem.sizeId
+          ? await this.getSizeById(sizeItem.sizeId)
+          : null;
+
+        const newCatInfoItem = new ProductSizeCategoryEntity();
+        newCatInfoItem.product = productObj;
+        newCatInfoItem.category = catInfoItem.category;
+        newCatInfoItem.size = sizeObject;
+        newCatInfoItem.quantity = sizeItem.quantity;
+
+        await this.productSizeCategoryRepo.save(newCatInfoItem);
+      }
+    }
+  }
+
+  return savedProduct;
+}
+
+
+  // shuffle category serial
   async shuffleCategorySerial(categoryDto: { id: number; serial: number }[]) {
     const updatePromises = categoryDto.map(async (cat) => {
       await this.categoryRepo.update(cat.id, { serial: cat.serial });
@@ -1429,8 +1464,12 @@ export class AdminService {
     return { message: 'Category serials updated successfully' };
   }
 
-  // update buying history / order status 
-  async updateBuyingHistoryStatusByToken(token: string, updates: any, email: string) {
+  // update buying history / order status
+  async updateBuyingHistoryStatusByToken(
+    token: string,
+    updates: any,
+    email: string,
+  ) {
     // console.log(updates);
     const user = await this.userRepo.findOneBy({ email });
 
@@ -1452,13 +1491,11 @@ export class AdminService {
     }
 
     if (!updates.cancelDate && !updates.returnDate) {
-      history.deliveryStatus.id += 1
-    }
-    else if (updates.cancelDate) {
-      history.deliveryStatus.id = 7
-    }
-    else if (updates.returnDate) {
-      history.deliveryStatus.id = 8
+      history.deliveryStatus.id += 1;
+    } else if (updates.cancelDate) {
+      history.deliveryStatus.id = 7;
+    } else if (updates.returnDate) {
+      history.deliveryStatus.id = 8;
     }
 
     // Update any column in the buying history
@@ -1468,10 +1505,10 @@ export class AdminService {
     return result;
   }
 
-  // delete product by id 
+  // delete product by id
   async deleteProductById(id: number, email: string) {
     try {
-      const user = await this.getUserByEmail(email)
+      const user = await this.getUserByEmail(email);
 
       if (user && user.role == 'admin') {
         await this.viewRepo.delete({ product: { id } });
@@ -1482,22 +1519,22 @@ export class AdminService {
 
         await this.productPicRepo.delete({ product: { id } });
 
-        await this.productSizeCategoryRepo.delete({ product: { id } })
+        await this.productSizeCategoryRepo.delete({ product: { id } });
 
         const deleted = await this.productRepo.delete(id);
 
         return deleted;
+      } else {
+        throw new UnauthorizedException(
+          'You are not authorized to delete product',
+        );
       }
-      else {
-        throw new UnauthorizedException('You are not authorized to delete product')
-      }
-
     } catch (error) {
       console.error('Error deleting product:', error);
     }
   }
 
-  // delete role by id 
+  // delete role by id
   async deleteRoleById(id: number) {
     try {
       const role = await this.roleRepo.findOne({ where: { id } });
@@ -1514,10 +1551,7 @@ export class AdminService {
 
       await this.roleRepo.remove(role);
 
-      return {
-        status: HttpStatus.OK,
-        message: 'Role deleted successfully',
-      };
+      return { status: HttpStatus.OK, message: 'Role deleted successfully' };
     } catch (error) {
       console.error('Error deleting role:', error);
       throw new HttpException(
@@ -1527,7 +1561,7 @@ export class AdminService {
     }
   }
 
-  // delete product type by id 
+  // delete product type by id
   async deleteProductTypeById(id: number) {
     try {
       const productType = await this.subSubCategoryRepo.findOneBy({ id });
@@ -1546,7 +1580,7 @@ export class AdminService {
     }
   }
 
-  // delete category by id 
+  // delete category by id
   async deleteCategoryById(id: number) {
     try {
       const cat = await this.categoryRepo.findOneBy({ id });
@@ -1565,7 +1599,7 @@ export class AdminService {
     }
   }
 
-  // delete sub category type by id 
+  // delete sub category type by id
   async deleteSubCategoryById(id: number) {
     try {
       const cat = await this.subCategoryRepo.findOneBy({ id });
@@ -1584,7 +1618,7 @@ export class AdminService {
     }
   }
 
-  // delete size by id 
+  // delete size by id
   async deleteSizeById(id: number) {
     try {
       const size = await this.sizeRepo.findOneBy({ id });
@@ -1605,11 +1639,7 @@ export class AdminService {
   async removeWish(wishId) {
     console.log('myData', wishId);
     try {
-      const wish = await this.wishRepo.findOne({
-        where: {
-          id: wishId,
-        },
-      });
+      const wish = await this.wishRepo.findOne({ where: { id: wishId } });
 
       // console.log('wishesss', wish);
 
@@ -1625,7 +1655,7 @@ export class AdminService {
     }
   }
 
-  // create new category 
+  // create new category
   async createNewCategory(myDto) {
     // Step 1: Create and save to get the generated ID
     const savedCategory = await this.categoryRepo.save({
@@ -1638,32 +1668,23 @@ export class AdminService {
     return this.categoryRepo.save(savedCategory);
   }
 
-  // create new category 
-  async createPaymentMethod(
-    myDto,
-  ) {
-    const newPaymentMethod = this.paymentMethodRepo.create({
-      ...myDto
-    });
+  // create new category
+  async createPaymentMethod(myDto) {
+    const newPaymentMethod = this.paymentMethodRepo.create({ ...myDto });
     return this.paymentMethodRepo.save(newPaymentMethod);
   }
 
-  // increase product view 
+  // increase product view
   async increaseProductView(productId: number, email: string) {
     let customer = await this.getUserByEmail(email);
 
     if (!customer) {
-      customer = await this.userRepo.save({
-        email: email,
-      });
+      customer = await this.userRepo.save({ email: email });
     }
 
     // Find the existing view record for the user and product
     const existingView = await this.viewRepo.findOne({
-      where: {
-        product: { id: productId },
-        user: { id: customer.id },
-      },
+      where: { product: { id: productId }, user: { id: customer.id } },
     });
 
     // Update or create the view record
@@ -1685,7 +1706,9 @@ export class AdminService {
 
   // update product views
   private async updateProductTotalViews(productId: number) {
-    const product = await this.productRepo.findOne({ where: { id: productId } });
+    const product = await this.productRepo.findOne({
+      where: { id: productId },
+    });
 
     if (!product) {
       throw new Error('Product not found');
@@ -1698,48 +1721,32 @@ export class AdminService {
     return await this.productRepo.save(product);
   }
 
-  // create new coupon 
-  async createNewCoupon(
-    myDto,
-  ) {
-    const newCoupon = this.couponRepo.create({
-      ...myDto
-    });
+  // create new coupon
+  async createNewCoupon(myDto) {
+    const newCoupon = this.couponRepo.create({ ...myDto });
     return this.couponRepo.save(newCoupon);
   }
 
-  // create new color 
-  async createNewColor(
-    myDto,
-  ) {
-    const newColor = this.colorRepo.create({
-      ...myDto
-    });
+  // create new color
+  async createNewColor(myDto) {
+    const newColor = this.colorRepo.create({ ...myDto });
     return this.colorRepo.save(newColor);
   }
 
-  // create new sub-category 
-  async createNewSubCategory(
-    myDto,
-  ) {
-    const category = await this.getCategoryByName(myDto.categoryName)
-    myDto.category = category
-    const newCategory = this.subCategoryRepo.create({
-      ...myDto
-    });
+  // create new sub-category
+  async createNewSubCategory(myDto) {
+    const category = await this.getCategoryByName(myDto.categoryName);
+    myDto.category = category;
+    const newCategory = this.subCategoryRepo.create({ ...myDto });
     return this.subCategoryRepo.save(newCategory);
   }
 
-  // create new sub-sub-category 
-  async createNewSubSubCategory(
-    myDto,
-  ) {
-    const category = await this.getSubCategoryById(myDto.categoryId)
+  // create new sub-sub-category
+  async createNewSubSubCategory(myDto) {
+    const category = await this.getSubCategoryById(myDto.categoryId);
     // console.log(category, 583);
-    myDto.category = category
-    const newCategory = this.subSubCategoryRepo.create({
-      ...myDto
-    });
+    myDto.category = category;
+    const newCategory = this.subSubCategoryRepo.create({ ...myDto });
     return this.subSubCategoryRepo.save(newCategory);
   }
 
@@ -1749,13 +1756,15 @@ export class AdminService {
     const createdReturns = [];
 
     for (const product of selectedProducts) {
-      const cart = await this.cartRepo.findOne({ where: { id: product.cartId } });
+      const cart = await this.cartRepo.findOne({
+        where: { id: product.cartId },
+      });
       // console.log(cart);
 
       if (cart) {
         const returnEntity = new ReturnEntity();
         returnEntity.cart = cart;
-        returnEntity.reason = reason
+        returnEntity.reason = reason;
         returnEntity.quantity = product.quantity;
         returnEntity.isApproved = false; // Default to false, can update after approval logic
         // Add additional fields if necessary
@@ -1766,26 +1775,22 @@ export class AdminService {
     }
 
     console.log(`Return or cancellation confirmed for reason: ${reason}`);
-    return { success: true, createdReturns, message: 'Return or cancellation has been processed' };
+    return {
+      success: true,
+      createdReturns,
+      message: 'Return or cancellation has been processed',
+    };
   }
 
-  // create new size 
-  async createNewSize(
-    myDto,
-  ) {
-    const newSize = this.sizeRepo.create({
-      ...myDto
-    });
+  // create new size
+  async createNewSize(myDto) {
+    const newSize = this.sizeRepo.create({ ...myDto });
     return this.sizeRepo.save(newSize);
   }
 
-  // create new fabric 
-  async createNewFabric(
-    myDto,
-  ) {
-    const newFabric = this.fabricRepo.create({
-      ...myDto
-    });
+  // create new fabric
+  async createNewFabric(myDto) {
+    const newFabric = this.fabricRepo.create({ ...myDto });
     return this.fabricRepo.save(newFabric);
   }
 
@@ -1800,42 +1805,46 @@ export class AdminService {
       if (!existingCustomer) {
         // console.log("innnn");
         const newCustomer = this.createCustomer(myDto);
-        return newCustomer
+        return newCustomer;
       }
 
-      return true
+      return true;
     } catch (error) {
       // Handle authentication errors
       throw new Error('Authentication failed');
     }
   }
 
-  // create new buy 
+  // create new buy
   async createNewBuy(myDto) {
     // console.log(myDto, "544");
 
-    myDto.deliveryStatus = await this.getDeliveryStatusById(myDto?.deliveryStatusId || 1)
-    myDto.paymentMethod = await this.getPaymentMethodById(myDto?.paymentMethodId || 1)
+    myDto.deliveryStatus = await this.getDeliveryStatusById(
+      myDto?.deliveryStatusId || 1,
+    );
+    myDto.paymentMethod = await this.getPaymentMethodById(
+      myDto?.paymentMethodId || 1,
+    );
     myDto.trackingToken = uuidv4();
-    const newBuy = this.buyingHistoryRepo.create({
-      ...myDto
-    })
+    const newBuy = this.buyingHistoryRepo.create({ ...myDto });
 
     // console.log(myDto,844);
     const savedBuy = await this.buyingHistoryRepo.save(newBuy);
     // console.log(myDto.carts, 'carts');
-    this.createNewCartObject(savedBuy, myDto.carts)
+    this.createNewCartObject(savedBuy, myDto.carts);
     return savedBuy;
   }
 
-  // send message to customer 
+  // send message to customer
   async sendMessageToCustomer(myDto) {
-    myDto.deliveryStatus = await this.getDeliveryStatusById(myDto?.deliveryStatusId || 1)
-    myDto.paymentMethod = await this.getPaymentMethodById(myDto?.paymentMethodId || 1)
+    myDto.deliveryStatus = await this.getDeliveryStatusById(
+      myDto?.deliveryStatusId || 1,
+    );
+    myDto.paymentMethod = await this.getPaymentMethodById(
+      myDto?.paymentMethodId || 1,
+    );
     myDto.trackingToken = uuidv4();
-    const newBuy = this.buyingHistoryRepo.create({
-      ...myDto
-    })
+    const newBuy = this.buyingHistoryRepo.create({ ...myDto });
 
     // console.log(myDto,844);
     const savedBuy = await this.buyingHistoryRepo.save(newBuy);
@@ -1843,7 +1852,7 @@ export class AdminService {
     return savedBuy;
   }
 
-  // create new cart object 
+  // create new cart object
   async createNewCartObject(buy, cartsData) {
     // console.log(buy, 'buy', cartsData, 'cartsData');
     for (const cartDataId of cartsData) {
@@ -1869,7 +1878,7 @@ export class AdminService {
           size: size,
           product: { id: cart.product.id },
         },
-        relations: ['product']
+        relations: ['product'],
       });
 
       if (pscObj) {
@@ -1878,14 +1887,17 @@ export class AdminService {
         }
         await this.productSizeCategoryRepo.save(pscObj);
       } else {
-        console.error(`Product-Size-Category object not found for Cart ID: ${cartDataId}`);
+        console.error(
+          `Product-Size-Category object not found for Cart ID: ${cartDataId}`,
+        );
       }
 
       cart.isBought = true;
       cart.totalPrice = Math.ceil(
         (cart.product.sellingPrice -
-          (cart.product.sellingPrice * cart.product.discountPercentage / 100) +
-          (cart.product.sellingPrice * cart.product.vatPercentage / 100)) * cart.Quantity
+          (cart.product.sellingPrice * cart.product.discountPercentage) / 100 +
+          (cart.product.sellingPrice * cart.product.vatPercentage) / 100) *
+          cart.Quantity,
       );
       cart.history = buy;
       await this.cartRepo.save(cart);
@@ -1893,44 +1905,44 @@ export class AdminService {
     return true;
   }
 
-  // create new cart 
+  // create new cart
   async createNewCart(myDto) {
-    const selectedProduct = await this.getProductById(myDto.productId)
-    myDto.product = selectedProduct
-    myDto.uniqueId = uuidv4()
-    myDto.category = myDto?.category && await this.getSubSubCategoryById(myDto.category)
+    const selectedProduct = await this.getProductById(myDto.productId);
+    myDto.product = selectedProduct;
+    myDto.uniqueId = uuidv4();
+    myDto.category =
+      myDto?.category && (await this.getSubSubCategoryById(myDto.category));
 
     // Check if customer exists, create one if not
     if (myDto?.customerEmail) {
       let customer = await this.getUserByEmail(myDto.customerEmail);
       if (!customer) {
         // Create a new customer if not found
-        customer = await this.userRepo.save({
-          email: myDto.customerEmail,
-        });
+        customer = await this.userRepo.save({ email: myDto.customerEmail });
       }
       myDto.customer = customer;
     } else {
       myDto.customer = null; // Explicitly set to null if no email is provided
     }
 
-    myDto.coupon = myDto?.couponId && await this.getCouponById(myDto?.couponId)
-    const selectedColor = await this.getColorById(myDto.colorId)
-    myDto.ProductName = selectedColor.name + " " + selectedProduct.name
-    const newCart = this.cartRepo.create({
-      ...myDto
-    });
+    myDto.coupon =
+      myDto?.couponId && (await this.getCouponById(myDto?.couponId));
+    const selectedColor = await this.getColorById(myDto.colorId);
+    myDto.ProductName = selectedColor.name + ' ' + selectedProduct.name;
+    const newCart = this.cartRepo.create({ ...myDto });
 
     const savedProduct = await this.cartRepo.save(newCart);
     return savedProduct;
   }
 
-  // create new wish 
+  // create new wish
   async createNewWish(myDto) {
     // console.log('myDto', myDto);
     if (!myDto.productId || !myDto.customerEmail) {
       // console.log("object");
-      throw new BadRequestException('Product ID and customer email are required');
+      throw new BadRequestException(
+        'Product ID and customer email are required',
+      );
     }
 
     try {
@@ -1941,16 +1953,11 @@ export class AdminService {
 
       let customer = await this.getUserByEmail(myDto.customerEmail);
       if (!customer) {
-        customer = await this.userRepo.save({
-          email: myDto.customerEmail,
-        });
+        customer = await this.userRepo.save({ email: myDto.customerEmail });
       }
 
       // console.log(customer, 'cust', product);
-      const newWish = this.wishRepo.create({
-        product,
-        customer,
-      });
+      const newWish = this.wishRepo.create({ product, customer });
 
       return await this.wishRepo.save(newWish);
     } catch (error) {
@@ -1958,7 +1965,7 @@ export class AdminService {
     }
   }
 
-  // get all wishlist of a customer 
+  // get all wishlist of a customer
   getWishByUser(email: string) {
     return this.wishRepo.find({
       where: { customer: { email: email } },
@@ -1966,34 +1973,66 @@ export class AdminService {
     });
   }
 
-  // create new product 
+  // create new product
   async createNewProduct(myDto) {
-    // console.log(myDto, 720);
-    const selectedColor = await this.getColorByName(myDto.color)
-    myDto.color = selectedColor
-    myDto.ifStock = false
+    const selectedColor = await this.getColorByName(myDto.color);
+    myDto.color = selectedColor;
+    myDto.ifStock = false;
 
-    const catsInfoArray = JSON.parse(myDto.catsInfo)
+    const catsInfoArray = JSON.parse(myDto.catsInfo);
 
-    catsInfoArray.forEach(item => {
+    catsInfoArray.forEach((item) => {
       if (Array.isArray(item)) {
         if (parseInt(item[1]) > 0) {
-          myDto.ifStock = true
+          myDto.ifStock = true;
         }
       }
     });
 
-    const newProduct = this.productRepo.create({
-      ...myDto
-    });
+    // 🔥 Compress and save image
+    await this.compressImage(
+      path.join('uploads', myDto.filename),
+      path.join(
+        'uploads/thumb',
+        myDto.filename.replace(path.extname(myDto.filename), '.webp'),
+      ),
+    );
+
+    const newProduct = this.productRepo.create({ ...myDto });
 
     const savedProduct = await this.productRepo.save(newProduct);
 
     return await this.createProductExtension(savedProduct, myDto.catsInfo);
   }
 
-  // update discount 
-  async updateDiscount(myDto: { categoryIds: number[], discountPercentage: number }) {
+  // compress image
+  async compressImage(inputPath: string, outputPath: string) {
+    try {
+      // Ensure thumb directory exists
+      const thumbDir = path.dirname(outputPath);
+      if (!fs.existsSync(thumbDir)) {
+        fs.mkdirSync(thumbDir, { recursive: true });
+      }
+
+      await sharp(inputPath)
+        .resize({
+          width: 800, // or your preferred size
+          withoutEnlargement: true,
+        })
+        .webp({ quality: 80 }) // match your frontend quality
+        .toFile(outputPath);
+
+      console.log(`✅ Compressed image saved at: ${outputPath}`);
+    } catch (err) {
+      console.error(`❌ Failed to compress image:`, err);
+    }
+  }
+
+  // update discount
+  async updateDiscount(myDto: {
+    categoryIds: number[];
+    discountPercentage: number;
+  }) {
     const { categoryIds, discountPercentage } = myDto;
 
     const products = await this.productRepo
@@ -2004,7 +2043,7 @@ export class AdminService {
       .select('product.id')
       .getMany();
 
-    const productIds = products.map(p => p.id);
+    const productIds = products.map((p) => p.id);
 
     if (productIds.length === 0) {
       return { message: 'No products found in the given categories.' };
@@ -2023,13 +2062,13 @@ export class AdminService {
     };
   }
 
-  // create new arrivals 
+  // create new arrivals
   async addNewArrivals(myDto) {
     const cat = await this.subSubCategoryRepo.findOne({
-      where: { id: parseInt(myDto.category) }
-    })
+      where: { id: parseInt(myDto.category) },
+    });
 
-    myDto.subsub = cat
+    myDto.subsub = cat;
     // Check if a product with the same serial already exists
     const existingProduct = await this.newArrivalRepo.findOne({
       where: { serial: myDto.serial },
@@ -2053,7 +2092,7 @@ export class AdminService {
     return bdTime;
   }
 
-  // create new pop up 
+  // create new pop up
   async addNewPopUp(myDto) {
     console.log(myDto, 'date dto');
     // Check for existing active popup
@@ -2062,10 +2101,10 @@ export class AdminService {
       relations: ['popup'],
     });
 
-    const allPopUps = await this.popUpRepo.find()
+    const allPopUps = await this.popUpRepo.find();
     // 2025-06-26T17:13',
     //   endDate: '2025-06-30T17:24',
-    console.log(allPopUps, "allls");
+    console.log(allPopUps, 'allls');
 
     const existingActive = activePopups[0]; // first row, if any
 
@@ -2075,7 +2114,10 @@ export class AdminService {
       filename: myDto.filename,
       title: myDto?.title || null,
       url: myDto?.url || null,
-      isActive: existingActive ? existingActive?.popup?.endDate < now && (myDto.isActive === 'true' || myDto.isActive === true) : (myDto.isActive === 'true' || myDto.isActive === true),
+      isActive: existingActive
+        ? existingActive?.popup?.endDate < now &&
+          (myDto.isActive === 'true' || myDto.isActive === true)
+        : myDto.isActive === 'true' || myDto.isActive === true,
       startDate: myDto.startDate ? this.parseBDDate(myDto.startDate) : null,
       endDate: myDto.endDate ? this.parseBDDate(myDto.endDate) : null,
     });
@@ -2094,9 +2136,7 @@ export class AdminService {
       }
     } else {
       // No active popup row, create new one
-      const newActive = this.activePopRepo.create({
-        popup: savedPopUp,
-      });
+      const newActive = this.activePopRepo.create({ popup: savedPopUp });
       await this.activePopRepo.save(newActive);
     }
 
@@ -2104,12 +2144,12 @@ export class AdminService {
   }
 
   async createProductExtension(product, catsInfo) {
-    const catsInfoArray = JSON.parse(catsInfo)
+    const catsInfoArray = JSON.parse(catsInfo);
 
     const processedCatsInfo = [];
     let previousCategory = null;
 
-    catsInfoArray.forEach(item => {
+    catsInfoArray.forEach((item) => {
       if (!Array.isArray(item)) {
         previousCategory = { categoryId: item, sizes: [] };
         processedCatsInfo.push(previousCategory);
@@ -2125,13 +2165,17 @@ export class AdminService {
       const catInfoItem = new ProductSizeCategoryEntity();
 
       catInfoItem.product = product;
-      catInfoItem.category = await this.subSubCategoryRepo.findOne({ where: { id: item.categoryId } });
+      catInfoItem.category = await this.subSubCategoryRepo.findOne({
+        where: { id: item.categoryId },
+      });
 
       if (item.sizes.length <= 0) {
         await this.productSizeCategoryRepo.save(catInfoItem);
       } else {
         for (const sizeItem of item.sizes) {
-          const sizeObject = sizeItem.sizeId ? await this.getSizeById(sizeItem.sizeId) : null;
+          const sizeObject = sizeItem.sizeId
+            ? await this.getSizeById(sizeItem.sizeId)
+            : null;
 
           const newCatInfoItem = { ...catInfoItem }; // Create a new instance
           newCatInfoItem.size = sizeObject;
@@ -2144,10 +2188,10 @@ export class AdminService {
 
     // console.log(processedCatsInfo, 771);
 
-    return product
+    return product;
   }
 
-  // add product photos 
+  // add product photos
   async addProductPictures(myDto: any) {
     // console.log(myDto, "666");
     // Retrieve the latest added product based on the ID field
@@ -2164,51 +2208,43 @@ export class AdminService {
     const filenames: string[] = myDto.filenames;
     // console.log(filenames, "676");
     // latestProduct.productPictures = filenames.map(filename => {
-    filenames.forEach(async filename => {
+    filenames.forEach(async (filename) => {
       const productPicture = new ProductPictureEntity();
       productPicture.filename = filename;
       productPicture.product = latestProduct; // Assign the product
       await this.productPicRepo.save(productPicture);
-    }
-    )
+    });
 
-    return true
+    return true;
   }
 
-  // update product photos 
+  // update product photos
   async updateProductPictures(myDto: any) {
-    // console.log(myDto, "666");
     // Retrieve the latest added product based on the ID field
-    const product = await this.productRepo.findOne({
-      where: { id: myDto.id },
-      // order: { id: 'DESC' },
-    });
+    const product = await this.productRepo.findOne({ where: { id: myDto.id } });
 
     if (!product) {
       throw new Error('No product found');
     }
 
     myDto.filenames.length > 0 &&
-      await this.productPicRepo.delete({ product: product })
+      (await this.productPicRepo.delete({ product: product }));
 
     // Update the product entity with the newly added pictures
     const filenames: string[] = myDto.filenames;
-    // console.log(filenames, "676");
-    // latestProduct.productPictures = filenames.map(filename => {
-    filenames.forEach(async filename => {
+
+    for (const filename of filenames) {
       const productPicture = new ProductPictureEntity();
       productPicture.filename = filename;
-      productPicture.product = product; // Assign the product
+      productPicture.product = product;
       await this.productPicRepo.save(productPicture);
     }
-    )
 
-    return true
+    return true;
   }
 
-  // create new color object 
+  // create new color object
   async createNewFileObject(product, filesData) {
-
     for (const fileData of filesData) {
       const file = this.productPicRepo.create({
         filename: fileData,
@@ -2222,7 +2258,7 @@ export class AdminService {
     return true;
   }
 
-  // change category image 
+  // change category image
   async changeCategoryImage(id, myFile) {
     const user = await this.categoryRepo.findOneBy({ id });
 
@@ -2234,7 +2270,7 @@ export class AdminService {
     return null; // Return null if no user found with the provided email
   }
 
-  // change banner image 
+  // change banner image
   async changeBannerImage(id: number, myFile: string) {
     const banner = await this.bannerRepo.findOneBy({ id });
 
