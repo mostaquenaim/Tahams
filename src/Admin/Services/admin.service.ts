@@ -1365,94 +1365,99 @@ export class AdminService {
   }
 
   // update product
- async updateProduct(id: number, updateProductDto: any, filename: any) {
-  const productObj = await this.productRepo.findOne({
-    where: { id },
-    relations: ['pscs', 'pscs.size', 'pscs.category'],
-  });
-
-  if (!productObj) {
-    throw new NotFoundException(`Product with ID ${id} not found.`);
-  }
-
-  // ✅ Update color
-  if (updateProductDto.colorCode) {
-    const color = await this.colorRepo.findOne({
-      where: { colorCode: updateProductDto.colorCode },
+  async updateProduct(id: number, updateProductDto: any, filename: any) {
+    const productObj = await this.productRepo.findOne({
+      where: { id },
+      relations: ['pscs', 'pscs.size', 'pscs.category'],
     });
-    productObj.color = color;
-  }
 
-  updateProductDto.ifStock == 'true'
-    ? (updateProductDto.ifStock = true)
-    : (updateProductDto.ifStock = false);
-
-  Object.assign(productObj, updateProductDto);
-
-  // ✅ If new file is uploaded
-  if (filename) {
-    const originalFileName = filename.filename;
-    productObj.filename = originalFileName;
-
-    const inputPath = path.join('uploads', originalFileName);
-    const outputPath = path.join(
-      'uploads',
-      'thumb',
-      originalFileName.replace(path.extname(originalFileName), '.webp'),
-    );
-
-    await this.compressImage(inputPath, outputPath);
-  }
-
-  const savedProduct = await this.productRepo.save(productObj);
-
-  // ✅ Category/size update
-  const catsInfoArray = JSON.parse(updateProductDto.catsInfo);
-
-  const processedCatsInfo = [];
-  let previousCategory = null;
-
-  catsInfoArray.forEach((item) => {
-    if (!Array.isArray(item)) {
-      previousCategory = { categoryId: item, sizes: [] };
-      processedCatsInfo.push(previousCategory);
-    } else {
-      const size = { sizeId: item[0], quantity: item[1] || 0 };
-      previousCategory.sizes.push(size);
+    if (!productObj) {
+      throw new NotFoundException(`Product with ID ${id} not found.`);
     }
-  });
 
-  await this.productSizeCategoryRepo.delete({ product: productObj });
+    // ✅ Update color
+    if (updateProductDto.colorCode) {
+      const color = await this.colorRepo.findOne({
+        where: { colorCode: updateProductDto.colorCode },
+      });
+      productObj.color = color;
+    }
 
-  for (const item of processedCatsInfo) {
-    const catInfoItem = new ProductSizeCategoryEntity();
-    catInfoItem.product = productObj;
-    catInfoItem.category = await this.subSubCategoryRepo.findOne({
-      where: { id: item.categoryId },
+    updateProductDto.ifStock == 'true'
+      ? (updateProductDto.ifStock = true)
+      : (updateProductDto.ifStock = false);
+
+    Object.assign(productObj, updateProductDto);
+
+    // ✅ If new file is uploaded
+    if (filename) {
+      const originalFileName = filename.filename;
+      productObj.filename = originalFileName;
+
+      const inputPath = path.join('uploads', originalFileName);
+      const outputPath = path.join(
+        'uploads',
+        'thumb',
+        originalFileName.replace(path.extname(originalFileName), '.webp'),
+      );
+
+      await this.compressImage(inputPath, outputPath);
+
+      // add thumb image
+      productObj.thumbImage = path.join(
+        'thumb',
+        originalFileName.replace(path.extname(originalFileName), '.webp'),
+      );
+    }
+
+    const savedProduct = await this.productRepo.save(productObj);
+
+    // ✅ Category/size update
+    const catsInfoArray = JSON.parse(updateProductDto.catsInfo);
+
+    const processedCatsInfo = [];
+    let previousCategory = null;
+
+    catsInfoArray.forEach((item) => {
+      if (!Array.isArray(item)) {
+        previousCategory = { categoryId: item, sizes: [] };
+        processedCatsInfo.push(previousCategory);
+      } else {
+        const size = { sizeId: item[0], quantity: item[1] || 0 };
+        previousCategory.sizes.push(size);
+      }
     });
 
-    if (item.sizes.length <= 0) {
-      await this.productSizeCategoryRepo.save(catInfoItem);
-    } else {
-      for (const sizeItem of item.sizes) {
-        const sizeObject = sizeItem.sizeId
-          ? await this.getSizeById(sizeItem.sizeId)
-          : null;
+    await this.productSizeCategoryRepo.delete({ product: productObj });
 
-        const newCatInfoItem = new ProductSizeCategoryEntity();
-        newCatInfoItem.product = productObj;
-        newCatInfoItem.category = catInfoItem.category;
-        newCatInfoItem.size = sizeObject;
-        newCatInfoItem.quantity = sizeItem.quantity;
+    for (const item of processedCatsInfo) {
+      const catInfoItem = new ProductSizeCategoryEntity();
+      catInfoItem.product = productObj;
+      catInfoItem.category = await this.subSubCategoryRepo.findOne({
+        where: { id: item.categoryId },
+      });
 
-        await this.productSizeCategoryRepo.save(newCatInfoItem);
+      if (item.sizes.length <= 0) {
+        await this.productSizeCategoryRepo.save(catInfoItem);
+      } else {
+        for (const sizeItem of item.sizes) {
+          const sizeObject = sizeItem.sizeId
+            ? await this.getSizeById(sizeItem.sizeId)
+            : null;
+
+          const newCatInfoItem = new ProductSizeCategoryEntity();
+          newCatInfoItem.product = productObj;
+          newCatInfoItem.category = catInfoItem.category;
+          newCatInfoItem.size = sizeObject;
+          newCatInfoItem.quantity = sizeItem.quantity;
+
+          await this.productSizeCategoryRepo.save(newCatInfoItem);
+        }
       }
     }
+
+    return savedProduct;
   }
-
-  return savedProduct;
-}
-
 
   // shuffle category serial
   async shuffleCategorySerial(categoryDto: { id: number; serial: number }[]) {
@@ -1998,6 +2003,12 @@ export class AdminService {
       ),
     );
 
+    // add thumb image
+    myDto.thumbImage = path.join(
+      'thumb',
+      myDto.filename.replace(path.extname(myDto.filename), '.webp'),
+    );
+
     const newProduct = this.productRepo.create({ ...myDto });
 
     const savedProduct = await this.productRepo.save(newProduct);
@@ -2233,9 +2244,21 @@ export class AdminService {
     // Update the product entity with the newly added pictures
     const filenames: string[] = myDto.filenames;
 
+    await this.compressImage(
+      path.join('uploads', myDto.filenames[0]),
+      path.join(
+        'uploads/side-thumb',
+        myDto.filenames[0].replace(path.extname(myDto.filenames[0]), '.webp'),
+      ),
+    );
+
     for (const filename of filenames) {
       const productPicture = new ProductPictureEntity();
       productPicture.filename = filename;
+      productPicture.thumb = path.join(
+        'thumb',
+        myDto.filename.replace(path.extname(myDto.filename), '.webp'),
+      );
       productPicture.product = product;
       await this.productPicRepo.save(productPicture);
     }

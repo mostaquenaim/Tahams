@@ -4,22 +4,24 @@ import { ProductEntity } from './product.entity';
 
 @Entity('product-pictures')
 export class ProductPictureEntity {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column()
-    filename: string
+  @Column()
+  filename: string;
 
-    @Column({ default: false })
-    isThumbnail: boolean
+  @Column({ nullable: true })
+  thumb: string;
 
-    @Column({ default: false })
-    isFeatured: boolean
+  @Column({ default: false })
+  isThumbnail: boolean;
 
-    // @ManyToOne(() => ColorEntity, (color) => color.productPictures)
-    // color: ColorEntity
+  @Column({ default: false })
+  isFeatured: boolean;
 
-    @ManyToOne(() => ProductEntity, (product) => product.productPictures)
-    product: ProductEntity;
+  // @ManyToOne(() => ColorEntity, (color) => color.productPictures)
+  // color: ColorEntity
 
+  @ManyToOne(() => ProductEntity, (product) => product.productPictures)
+  product: ProductEntity;
 }
