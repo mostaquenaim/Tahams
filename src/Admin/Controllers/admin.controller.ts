@@ -1126,6 +1126,13 @@ export class AdminController {
     return res;
   }
 
+  // get all images compressed 
+  @Get('/get-all-images-compressed')
+  async getImagesCompressed(){
+    const res = await this.adminService.getImagesCompressed();
+    return res;
+  }
+
   // get image by name
   @Get('/getimage/*')
   getImages(@Req() req, @Res() res) {

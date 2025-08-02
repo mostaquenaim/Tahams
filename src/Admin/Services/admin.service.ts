@@ -2293,6 +2293,37 @@ export class AdminService {
     return null; // Return null if no user found with the provided email
   }
 
+  // get all images compressed
+  async getImagesCompressed() {
+    const allProducts = await this.productRepo.find();
+
+    for (const product of allProducts) {
+      const originalFileName = product.filename;
+
+      // Skip if no image or thumbImage already exists
+      if (!originalFileName || product.thumbImage) continue;
+
+      const inputPath = path.join('uploads', originalFileName);
+      const outputPath = path.join(
+        'uploads',
+        'thumb',
+        originalFileName.replace(path.extname(originalFileName), '.webp'),
+      );
+
+      await this.compressImage(inputPath, outputPath);
+      
+      // add thumb image
+      product.thumbImage = path.join(
+        'thumb',
+        originalFileName.replace(path.extname(originalFileName), '.webp'),
+      );
+
+      await this.productRepo.save(product);
+    }
+
+    return true;
+  }
+
   // change banner image
   async changeBannerImage(id: number, myFile: string) {
     const banner = await this.bannerRepo.findOneBy({ id });
