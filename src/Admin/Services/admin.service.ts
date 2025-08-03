@@ -2295,26 +2295,28 @@ export class AdminService {
 
   // get all images compressed
   async getImagesCompressed() {
-    const allProducts = await this.productRepo.find();
+    const allProducts = await this.productRepo.find({
+      relations: ['productPictures'],
+    });
 
     for (const product of allProducts) {
-      const originalFileName = product.filename;
+      const originalFileName = product.productPictures[0].filename;
 
       // Skip if no image or thumbImage already exists
-      if (!originalFileName || product.thumbImage) continue;
+      if (!originalFileName || product.productPictures[0].thumb) continue;
 
       const inputPath = path.join('uploads', originalFileName);
       const outputPath = path.join(
         'uploads',
-        'thumb',
+        'side-thumb',
         originalFileName.replace(path.extname(originalFileName), '.webp'),
       );
 
       await this.compressImage(inputPath, outputPath);
-      
+
       // add thumb image
-      product.thumbImage = path.join(
-        'thumb',
+      product.productPictures[0].thumb = path.join(
+        'side-thumb',
         originalFileName.replace(path.extname(originalFileName), '.webp'),
       );
 
