@@ -1391,22 +1391,12 @@ export class AdminService {
 
     // ✅ If new file is uploaded
     if (filename) {
-      const originalFileName = filename.filename;
-      productObj.filename = originalFileName;
-
-      const inputPath = path.join('uploads', originalFileName);
-      const outputPath = path.join(
-        'uploads',
-        'thumb',
-        originalFileName.replace(path.extname(originalFileName), '.webp'),
-      );
-
-      await this.compressImage(inputPath, outputPath);
+      productObj.filename = filename.filename;
 
       // add thumb image
-      productObj.thumbImage = path.join(
+      productObj.thumbImage = await this.compressImage(
+        filename.filename,
         'thumb',
-        originalFileName.replace(path.extname(originalFileName), '.webp'),
       );
     }
 
@@ -1994,20 +1984,8 @@ export class AdminService {
       }
     });
 
-    // 🔥 Compress and save image
-    await this.compressImage(
-      path.join('uploads', myDto.filename),
-      path.join(
-        'uploads/thumb',
-        myDto.filename.replace(path.extname(myDto.filename), '.webp'),
-      ),
-    );
-
     // add thumb image
-    myDto.thumbImage = path.join(
-      'thumb',
-      myDto.filename.replace(path.extname(myDto.filename), '.webp'),
-    );
+    myDto.thumbImage = await this.compressImage(myDto.filename, 'thumb');
 
     const newProduct = this.productRepo.create({ ...myDto });
 
@@ -2017,7 +1995,7 @@ export class AdminService {
   }
 
   // compress image
-  async compressImage(inputPath: string, outputPath: string) {
+  async compressImage2(inputPath: string, outputPath: string) {
     try {
       const thumbDir = path.dirname(outputPath);
       if (!fs.existsSync(thumbDir)) {
@@ -2211,8 +2189,6 @@ export class AdminService {
 
   // add product photos
   async addProductPictures(myDto: any) {
-    // console.log(myDto, "666");
-    // Retrieve the latest added product based on the ID field
     const latestProduct = await this.productRepo.findOne({
       where: { id: MoreThan(1) },
       order: { id: 'DESC' },
@@ -2222,55 +2198,106 @@ export class AdminService {
       throw new Error('No product found');
     }
 
-    // Update the product entity with the newly added pictures
     const filenames: string[] = myDto.filenames;
-    // console.log(filenames, "676");
-    // latestProduct.productPictures = filenames.map(filename => {
-    filenames.forEach(async (filename) => {
+    const failed: any[] = []; // define failed array properly
+
+    for (const filename of filenames) {
       const productPicture = new ProductPictureEntity();
       productPicture.filename = filename;
-      productPicture.product = latestProduct; // Assign the product
-      await this.productPicRepo.save(productPicture);
-    });
+      productPicture.product = latestProduct;
 
-    return true;
+      try {
+        productPicture.thumb = await this.compressImage(filename, 'side-thumb');
+
+        await this.productPicRepo.save(productPicture);
+      } catch (err) {
+        failed.push({
+          productId: latestProduct.id,
+          filename,
+          reason: err.message || 'Unknown error',
+        });
+      }
+    }
+
+    return {
+      success: filenames.length - failed.length,
+      failed,
+    };
   }
 
   // update product photos
   async updateProductPictures(myDto: any) {
-    // Retrieve the latest added product based on the ID field
+    // Retrieve product by ID
     const product = await this.productRepo.findOne({ where: { id: myDto.id } });
 
     if (!product) {
       throw new Error('No product found');
     }
 
-    myDto.filenames.length > 0 &&
-      (await this.productPicRepo.delete({ product: product }));
+    // If new filenames are provided, delete existing pictures
+    if (myDto.filenames.length > 0) {
+      await this.productPicRepo.delete({ product });
+    }
 
-    // Update the product entity with the newly added pictures
     const filenames: string[] = myDto.filenames;
-
-    // await this.compressImage(
-    //   path.join('uploads', myDto.filenames[0]),
-    //   path.join(
-    //     'uploads/side-thumb',
-    //     myDto.filenames[0].replace(path.extname(myDto.filenames[0]), '.webp'),
-    //   ),
-    // );
+    const failed: any[] = [];
 
     for (const filename of filenames) {
       const productPicture = new ProductPictureEntity();
       productPicture.filename = filename;
-      // productPicture.thumb = path.join(
-      //   'thumb',
-      //   myDto.filename.replace(path.extname(myDto.filename), '.webp'),
-      // );
       productPicture.product = product;
-      await this.productPicRepo.save(productPicture);
+
+      try {
+        const tempThumb = await this.compressImage(filename, 'side-thumb');
+        productPicture.thumb = tempThumb;
+
+        await this.productPicRepo.save(productPicture);
+      } catch (err) {
+        failed.push({
+          productId: product.id,
+          filename,
+          reason: err.message || 'Unknown error',
+        });
+      }
     }
 
-    return true;
+    return {
+      success: filenames.length - failed.length,
+      failed,
+    };
+  }
+
+  async compressImage(filename, location) {
+    try {
+      const ext = path.extname(filename);
+      const baseName = filename.replace(ext, '');
+      const thumbFileName = `${baseName}.webp`;
+
+      const inputPath = path.join('uploads', filename);
+      const outputPath = path.join('uploads', location, thumbFileName);
+
+      const thumbDir = path.dirname(outputPath);
+      if (!fs.existsSync(thumbDir)) {
+        fs.mkdirSync(thumbDir, { recursive: true });
+      }
+
+      // Convert to absolute paths
+      const absInputPath = path.resolve(inputPath);
+      const absOutputPath = path.resolve(outputPath);
+
+      await sharp(absInputPath)
+        .resize({
+          width: 800,
+          withoutEnlargement: true,
+        })
+        .webp({ quality: 80 })
+        .toFile(absOutputPath);
+
+      return path.join(location, thumbFileName);
+    } catch (err) {
+      console.error(`❌ Failed to compress image`, err.message);
+      throw err;
+    }
   }
 
   // create new color object
@@ -2318,19 +2345,12 @@ export class AdminService {
         continue;
       }
 
-      const originalFileName = sidePic.filename;
-      const ext = path.extname(originalFileName);
-      const baseName = originalFileName.replace(ext, '');
-      const thumbFileName = `${baseName}.webp`;
-
-      const inputPath = path.join('uploads', originalFileName);
-      const outputPath = path.join('uploads', 'side-thumb', thumbFileName);
-
       try {
-        await this.compressImage(inputPath, outputPath);
-
         // Save thumb path
-        sidePic.thumb = path.join('side-thumb', thumbFileName);
+        sidePic.thumb = await this.compressImage(
+          sidePic.filename,
+          'side-thumb',
+        );
         await this.productPicRepo.save(sidePic);
         compressed++;
       } catch (err) {
