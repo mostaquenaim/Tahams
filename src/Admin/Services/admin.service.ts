@@ -2019,23 +2019,30 @@ export class AdminService {
   // compress image
   async compressImage(inputPath: string, outputPath: string) {
     try {
-      // Ensure thumb directory exists
       const thumbDir = path.dirname(outputPath);
       if (!fs.existsSync(thumbDir)) {
         fs.mkdirSync(thumbDir, { recursive: true });
       }
 
-      await sharp(inputPath)
+      // Convert to absolute paths
+      const absInputPath = path.resolve(inputPath);
+      const absOutputPath = path.resolve(outputPath);
+
+      await sharp(absInputPath)
         .resize({
-          width: 800, // or your preferred size
+          width: 800,
           withoutEnlargement: true,
         })
-        .webp({ quality: 80 }) // match your frontend quality
-        .toFile(outputPath);
+        .webp({ quality: 80 })
+        .toFile(absOutputPath);
 
-      console.log(`✅ Compressed image saved at: ${outputPath}`);
+      console.log(`✅ Compressed image saved at: ${absOutputPath}`);
     } catch (err) {
-      console.error(`❌ Failed to compress image:`, err);
+      console.error(
+        `❌ Failed to compress image for ${inputPath}:`,
+        err.message,
+      );
+      throw err;
     }
   }
 
@@ -2299,31 +2306,49 @@ export class AdminService {
       relations: ['productPictures'],
     });
 
-    for (const product of allProducts) {
-      const originalFileName = product.productPictures[0].filename;
+    let compressed = 0;
+    let skipped = 0;
+    const failed: { productId: number; reason: string }[] = [];
 
-      // Skip if no image or thumbImage already exists
-      if (!originalFileName || product.productPictures[0].thumb) continue;
+    for (const product of allProducts) {
+      const sidePic = product.productPictures?.[0];
+
+      if (!sidePic || !sidePic.filename || sidePic.thumb) {
+        skipped++;
+        continue;
+      }
+
+      const originalFileName = sidePic.filename;
+      const ext = path.extname(originalFileName);
+      const baseName = originalFileName.replace(ext, '');
+      const thumbFileName = `${baseName}.webp`;
 
       const inputPath = path.join('uploads', originalFileName);
-      const outputPath = path.join(
-        'uploads',
-        'side-thumb',
-        originalFileName.replace(path.extname(originalFileName), '.webp'),
-      );
+      const outputPath = path.join('uploads', 'side-thumb', thumbFileName);
 
-      await this.compressImage(inputPath, outputPath);
+      try {
+        await this.compressImage(inputPath, outputPath);
 
-      // add thumb image
-      product.productPictures[0].thumb = path.join(
-        'side-thumb',
-        originalFileName.replace(path.extname(originalFileName), '.webp'),
-      );
-
-      await this.productRepo.save(product);
+        // Save thumb path
+        sidePic.thumb = path.join('side-thumb', thumbFileName);
+        await this.productPicRepo.save(sidePic);
+        compressed++;
+      } catch (err) {
+        failed.push({
+          productId: product.id,
+          reason: err.message || 'Unknown error',
+        });
+      }
     }
 
-    return true;
+    return {
+      totalProducts: allProducts.length,
+      compressedImages: compressed,
+      skippedProducts: skipped,
+      failedOperations: failed.length,
+      failedDetails: failed,
+      message: `Compression finished: ${compressed} compressed, ${skipped} skipped, ${failed.length} failed.`,
+    };
   }
 
   // change banner image
