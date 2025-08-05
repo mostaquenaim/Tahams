@@ -52,6 +52,9 @@ import { RoleEntity } from 'src/Global/Entities/roles.entity';
 import * as sharp from 'sharp';
 import * as path from 'path';
 import * as fs from 'fs';
+import { promisify } from 'util';
+
+const unlinkAsync = promisify(fs.unlink);
 
 @Injectable()
 export class AdminService {
@@ -1093,27 +1096,29 @@ export class AdminService {
   }
 
   // get Product by category id
-  async getProductByCat(name) {
-    //get all the products where category name == name
-    const products = await this.productRepo.find({
-      where: {
-        pscs: { category: { category: { category: { name } } } },
-        publishable: true,
-      },
-      relations: [
-        'color',
-        'fabric',
-        'productPictures',
-        'pscs',
-        'pscs.category',
-        'pscs.category.category.category',
-        'pscs.size',
-      ],
-    });
+ async getProductByCat(name: string) {
+  const query = this.productRepo.createQueryBuilder('product')
+    .leftJoinAndSelect('product.pscs', 'pscs')
+    .leftJoinAndSelect('pscs.category', 'category')
+    .leftJoinAndSelect('category.category', 'subcategory')
+    .leftJoinAndSelect('subcategory.category', 'subsubcategory')
+    .leftJoinAndSelect('product.color', 'color')
+    .leftJoinAndSelect('product.fabric', 'fabric')
+    .leftJoinAndSelect('product.productPictures', 'productPictures')
+    .leftJoinAndSelect('pscs.size', 'size')
+    .where('product.publishable = :publishable', { publishable: true });
 
-    // console.log(products);
-    return products;
+  if (name.toLowerCase() === 'solid') {
+    // Exclude the "Customize" category
+    query.andWhere('subcategory.name != :excludeCategory', { excludeCategory: 'Customize' });
+  } else {
+    query.andWhere('subcategory.name = :categoryName', { categoryName: name });
   }
+
+  const products = await query.getMany();
+
+  return products;
+}
 
   // get publishabe products
   async getPublishableProductsBySubSubCatId(subCategoryId) {
@@ -1391,6 +1396,22 @@ export class AdminService {
 
     // ✅ If new file is uploaded
     if (filename) {
+      // Delete old image and thumbnail if exist
+      const oldImagePath = productObj.filename
+        ? path.join('uploads', productObj.filename)
+        : null;
+      const oldThumbPath = productObj.thumbImage
+        ? path.join('uploads', productObj.thumbImage)
+        : null;
+
+      if (oldImagePath && fs.existsSync(oldImagePath)) {
+        await unlinkAsync(oldImagePath);
+      }
+
+      if (oldThumbPath && fs.existsSync(oldThumbPath)) {
+        await unlinkAsync(oldThumbPath);
+      }
+
       productObj.filename = filename.filename;
 
       // add thumb image
@@ -2236,6 +2257,26 @@ export class AdminService {
 
     // If new filenames are provided, delete existing pictures
     if (myDto.filenames.length > 0) {
+      const oldPictures = await this.productPicRepo.find({
+        where: { product },
+      });
+
+      console.log(oldPictures);
+
+      for (const pic of oldPictures) {
+        const oldImagePath = pic.filename
+          ? path.join('uploads', pic.filename)
+          : null;
+        const oldThumbPath = pic.thumb ? path.join('uploads', pic.thumb) : null;
+        if (oldImagePath && fs.existsSync(oldImagePath)) {
+          await unlinkAsync(oldImagePath);
+        }
+
+        if (oldThumbPath && fs.existsSync(oldThumbPath)) {
+          await unlinkAsync(oldThumbPath);
+        }
+      }
+
       await this.productPicRepo.delete({ product });
     }
 
