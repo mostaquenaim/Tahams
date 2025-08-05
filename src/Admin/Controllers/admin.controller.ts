@@ -1076,7 +1076,7 @@ export class AdminController {
     }),
   )
   async updateProductPictures(@UploadedFiles() files, @Body() mydata) {
-    console.log(files, 'filess');
+    // console.log(files, 'filess');
     const filenames = files.map((file) => file.filename);
     mydata.filenames = filenames;
     return this.adminService.updateProductPictures(mydata);
