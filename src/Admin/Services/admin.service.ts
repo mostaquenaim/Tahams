@@ -1096,40 +1096,25 @@ export class AdminService {
   }
 
   // get Product by category id
-  async getProductByCat(name: string) {
-    const query = this.productRepo
-      .createQueryBuilder('product')
-      .leftJoinAndSelect('product.pscs', 'pscs')
-      .leftJoinAndSelect('pscs.category', 'category')
-      .leftJoinAndSelect('category.category', 'subcategory')
-      .leftJoinAndSelect('subcategory.category', 'subsubcategory')
-      .leftJoinAndSelect('product.color', 'color')
-      .leftJoinAndSelect('product.fabric', 'fabric')
-      .leftJoinAndSelect('product.productPictures', 'productPictures')
-      .leftJoinAndSelect('pscs.size', 'size')
-      .where('product.publishable = :publishable', { publishable: true });
+  async getProductByCat(name) {
+    //get all the products where category name == name
+    const products = await this.productRepo.find({
+      where: {
+        pscs: { category: { category: { category: { name } } } },
+        publishable: true,
+      },
+      relations: [
+        'color',
+        'fabric',
+        'productPictures',
+        'pscs',
+        'pscs.category',
+        'pscs.category.category.category',
+        'pscs.size',
+      ],
+    });
 
-    // Handle the case for "Solid" category
-    if (name.toLowerCase() === 'solid') {
-      query.andWhere('subcategory.name != :excludeCategory', {
-        excludeCategory: 'Customize',
-      });
-    } 
-    else if (name.toLowerCase() === 'customize') {
-      // Handle the case for "Customize" category explicitly
-      query.andWhere('subcategory.name = :categoryName', {
-        categoryName: 'Customize',
-      });
-    }
-     else {
-      // For other categories, just filter by name
-      query.andWhere('subcategory.name = :categoryName', {
-        categoryName: name,
-      });
-    }
-
-    const products = await query.getMany();
-
+    // console.log(products);
     return products;
   }
 
@@ -2289,7 +2274,7 @@ export class AdminService {
           await unlinkAsync(oldThumbPath);
         }
       }
-
+      
       await this.productPicRepo.delete({ product });
     }
 
