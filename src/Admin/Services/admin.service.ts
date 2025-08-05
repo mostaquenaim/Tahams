@@ -1096,29 +1096,42 @@ export class AdminService {
   }
 
   // get Product by category id
- async getProductByCat(name: string) {
-  const query = this.productRepo.createQueryBuilder('product')
-    .leftJoinAndSelect('product.pscs', 'pscs')
-    .leftJoinAndSelect('pscs.category', 'category')
-    .leftJoinAndSelect('category.category', 'subcategory')
-    .leftJoinAndSelect('subcategory.category', 'subsubcategory')
-    .leftJoinAndSelect('product.color', 'color')
-    .leftJoinAndSelect('product.fabric', 'fabric')
-    .leftJoinAndSelect('product.productPictures', 'productPictures')
-    .leftJoinAndSelect('pscs.size', 'size')
-    .where('product.publishable = :publishable', { publishable: true });
+  async getProductByCat(name: string) {
+    const query = this.productRepo
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.pscs', 'pscs')
+      .leftJoinAndSelect('pscs.category', 'category')
+      .leftJoinAndSelect('category.category', 'subcategory')
+      .leftJoinAndSelect('subcategory.category', 'subsubcategory')
+      .leftJoinAndSelect('product.color', 'color')
+      .leftJoinAndSelect('product.fabric', 'fabric')
+      .leftJoinAndSelect('product.productPictures', 'productPictures')
+      .leftJoinAndSelect('pscs.size', 'size')
+      .where('product.publishable = :publishable', { publishable: true });
 
-  if (name.toLowerCase() === 'solid') {
-    // Exclude the "Customize" category
-    query.andWhere('subcategory.name != :excludeCategory', { excludeCategory: 'Customize' });
-  } else {
-    query.andWhere('subcategory.name = :categoryName', { categoryName: name });
+    // Handle the case for "Solid" category
+    if (name.toLowerCase() === 'solid') {
+      query.andWhere('subcategory.name != :excludeCategory', {
+        excludeCategory: 'Customize',
+      });
+    } 
+    else if (name.toLowerCase() === 'customize') {
+      // Handle the case for "Customize" category explicitly
+      query.andWhere('subcategory.name = :categoryName', {
+        categoryName: 'Customize',
+      });
+    }
+     else {
+      // For other categories, just filter by name
+      query.andWhere('subcategory.name = :categoryName', {
+        categoryName: name,
+      });
+    }
+
+    const products = await query.getMany();
+
+    return products;
   }
-
-  const products = await query.getMany();
-
-  return products;
-}
 
   // get publishabe products
   async getPublishableProductsBySubSubCatId(subCategoryId) {
