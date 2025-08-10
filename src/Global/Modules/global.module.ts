@@ -33,6 +33,7 @@ import { PopUpEntity } from '../Entities/pop-up.entity';
 import { ActivePopUpEntity } from '../Entities/active-pop-up.entity';
 import { BlacklistToken } from '../Entities/blacklist-token.entity';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { CustomizationRequestEntity } from '../Entities/customization-request.entity';
 // Load environment variables
 // dotenv.config();
 
@@ -65,6 +66,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
             CartsEntity,
             ColorSizeEntity,
             CouponEntity,
+            CustomizationRequestEntity,
             DeliveryStatusEntity,
             FabricEntity,
             GenderEntity,

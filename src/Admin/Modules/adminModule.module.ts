@@ -43,6 +43,7 @@ import { RolesGuard } from "../Guards/roles.guard";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { JwtStrategy } from "../strategies/jwt.strategy";
 import { RoleEntity } from "src/Global/Entities/roles.entity";
+import { CustomizationRequestEntity } from "src/Global/Entities/customization-request.entity";
 // dotenv.config();
 
 @Module({
@@ -84,6 +85,7 @@ import { RoleEntity } from "src/Global/Entities/roles.entity";
             ColorEntity,
             CartsEntity,
             CouponEntity,
+            CustomizationRequestEntity,
             DeliveryStatusEntity,
             EmployeeEntity,
             FabricEntity,

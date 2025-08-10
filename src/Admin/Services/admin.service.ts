@@ -53,6 +53,7 @@ import * as sharp from 'sharp';
 import * as path from 'path';
 import * as fs from 'fs';
 import { promisify } from 'util';
+import { CustomizationRequestEntity } from 'src/Global/Entities/customization-request.entity';
 
 const unlinkAsync = promisify(fs.unlink);
 
@@ -91,6 +92,9 @@ export class AdminService {
 
     @InjectRepository(CouponEntity)
     private couponRepo: Repository<CouponEntity>,
+
+    @InjectRepository(CustomizationRequestEntity)
+    private customReqRepo: Repository<CustomizationRequestEntity>,
 
     @InjectRepository(ColorEntity)
     private colorRepo: Repository<ColorEntity>,
@@ -1866,6 +1870,24 @@ export class AdminService {
     return savedBuy;
   }
 
+  // send customization request
+  async handleDesignRequest(designData: any) {
+    // Map the designData to a CustomizationRequest entity
+    const customizationRequest = await this.customReqRepo.create({
+      color: designData.color,
+      // elements: designData.elements,
+      // previewImage: designData.previewImage,
+      // timestamp: new Date(designData.timestamp), // Ensure correct Date format
+    }); 
+ 
+    console.log(customizationRequest);
+    // Save the request to the database
+    const res = await this.customReqRepo.save(customizationRequest);
+    console.log('res',res,'res');
+    return res;
+    // You can add additional business logic here, like sending an email or notification
+  }
+
   // create new cart object
   async createNewCartObject(buy, cartsData) {
     // console.log(buy, 'buy', cartsData, 'cartsData');
@@ -2274,7 +2296,7 @@ export class AdminService {
           await unlinkAsync(oldThumbPath);
         }
       }
-      
+
       await this.productPicRepo.delete({ product });
     }
 

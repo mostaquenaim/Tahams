@@ -950,6 +950,42 @@ export class AdminController {
     return this.adminService.createNewProduct(mydata);
   }
 
+  // send customization request
+  @Post('send-customize-tee-request')
+  // @UseInterceptors(
+  //   FileInterceptor('previewImage', {
+  //     fileFilter: (req, file, cb) => {
+  //       if (file.originalname.match(/^.*\.(jpg|webp|png|jpeg|gif)$/))
+  //         cb(null, true);
+  //       else {
+  //         cb(new MulterError('LIMIT_UNEXPECTED_FILE', 'previewImage'), false);
+  //       }
+  //     },
+  //     limits: { fileSize: 30000000 },
+  //     storage: diskStorage({
+  //       destination: './uploads',
+  //       filename: function (req, file, cb) {
+  //         cb(null, "custom" + Date.now() + file.originalname);
+  //       },
+  //     }),
+  //   }),
+  // )
+  // @UsePipes(new ValidationPipe())
+  async sendCustomizeTeeRequest(
+    @Body() designData: any,
+    // @UploadedFile() imageobj: Express.Multer.File,
+  ) {
+    console.log(designData); 
+    // console.log(imageobj.filename,'sdfkjnsdf');
+    try {
+      // designData.filename = imageobj.filename
+      // Call the service to handle the business logic
+      return await this.adminService.handleDesignRequest(designData);
+    } catch (error) {
+      throw new Error('Error while sendin request');
+    }
+  }
+
   // update discount
   @Put('update-discount')
   updateDiscount(@Body() mydata) {
@@ -1126,9 +1162,9 @@ export class AdminController {
     return res;
   }
 
-  // get all images compressed 
+  // get all images compressed
   @Get('/get-all-images-compressed')
-  async getImagesCompressed(){
+  async getImagesCompressed() {
     const res = await this.adminService.getImagesCompressed();
     return res;
   }
