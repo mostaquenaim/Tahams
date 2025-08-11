@@ -1873,17 +1873,15 @@ export class AdminService {
   // send customization request
   async handleDesignRequest(designData: any) {
     // Map the designData to a CustomizationRequest entity
-    const customizationRequest = await this.customReqRepo.create({
+    const customizationRequest = this.customReqRepo.create({
       color: designData.color,
       // elements: designData.elements,
-      // previewImage: designData.previewImage,
-      // timestamp: new Date(designData.timestamp), // Ensure correct Date format
+      previewImage: designData.previewImage,
+      timestamp: new Date(designData.timestamp), // Ensure correct Date format
     }); 
  
-    console.log(customizationRequest);
     // Save the request to the database
     const res = await this.customReqRepo.save(customizationRequest);
-    console.log('res',res,'res');
     return res;
     // You can add additional business logic here, like sending an email or notification
   }

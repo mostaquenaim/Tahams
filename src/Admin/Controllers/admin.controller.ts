@@ -952,37 +952,45 @@ export class AdminController {
 
   // send customization request
   @Post('send-customize-tee-request')
-  // @UseInterceptors(
-  //   FileInterceptor('previewImage', {
-  //     fileFilter: (req, file, cb) => {
-  //       if (file.originalname.match(/^.*\.(jpg|webp|png|jpeg|gif)$/))
-  //         cb(null, true);
-  //       else {
-  //         cb(new MulterError('LIMIT_UNEXPECTED_FILE', 'previewImage'), false);
-  //       }
-  //     },
-  //     limits: { fileSize: 30000000 },
-  //     storage: diskStorage({
-  //       destination: './uploads',
-  //       filename: function (req, file, cb) {
-  //         cb(null, "custom" + Date.now() + file.originalname);
-  //       },
-  //     }),
-  //   }),
-  // )
+  @UseInterceptors(
+    FileInterceptor('previewImage', {
+      fileFilter: (req, file, cb) => {
+        if (file.originalname.match(/^.*\.(jpg|webp|png|jpeg|gif)$/))
+          cb(null, true);
+        else {
+          cb(new MulterError('LIMIT_UNEXPECTED_FILE', 'previewImage'), false);
+        }
+      },
+      limits: { fileSize: 30000000 },
+      storage: diskStorage({
+        destination: './uploads',
+        filename: function (req, file, cb) {
+          const fileExtension = file.mimetype.split('/')[1];
+          const fileName = `custom-${Date.now()}.${fileExtension}`;
+          cb(null, fileName);
+        },
+      }),
+    }),
+  )
   // @UsePipes(new ValidationPipe())
   async sendCustomizeTeeRequest(
-    @Body() designData: any,
-    // @UploadedFile() imageobj: Express.Multer.File,
+    @Body() designData: any, // Body data
+    @UploadedFile() imageobj: Express.Multer.File, // Uploaded file
   ) {
-    console.log(designData); 
-    // console.log(imageobj.filename,'sdfkjnsdf');
     try {
-      // designData.filename = imageobj.filename
-      // Call the service to handle the business logic
+      // Check if imageobj is undefined or null
+      if (!imageobj) {
+        throw new Error('No file uploaded');
+      }
+  
+      // Add the filename to designData
+      designData.previewImage = imageobj.filename;
+
+      // Call the service to handle the design request
       return await this.adminService.handleDesignRequest(designData);
     } catch (error) {
-      throw new Error('Error while sendin request');
+      console.error('Error while sending request:', error.message);
+      throw new Error('Error while sending the request');
     }
   }
 
