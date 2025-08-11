@@ -994,6 +994,60 @@ export class AdminController {
     }
   }
 
+  // send text customization element 
+  @Post('customized-text-element/:id') 
+  async getCustomTextElement(
+    @Param('id') id: number,
+    @Body() textData
+  ){
+    console.log(textData,'textdata');
+    try {
+      // Call the service to handle the design request
+      return await this.adminService.handleCustomTextElement(textData, id);
+    } catch (error) {
+      console.error('Error while sending request:', error.message);
+      throw new Error('Error while sending the request');
+    }
+  }
+
+  // send image customization element 
+  @Post('customized-image-element/:id') 
+  @UseInterceptors(
+    FileInterceptor('image', {
+      fileFilter: (req, file, cb) => {
+        if (file.originalname.match(/^.*\.(jpg|webp|png|jpeg|gif)$/))
+          cb(null, true);
+        else {
+          cb(new MulterError('LIMIT_UNEXPECTED_FILE', 'image'), false);
+        }
+      },
+      limits: { fileSize: 30000000 },
+      storage: diskStorage({
+        destination: './uploads',
+        filename: function (req, file, cb) {
+          const fileExtension = file.mimetype.split('/')[1];
+          const fileName = `custom-image-${Date.now()}.${fileExtension}`;
+          cb(null, fileName);
+        },
+      }),
+    }),
+  )
+  async getCustomImageElement(
+    @Param('id') id: number,
+    @Body() imageData,
+    @UploadedFile() imageobj: Express.Multer.File, // Uploaded file
+  ){ 
+    try {
+      // console.log(imageobj.filename,'sdfsd')
+      imageData.filename = imageobj.filename
+      // Call the service to handle the design request
+      return await this.adminService.handleCustomImageElement(imageData, id);
+    } catch (error) {
+      console.error('Error while sending request:', error.message);
+      throw new Error('Error while sending the request');
+    }
+  }
+
   // update discount
   @Put('update-discount')
   updateDiscount(@Body() mydata) {

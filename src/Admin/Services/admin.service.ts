@@ -54,6 +54,8 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { promisify } from 'util';
 import { CustomizationRequestEntity } from 'src/Global/Entities/customization-request.entity';
+import { CustomImgElement } from 'src/Global/Entities/custom-img-element';
+import { CustomTextElement } from 'src/Global/Entities/custom-text-element';
 
 const unlinkAsync = promisify(fs.unlink);
 
@@ -95,6 +97,12 @@ export class AdminService {
 
     @InjectRepository(CustomizationRequestEntity)
     private customReqRepo: Repository<CustomizationRequestEntity>,
+
+    @InjectRepository(CustomImgElement)
+    private customImgRepo: Repository<CustomImgElement>,
+
+    @InjectRepository(CustomTextElement)
+    private customTextRepo: Repository<CustomTextElement>,
 
     @InjectRepository(ColorEntity)
     private colorRepo: Repository<ColorEntity>,
@@ -1878,12 +1886,83 @@ export class AdminService {
       // elements: designData.elements,
       previewImage: designData.previewImage,
       timestamp: new Date(designData.timestamp), // Ensure correct Date format
-    }); 
- 
+    });
+
     // Save the request to the database
     const res = await this.customReqRepo.save(customizationRequest);
     return res;
     // You can add additional business logic here, like sending an email or notification
+  }
+
+  // custom text store
+  async handleCustomTextElement(element, id: number) {
+    try {
+      const obj = await this.customReqRepo.findOne({
+        where: {
+          id: id,
+        },
+      });
+
+      if (!obj) {
+        throw new NotFoundException('object not found');
+      }
+
+      const newTextObj = new CustomTextElement();
+      newTextObj.customReq = obj;
+      newTextObj.fontFamily = element.style.fontFamily;
+      newTextObj.color = element.style.color;
+      newTextObj.fontWeight = element.style.fontWeight;
+      newTextObj.fontSize = element.style.fontSize;
+      newTextObj.content = element.content;
+      newTextObj.width = element.width;
+      newTextObj.height = element.height;
+      newTextObj.x = element.x;
+      newTextObj.y = element.y;
+
+      // console.log(customer, 'cust', product);
+      const newTextElement = this.customTextRepo.create(newTextObj);
+
+      return await this.customTextRepo.save(newTextElement);
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to create new text');
+    }
+  }
+
+  // custom text store
+  async handleCustomImageElement(element, id: number) {
+    try {
+      const obj = await this.customReqRepo.findOne({
+        where: {
+          id: id,
+        },
+      });
+
+      if (!obj) {
+        throw new NotFoundException('object not found');
+      }
+
+      element.customReq = obj
+      // console.log(element,'picrepo');
+
+      // const newTextObj = new CustomTextElement();
+      // newTextObj.customReq = obj;
+      // newTextObj.fontFamily = element.style.fontFamily;
+      // newTextObj.color = element.style.color;
+      // newTextObj.fontWeight = element.style.fontWeight;
+      // newTextObj.fontSize = element.style.fontSize;
+      // newTextObj.content = element.content;
+      // newTextObj.width = element.width;
+      // newTextObj.height = element.height;
+      // newTextObj.x = element.x;
+      // newTextObj.y = element.y;
+
+      // console.log(customer, 'cust', product);
+      const newImgElement = this.customImgRepo.create(element);
+
+      return await this.customImgRepo.save(newImgElement);
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to create new text');
+    }
   }
 
   // create new cart object
