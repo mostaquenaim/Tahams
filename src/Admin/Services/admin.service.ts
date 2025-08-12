@@ -1883,6 +1883,7 @@ export class AdminService {
     // Map the designData to a CustomizationRequest entity
     const customizationRequest = this.customReqRepo.create({
       color: designData.color,
+      side: designData.side || 'front',
       // elements: designData.elements,
       previewImage: designData.previewImage,
       timestamp: new Date(designData.timestamp), // Ensure correct Date format

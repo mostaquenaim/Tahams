@@ -16,6 +16,16 @@ export class CustomizationRequestEntity {
   @Column()
   color: string;
 
+  @Column({
+    default: 'front'
+  })
+  side: string;
+
+  @Column({
+    default: false
+  })
+  isChecked: boolean;
+
   @Column({ nullable: true })
   previewImage: string;
 
