@@ -17,12 +17,12 @@ export class CustomizationRequestEntity {
   color: string;
 
   @Column({
-    default: 'front'
+    default: 'front',
   })
   side: string;
 
   @Column({
-    default: false
+    default: false,
   })
   isChecked: boolean;
 
@@ -32,9 +32,12 @@ export class CustomizationRequestEntity {
   @CreateDateColumn({ nullable: true })
   timestamp: Date;
 
+  @Column({ nullable: true })
+  specialInstructions: string;
+
   @OneToMany(() => CustomTextElement, (customText) => customText.customReq)
-  customTexts: CustomTextElement[]
+  customTexts: CustomTextElement[];
 
   @OneToMany(() => CustomImgElement, (customImg) => customImg.customReq)
-  customImages: CustomImgElement[]
+  customImages: CustomImgElement[];
 }

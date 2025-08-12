@@ -1884,6 +1884,7 @@ export class AdminService {
     const customizationRequest = this.customReqRepo.create({
       color: designData.color,
       side: designData.side || 'front',
+      specialInstructions: designData.specialInstructions || 0,
       // elements: designData.elements,
       previewImage: designData.previewImage,
       timestamp: new Date(designData.timestamp), // Ensure correct Date format
@@ -1942,27 +1943,23 @@ export class AdminService {
         throw new NotFoundException('object not found');
       }
 
-      element.customReq = obj
-      // console.log(element,'picrepo');
+      // Parse numeric values
+      element.height = parseInt(element.height, 10); // Ensure height is an integer
+      element.width = parseInt(element.width); // Ensure width is a float (if necessary)
+      element.originalHeight = parseInt(element.originalHeight, 10); // Ensure originalHeight is an integer
+      element.originalWidth = parseInt(element.originalWidth, 10); // Ensure originalWidth is an integer
+      element.x = parseInt(element.x, 10); // Ensure x is an integer
+      element.y = parseInt(element.y, 10); // Ensure y is an integer
 
-      // const newTextObj = new CustomTextElement();
-      // newTextObj.customReq = obj;
-      // newTextObj.fontFamily = element.style.fontFamily;
-      // newTextObj.color = element.style.color;
-      // newTextObj.fontWeight = element.style.fontWeight;
-      // newTextObj.fontSize = element.style.fontSize;
-      // newTextObj.content = element.content;
-      // newTextObj.width = element.width;
-      // newTextObj.height = element.height;
-      // newTextObj.x = element.x;
-      // newTextObj.y = element.y;
+      element.customReq = obj;
 
-      // console.log(customer, 'cust', product);
+      console.log(element, 'elkm'); // Check the element with parsed values
+
       const newImgElement = this.customImgRepo.create(element);
 
       return await this.customImgRepo.save(newImgElement);
     } catch (error) {
-      throw new InternalServerErrorException('Failed to create new text');
+      throw new InternalServerErrorException('Failed to create new image');
     }
   }
 
