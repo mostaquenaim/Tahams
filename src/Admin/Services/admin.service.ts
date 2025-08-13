@@ -1953,8 +1953,6 @@ export class AdminService {
 
       element.customReq = obj;
 
-      console.log(element, 'elkm'); // Check the element with parsed values
-
       const newImgElement = this.customImgRepo.create(element);
 
       return await this.customImgRepo.save(newImgElement);
