@@ -1968,19 +1968,33 @@ export class AdminService {
   }
 
   // get all customization requests
-  async getAllCustomizationRequests(email: string) {
+  async getAllCustomizationRequests(email: string, id: number) {
+    console.log(id);
     const userInfo = await this.getUserByEmail(email);
     // console.log(userInfo);
     const isAdmin = userInfo.role == 'admin';
     const relations = ['user', 'customTexts', 'customImages'];
 
+    // console.log(email,id,'===id');
     if (isAdmin) {
       // admin: get all
-      return this.customReqRepo.find({ relations });
+      if (id == 0) return this.customReqRepo.find({ relations });
+      // console.log(id);
+      return this.customReqRepo.findOne({
+        where: {
+          id: id,
+        },
+      });
     } else {
       // normal user: only get their own
-      return this.customReqRepo.find({
-        where: { user: { email } },
+      if (id == 0)
+        return this.customReqRepo.find({
+          where: { user: { email } },
+          relations,
+        });
+
+      return this.customReqRepo.findOne({
+        where: { user: { email }, id: id },
         relations,
       });
     }
@@ -2114,8 +2128,10 @@ export class AdminService {
     });
 
     for (const pd of allProducts) {
-      if (pd.productId) return;
-      
+      if (pd.productId != null || pd.productId != '') return;
+
+      console.log(pd.id);
+
       const slug = pd.name
         .toLowerCase()
         .replace(/\s+/g, '-') // replace spaces with dashes
