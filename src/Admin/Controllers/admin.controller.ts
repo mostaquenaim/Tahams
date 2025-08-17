@@ -810,8 +810,8 @@ export class AdminController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Put('generate-product-ids')
-  generateProductIds(){
-    return this.adminService.generateProductIds()
+  generateProductIds() {
+    return this.adminService.generateProductIds();
   }
 
   // view all product
@@ -1064,10 +1064,16 @@ export class AdminController {
 
   // get all customization requests
   @Get('get-all-customization-requests')
-  async getAllCustomizationRequests(@Body() mydto) {
+  async getAllCustomizationRequests(
+    @Query() mydto: { email: string; id: number },
+  ) {
     // console.log(mydto);
     try {
-      return await this.adminService.getAllCustomizationRequests(mydto.email);
+      const result = await this.adminService.getAllCustomizationRequests(
+        mydto.email,
+        mydto.id,
+      );
+      return result; // Make sure to return the data properly
     } catch (error) {
       console.error('Error getting request:', error.message);
       throw new Error('Error getting the request');
