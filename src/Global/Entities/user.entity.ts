@@ -5,81 +5,86 @@ import { Entity, Column, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { ViewProductEntity } from './viewProduct.entity';
 import { MessageEntity } from './messages.entity';
 import { UnreadMessageEntity } from './unreadMessage.entity';
+import { CustomizationRequestEntity } from './customization-request.entity';
 
 @Entity('users')
 export class UserEntity {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column({ nullable: true })
-    name: string;
+  @Column({ nullable: true })
+  name: string;
 
-    @Column({ nullable: true })
-    uniqueId: string;
+  @Column({ nullable: true })
+  uniqueId: string;
 
-    @Column({ nullable: true })
-    password: string;
+  @Column({ nullable: true })
+  password: string;
 
-    @Column({ unique: true })
-    email: string;
+  @Column({ unique: true })
+  email: string;
 
-    @Column({ default: 'customer' })
-    role: string;
+  @Column({ default: 'customer' })
+  role: string;
 
-    @Column({ nullable: true })
-    mbl_no: string;
+  @Column({ nullable: true })
+  mbl_no: string;
 
-    @Column({ nullable: true })
-    filename: string;
+  @Column({ nullable: true })
+  filename: string;
 
-    @Column({ nullable: true })
-    address: string;
+  @Column({ nullable: true })
+  address: string;
 
-    @Column({ nullable: true })
-    city: string;
+  @Column({ nullable: true })
+  city: string;
 
-    @Column({ nullable: true })
-    region: string;
+  @Column({ nullable: true })
+  region: string;
 
-    @Column({ nullable: true })
-    state: string;
+  @Column({ nullable: true })
+  state: string;
 
-    @Column({ nullable: true })
-    postal_code: string;
+  @Column({ nullable: true })
+  postal_code: string;
 
-    @Column({ nullable: true })
-    date_of_birth: Date;
+  @Column({ nullable: true })
+  date_of_birth: Date;
 
-    @Column({ nullable: true })
-    gender: string;
+  @Column({ nullable: true })
+  gender: string;
 
-    @Column({ nullable: true })
-    loggedInWith: string;
+  @Column({ nullable: true })
+  loggedInWith: string;
 
-    @Column({ default: () => 'CURRENT_TIMESTAMP' })
-    created_at: Date;
+  @Column({ default: () => 'CURRENT_TIMESTAMP' })
+  created_at: Date;
 
-    @Column({ default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
-    updated_at: Date;
+  @Column({ default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
+  updated_at: Date;
 
-    // relationships 
-    // relationships 
-    // relationships 
-    @OneToMany(() => CartsEntity, (cart) => cart.customer)
-    carts: CartsEntity[];
+  // relationships
+  // relationships
+  // relationships
 
-    @OneToMany(() => WishEntity, (wish) => wish.customer)
-    wishes: WishEntity[];
+  @OneToMany(() => CustomizationRequestEntity, (customReq) => customReq.user)
+  customReqs: CustomizationRequestEntity[];
 
-    @OneToMany(() => ViewProductEntity, (view) => view.user)
-    views: ViewProductEntity[];
+  @OneToMany(() => CartsEntity, (cart) => cart.customer)
+  carts: CartsEntity[];
 
-    @OneToMany(() => MessageEntity, (msg) => msg.sender)
-    msgss: MessageEntity[];
+  @OneToMany(() => WishEntity, (wish) => wish.customer)
+  wishes: WishEntity[];
 
-    @OneToMany(() => MessageEntity, (msg) => msg.receiver)
-    msgsr: MessageEntity[];
+  @OneToMany(() => ViewProductEntity, (view) => view.user)
+  views: ViewProductEntity[];
 
-    @OneToMany(() => UnreadMessageEntity, (msg) => msg.user)
-    msgcnt: UnreadMessageEntity[];
+  @OneToMany(() => MessageEntity, (msg) => msg.sender)
+  msgss: MessageEntity[];
+
+  @OneToMany(() => MessageEntity, (msg) => msg.receiver)
+  msgsr: MessageEntity[];
+
+  @OneToMany(() => UnreadMessageEntity, (msg) => msg.user)
+  msgcnt: UnreadMessageEntity[];
 }

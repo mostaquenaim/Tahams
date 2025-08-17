@@ -978,11 +978,12 @@ export class AdminController {
     @UploadedFile() imageobj: Express.Multer.File, // Uploaded file
   ) {
     try {
+      // console.log(designData);
       // Check if imageobj is undefined or null
       if (!imageobj) {
         throw new Error('No file uploaded');
       }
-  
+
       // Add the filename to designData
       designData.previewImage = imageobj.filename;
 
@@ -994,14 +995,12 @@ export class AdminController {
     }
   }
 
-  // send text customization element 
-  @Post('customized-text-element/:id') 
-  async getCustomTextElement(
-    @Param('id') id: number,
-    @Body() textData
-  ){
-    console.log(textData,'textdata');
+  // send text customization element
+  @Post('customized-text-element/:id')
+  async getCustomTextElement(@Param('id') id: number, @Body() textData) {
+    // console.log(textData,'textdata');
     try {
+      // console.log(textData);
       // Call the service to handle the design request
       return await this.adminService.handleCustomTextElement(textData, id);
     } catch (error) {
@@ -1010,8 +1009,8 @@ export class AdminController {
     }
   }
 
-  // send image customization element 
-  @Post('customized-image-element/:id') 
+  // send image customization element
+  @Post('customized-image-element/:id')
   @UseInterceptors(
     FileInterceptor('image', {
       fileFilter: (req, file, cb) => {
@@ -1036,15 +1035,29 @@ export class AdminController {
     @Param('id') id: number,
     @Body() imageData,
     @UploadedFile() imageobj: Express.Multer.File, // Uploaded file
-  ){ 
+  ) {
     try {
-      // console.log(imageobj.filename,'sdfsd')
-      imageData.filename = imageobj.filename
+      // console.log(imageData,'sdfsd')
+      imageData.filename = imageobj.filename;
       // Call the service to handle the design request
       return await this.adminService.handleCustomImageElement(imageData, id);
     } catch (error) {
       console.error('Error while sending request:', error.message);
       throw new Error('Error while sending the request');
+    }
+  }
+
+  // get all customization requests
+  @Get('get-all-customization-requests')
+  async getAllCustomizationRequests(
+    @Body() mydto
+  ) {
+    // console.log(mydto);
+    try {
+      return await this.adminService.getAllCustomizationRequests(mydto.email);
+    } catch (error) {
+      console.error('Error getting request:', error.message);
+      throw new Error('Error getting the request');
     }
   }
 

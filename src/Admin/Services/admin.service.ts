@@ -1880,14 +1880,20 @@ export class AdminService {
 
   // send customization request
   async handleDesignRequest(designData: any) {
+    const userInfo = await this.getUserByEmail(designData.email);
+
     // Map the designData to a CustomizationRequest entity
     const customizationRequest = this.customReqRepo.create({
+      size: designData?.size,
+      quantity: designData?.quantity,
       color: designData.color,
       side: designData.side || 'front',
       specialInstructions: designData.specialInstructions || 0,
       // elements: designData.elements,
       previewImage: designData.previewImage,
-      timestamp: new Date(designData.timestamp), // Ensure correct Date format
+      phone: designData.phone,
+      name: designData.name,
+      user: userInfo,
     });
 
     // Save the request to the database
@@ -1958,6 +1964,25 @@ export class AdminService {
       return await this.customImgRepo.save(newImgElement);
     } catch (error) {
       throw new InternalServerErrorException('Failed to create new image');
+    }
+  }
+ 
+  // get all customization requests
+  async getAllCustomizationRequests(email: string) {
+    const userInfo = await this.getUserByEmail(email);
+    // console.log(userInfo);
+    const isAdmin = userInfo.role == 'admin';
+    const relations = ['user', 'customTexts', 'customImages'];
+
+    if (isAdmin) {
+      // admin: get all
+      return this.customReqRepo.find({ relations });
+    } else {
+      // normal user: only get their own
+      return this.customReqRepo.find({
+        where: { user: { email } },
+        relations,
+      });
     }
   }
 
