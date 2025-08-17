@@ -44,6 +44,7 @@ import * as fs from 'fs';
 import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../decorators/roles.decorator';
 import { RolesGuard } from '../Guards/roles.guard';
+import { randomBytes } from 'crypto';
 
 @Controller('admin')
 export class AdminController {
@@ -110,7 +111,7 @@ export class AdminController {
       storage: diskStorage({
         destination: './uploads',
         filename: function (req, file, cb) {
-          cb(null, Date.now() + file.originalname);
+          cb(null, file.originalname + '-' + Date.now());
         },
       }),
     }),
@@ -181,7 +182,7 @@ export class AdminController {
       storage: diskStorage({
         destination: './uploads',
         filename: function (req, file, cb) {
-          cb(null, Date.now() + file.originalname);
+          cb(null, file.originalname + '-' + Date.now());
         },
       }),
     }),
@@ -245,12 +246,15 @@ export class AdminController {
       storage: diskStorage({
         destination: './uploads',
         filename: (req, file, cb) => {
+          const baseName = file.originalname.replace(/\.[^/.]+$/, '');
+
+          // make it lowercase and replace spaces/special chars with '-'
+          const safeName = baseName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+
           const ext = extname(file.originalname);
-          const randomName = Array(32)
-            .fill(null)
-            .map(() => Math.round(Math.random() * 16).toString(16))
-            .join('');
-          cb(null, `${randomName}${ext}`);
+          const unique = Math.random().toString(16).slice(2, 8); // 6-char random
+
+          cb(null, `${safeName}-${Date.now()}-${unique}${ext}`);
         },
       }),
     }),
@@ -608,12 +612,15 @@ export class AdminController {
       storage: diskStorage({
         destination: './uploads',
         filename: (req, file, cb) => {
+          const baseName = file.originalname.replace(/\.[^/.]+$/, '');
+
+          // make it lowercase and replace spaces/special chars with '-'
+          const safeName = baseName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+
           const ext = extname(file.originalname);
-          const randomName = Array(32)
-            .fill(null)
-            .map(() => Math.round(Math.random() * 16).toString(16))
-            .join('');
-          cb(null, `${randomName}${ext}`);
+          const unique = Math.random().toString(16).slice(2, 8); // 6-char random
+
+          cb(null, `${safeName}-${Date.now()}-${unique}${ext}`);
         },
       }),
     }),
@@ -799,6 +806,14 @@ export class AdminController {
     return this.adminService.createNewRole(myDto);
   }
 
+  // generate product ids
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Put('generate-product-ids')
+  generateProductIds(){
+    return this.adminService.generateProductIds()
+  }
+
   // view all product
   @Get('view-all-products')
   viewAllProducts(@Query('filter') query: any) {
@@ -950,6 +965,115 @@ export class AdminController {
     return this.adminService.createNewProduct(mydata);
   }
 
+  // send customization request
+  @Post('send-customize-tee-request')
+  @UseInterceptors(
+    FileInterceptor('previewImage', {
+      fileFilter: (req, file, cb) => {
+        if (file.originalname.match(/^.*\.(jpg|webp|png|jpeg|gif)$/))
+          cb(null, true);
+        else {
+          cb(new MulterError('LIMIT_UNEXPECTED_FILE', 'previewImage'), false);
+        }
+      },
+      limits: { fileSize: 30000000 },
+      storage: diskStorage({
+        destination: './uploads',
+        filename: function (req, file, cb) {
+          const fileExtension = file.mimetype.split('/')[1];
+          const fileName = `custom-${Date.now()}.${fileExtension}`;
+          cb(null, fileName);
+        },
+      }),
+    }),
+  )
+  // @UsePipes(new ValidationPipe())
+  async sendCustomizeTeeRequest(
+    @Body() designData: any, // Body data
+    @UploadedFile() imageobj: Express.Multer.File, // Uploaded file
+  ) {
+    try {
+      // console.log(designData);
+      // Check if imageobj is undefined or null
+      if (!imageobj) {
+        throw new Error('No file uploaded');
+      }
+
+      // Add the filename to designData
+      designData.previewImage = imageobj.filename;
+
+      // Call the service to handle the design request
+      return await this.adminService.handleDesignRequest(designData);
+    } catch (error) {
+      console.error('Error while sending request:', error.message);
+      throw new Error('Error while sending the request');
+    }
+  }
+
+  // send text customization element
+  @Post('customized-text-element/:id')
+  async getCustomTextElement(@Param('id') id: number, @Body() textData) {
+    // console.log(textData,'textdata');
+    try {
+      // console.log(textData);
+      // Call the service to handle the design request
+      return await this.adminService.handleCustomTextElement(textData, id);
+    } catch (error) {
+      console.error('Error while sending request:', error.message);
+      throw new Error('Error while sending the request');
+    }
+  }
+
+  // send image customization element
+  @Post('customized-image-element/:id')
+  @UseInterceptors(
+    FileInterceptor('image', {
+      fileFilter: (req, file, cb) => {
+        if (file.originalname.match(/^.*\.(jpg|webp|png|jpeg|gif)$/))
+          cb(null, true);
+        else {
+          cb(new MulterError('LIMIT_UNEXPECTED_FILE', 'image'), false);
+        }
+      },
+      limits: { fileSize: 30000000 },
+      storage: diskStorage({
+        destination: './uploads',
+        filename: function (req, file, cb) {
+          const fileExtension = file.mimetype.split('/')[1];
+          const fileName = `custom-image-${Date.now()}.${fileExtension}`;
+          cb(null, fileName);
+        },
+      }),
+    }),
+  )
+  async getCustomImageElement(
+    @Param('id') id: number,
+    @Body() imageData,
+    @UploadedFile() imageobj: Express.Multer.File, // Uploaded file
+  ) {
+    try {
+      // console.log(imageData,'sdfsd')
+      imageData.filename = imageobj.filename;
+      // Call the service to handle the design request
+      return await this.adminService.handleCustomImageElement(imageData, id);
+    } catch (error) {
+      console.error('Error while sending request:', error.message);
+      throw new Error('Error while sending the request');
+    }
+  }
+
+  // get all customization requests
+  @Get('get-all-customization-requests')
+  async getAllCustomizationRequests(@Body() mydto) {
+    // console.log(mydto);
+    try {
+      return await this.adminService.getAllCustomizationRequests(mydto.email);
+    } catch (error) {
+      console.error('Error getting request:', error.message);
+      throw new Error('Error getting the request');
+    }
+  }
+
   // update discount
   @Put('update-discount')
   updateDiscount(@Body() mydata) {
@@ -974,7 +1098,7 @@ export class AdminController {
       storage: diskStorage({
         destination: './uploads',
         filename: function (req, file, cb) {
-          cb(null, Date.now() + file.originalname);
+          cb(null, file.originalname + '-' + Date.now());
         },
       }),
     }),
@@ -1006,7 +1130,7 @@ export class AdminController {
       storage: diskStorage({
         destination: './uploads',
         filename: function (req, file, cb) {
-          cb(null, Date.now() + file.originalname);
+          cb(null, file.originalname + '-' + Date.now());
         },
       }),
     }),
@@ -1033,11 +1157,16 @@ export class AdminController {
       storage: diskStorage({
         destination: './uploads',
         filename: (req, file, cb) => {
-          const randomName = Array(32)
-            .fill(null)
-            .map(() => Math.round(Math.random() * 16).toString(16))
-            .join('');
-          cb(null, `${randomName}${extname(file.originalname)}`);
+          // take base name without extension
+          const baseName = file.originalname.replace(/\.[^/.]+$/, '');
+
+          // make it lowercase and replace spaces/special chars with '-'
+          const safeName = baseName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+
+          const ext = extname(file.originalname);
+          const unique = Math.random().toString(16).slice(2, 8); // 6-char random
+
+          cb(null, `${safeName}-${Date.now()}-${unique}${ext}`);
         },
       }),
     }),
@@ -1066,11 +1195,16 @@ export class AdminController {
       storage: diskStorage({
         destination: './uploads',
         filename: (req, file, cb) => {
-          const randomName = Array(32)
-            .fill(null)
-            .map(() => Math.round(Math.random() * 16).toString(16))
-            .join('');
-          cb(null, `${randomName}${extname(file.originalname)}`);
+          // take base name without extension
+          const baseName = file.originalname.replace(/\.[^/.]+$/, '');
+
+          // make it lowercase and replace spaces/special chars with '-'
+          const safeName = baseName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+
+          const ext = extname(file.originalname);
+          const unique = Math.random().toString(16).slice(2, 8); // 6-char random
+
+          cb(null, `${safeName}-${Date.now()}-${unique}${ext}`);
         },
       }),
     }),
@@ -1089,7 +1223,7 @@ export class AdminController {
       storage: diskStorage({
         destination: './uploads',
         filename: function (req, file, cb) {
-          cb(null, Date.now() + file.originalname);
+          cb(null, file.originalname + '-' + Date.now());
         },
       }),
     }),
@@ -1126,9 +1260,9 @@ export class AdminController {
     return res;
   }
 
-  // get all images compressed 
+  // get all images compressed
   @Get('/get-all-images-compressed')
-  async getImagesCompressed(){
+  async getImagesCompressed() {
     const res = await this.adminService.getImagesCompressed();
     return res;
   }

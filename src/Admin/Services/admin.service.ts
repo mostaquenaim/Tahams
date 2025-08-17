@@ -53,6 +53,9 @@ import * as sharp from 'sharp';
 import * as path from 'path';
 import * as fs from 'fs';
 import { promisify } from 'util';
+import { CustomizationRequestEntity } from 'src/Global/Entities/customization-request.entity';
+import { CustomImgElement } from 'src/Global/Entities/custom-img-element';
+import { CustomTextElement } from 'src/Global/Entities/custom-text-element';
 
 const unlinkAsync = promisify(fs.unlink);
 
@@ -91,6 +94,15 @@ export class AdminService {
 
     @InjectRepository(CouponEntity)
     private couponRepo: Repository<CouponEntity>,
+
+    @InjectRepository(CustomizationRequestEntity)
+    private customReqRepo: Repository<CustomizationRequestEntity>,
+
+    @InjectRepository(CustomImgElement)
+    private customImgRepo: Repository<CustomImgElement>,
+
+    @InjectRepository(CustomTextElement)
+    private customTextRepo: Repository<CustomTextElement>,
 
     @InjectRepository(ColorEntity)
     private colorRepo: Repository<ColorEntity>,
@@ -557,7 +569,7 @@ export class AdminService {
         .andWhere(filters)
         .getMany();
 
-      console.log(products, 'prdsts');
+      // console.log(products, 'prdsts');
 
       return products;
     } catch (error) {
@@ -1866,6 +1878,114 @@ export class AdminService {
     return savedBuy;
   }
 
+  // send customization request
+  async handleDesignRequest(designData: any) {
+    const userInfo = await this.getUserByEmail(designData.email);
+
+    // Map the designData to a CustomizationRequest entity
+    const customizationRequest = this.customReqRepo.create({
+      size: designData?.size,
+      quantity: designData?.quantity,
+      color: designData.color,
+      side: designData.side || 'front',
+      specialInstructions: designData.specialInstructions || 0,
+      // elements: designData.elements,
+      previewImage: designData.previewImage,
+      phone: designData.phone,
+      name: designData.name,
+      user: userInfo,
+    });
+
+    // Save the request to the database
+    const res = await this.customReqRepo.save(customizationRequest);
+    return res;
+    // You can add additional business logic here, like sending an email or notification
+  }
+
+  // custom text store
+  async handleCustomTextElement(element, id: number) {
+    try {
+      const obj = await this.customReqRepo.findOne({
+        where: {
+          id: id,
+        },
+      });
+
+      if (!obj) {
+        throw new NotFoundException('object not found');
+      }
+
+      const newTextObj = new CustomTextElement();
+      newTextObj.customReq = obj;
+      newTextObj.fontFamily = element.style.fontFamily;
+      newTextObj.color = element.style.color;
+      newTextObj.fontWeight = element.style.fontWeight;
+      newTextObj.fontSize = element.style.fontSize;
+      newTextObj.content = element.content;
+      newTextObj.width = element.width;
+      newTextObj.height = element.height;
+      newTextObj.x = element.x;
+      newTextObj.y = element.y;
+
+      // console.log(customer, 'cust', product);
+      const newTextElement = this.customTextRepo.create(newTextObj);
+
+      return await this.customTextRepo.save(newTextElement);
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to create new text');
+    }
+  }
+
+  // custom text store
+  async handleCustomImageElement(element, id: number) {
+    try {
+      const obj = await this.customReqRepo.findOne({
+        where: {
+          id: id,
+        },
+      });
+
+      if (!obj) {
+        throw new NotFoundException('object not found');
+      }
+
+      // Parse numeric values
+      element.height = parseInt(element.height, 10); // Ensure height is an integer
+      element.width = parseInt(element.width); // Ensure width is a float (if necessary)
+      element.originalHeight = parseInt(element.originalHeight, 10); // Ensure originalHeight is an integer
+      element.originalWidth = parseInt(element.originalWidth, 10); // Ensure originalWidth is an integer
+      element.x = parseInt(element.x, 10); // Ensure x is an integer
+      element.y = parseInt(element.y, 10); // Ensure y is an integer
+
+      element.customReq = obj;
+
+      const newImgElement = this.customImgRepo.create(element);
+
+      return await this.customImgRepo.save(newImgElement);
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to create new image');
+    }
+  }
+
+  // get all customization requests
+  async getAllCustomizationRequests(email: string) {
+    const userInfo = await this.getUserByEmail(email);
+    // console.log(userInfo);
+    const isAdmin = userInfo.role == 'admin';
+    const relations = ['user', 'customTexts', 'customImages'];
+
+    if (isAdmin) {
+      // admin: get all
+      return this.customReqRepo.find({ relations });
+    } else {
+      // normal user: only get their own
+      return this.customReqRepo.find({
+        where: { user: { email } },
+        relations,
+      });
+    }
+  }
+
   // create new cart object
   async createNewCartObject(buy, cartsData) {
     // console.log(buy, 'buy', cartsData, 'cartsData');
@@ -1987,8 +2107,34 @@ export class AdminService {
     });
   }
 
+  // get all product product ids
+  async generateProductIds() {
+    const allProducts = await this.viewAllProducts({
+      publishable: true,
+    });
+
+    for (const pd of allProducts) {
+      if (pd.productId) return;
+      
+      const slug = pd.name
+        .toLowerCase()
+        .replace(/\s+/g, '-') // replace spaces with dashes
+        .replace(/[^a-z0-9\-]/g, ''); // remove special chars
+
+      pd.productId = `${slug}-${pd.id}`;
+
+      // update each product
+      await this.productRepo.update(pd.id, { productId: pd.productId });
+    }
+
+    return {
+      message: `Updated ${allProducts.length} products with productIds.`,
+    };
+  }
+
   // create new product
   async createNewProduct(myDto) {
+    // console.log('md', myDto, 'md');
     const selectedColor = await this.getColorByName(myDto.color);
     myDto.color = selectedColor;
     myDto.ifStock = false;
@@ -2006,11 +2152,78 @@ export class AdminService {
     // add thumb image
     myDto.thumbImage = await this.compressImage(myDto.filename, 'thumb');
 
-    const newProduct = this.productRepo.create({ ...myDto });
+    // console.log(myDto, 'msdkn');
 
+    const lastProduct = await this.productRepo.findOne({
+      order: { id: 'DESC' }, // get last inserted product
+    });
+
+    const slug = myDto.name
+      .toLowerCase()
+      .replace(/\s+/g, '-') // replace spaces with dashes
+      .replace(/[^a-z0-9\-]/g, ''); // remove special chars
+
+    // if no products exist yet, start from 1
+    const nextId = lastProduct ? lastProduct.id + 1 : 1;
+
+    myDto.productId = `${slug}-${nextId}`;
+
+    const newProduct = this.productRepo.create({ ...myDto });
     const savedProduct = await this.productRepo.save(newProduct);
 
+    console.log(savedProduct, 'ss');
+    // console.log(savedProduct.name,'nn');
+
     return await this.createProductExtension(savedProduct, myDto.catsInfo);
+  }
+
+  // create product extension
+  async createProductExtension(product, catsInfo) {
+    const catsInfoArray = JSON.parse(catsInfo);
+
+    const processedCatsInfo = [];
+    let previousCategory = null;
+
+    catsInfoArray.forEach((item) => {
+      if (!Array.isArray(item)) {
+        previousCategory = { categoryId: item, sizes: [] };
+        processedCatsInfo.push(previousCategory);
+      } else {
+        const size = { sizeId: item[0], quantity: item[1] || 0 };
+        previousCategory.sizes.push(size);
+      }
+    });
+
+    // console.log(JSON.stringify(processedCatsInfo, null, 2));
+
+    for (const item of processedCatsInfo) {
+      const catInfoItem = new ProductSizeCategoryEntity();
+
+      catInfoItem.product = product;
+      catInfoItem.category = await this.subSubCategoryRepo.findOne({
+        where: { id: item.categoryId },
+      });
+
+      if (item.sizes.length <= 0) {
+        await this.productSizeCategoryRepo.save(catInfoItem);
+      } else {
+        for (const sizeItem of item.sizes) {
+          const sizeObject = sizeItem.sizeId
+            ? await this.getSizeById(sizeItem.sizeId)
+            : null;
+
+          const newCatInfoItem = { ...catInfoItem }; // Create a new instance
+          newCatInfoItem.size = sizeObject;
+          newCatInfoItem.quantity = sizeItem.quantity;
+
+          await this.productSizeCategoryRepo.save(newCatInfoItem);
+        }
+      }
+    }
+
+    // console.log(processedCatsInfo, 771);
+
+    return product;
   }
 
   // compress image
@@ -2158,54 +2371,6 @@ export class AdminService {
     return savedPopUp;
   }
 
-  async createProductExtension(product, catsInfo) {
-    const catsInfoArray = JSON.parse(catsInfo);
-
-    const processedCatsInfo = [];
-    let previousCategory = null;
-
-    catsInfoArray.forEach((item) => {
-      if (!Array.isArray(item)) {
-        previousCategory = { categoryId: item, sizes: [] };
-        processedCatsInfo.push(previousCategory);
-      } else {
-        const size = { sizeId: item[0], quantity: item[1] || 0 };
-        previousCategory.sizes.push(size);
-      }
-    });
-
-    // console.log(JSON.stringify(processedCatsInfo, null, 2));
-
-    for (const item of processedCatsInfo) {
-      const catInfoItem = new ProductSizeCategoryEntity();
-
-      catInfoItem.product = product;
-      catInfoItem.category = await this.subSubCategoryRepo.findOne({
-        where: { id: item.categoryId },
-      });
-
-      if (item.sizes.length <= 0) {
-        await this.productSizeCategoryRepo.save(catInfoItem);
-      } else {
-        for (const sizeItem of item.sizes) {
-          const sizeObject = sizeItem.sizeId
-            ? await this.getSizeById(sizeItem.sizeId)
-            : null;
-
-          const newCatInfoItem = { ...catInfoItem }; // Create a new instance
-          newCatInfoItem.size = sizeObject;
-          newCatInfoItem.quantity = sizeItem.quantity;
-
-          await this.productSizeCategoryRepo.save(newCatInfoItem);
-        }
-      }
-    }
-
-    // console.log(processedCatsInfo, 771);
-
-    return product;
-  }
-
   // add product photos
   async addProductPictures(myDto: any) {
     const latestProduct = await this.productRepo.findOne({
@@ -2274,7 +2439,7 @@ export class AdminService {
           await unlinkAsync(oldThumbPath);
         }
       }
-      
+
       await this.productPicRepo.delete({ product });
     }
 
