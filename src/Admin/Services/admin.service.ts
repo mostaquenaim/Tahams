@@ -569,7 +569,7 @@ export class AdminService {
         .andWhere(filters)
         .getMany();
 
-      console.log(products, 'prdsts');
+      // console.log(products, 'prdsts');
 
       return products;
     } catch (error) {
@@ -1966,7 +1966,7 @@ export class AdminService {
       throw new InternalServerErrorException('Failed to create new image');
     }
   }
- 
+
   // get all customization requests
   async getAllCustomizationRequests(email: string) {
     const userInfo = await this.getUserByEmail(email);
@@ -2107,8 +2107,34 @@ export class AdminService {
     });
   }
 
+  // get all product product ids
+  async generateProductIds() {
+    const allProducts = await this.viewAllProducts({
+      publishable: true,
+    });
+
+    for (const pd of allProducts) {
+      if (pd.productId) return;
+      
+      const slug = pd.name
+        .toLowerCase()
+        .replace(/\s+/g, '-') // replace spaces with dashes
+        .replace(/[^a-z0-9\-]/g, ''); // remove special chars
+
+      pd.productId = `${slug}-${pd.id}`;
+
+      // update each product
+      await this.productRepo.update(pd.id, { productId: pd.productId });
+    }
+
+    return {
+      message: `Updated ${allProducts.length} products with productIds.`,
+    };
+  }
+
   // create new product
   async createNewProduct(myDto) {
+    // console.log('md', myDto, 'md');
     const selectedColor = await this.getColorByName(myDto.color);
     myDto.color = selectedColor;
     myDto.ifStock = false;
@@ -2126,11 +2152,78 @@ export class AdminService {
     // add thumb image
     myDto.thumbImage = await this.compressImage(myDto.filename, 'thumb');
 
-    const newProduct = this.productRepo.create({ ...myDto });
+    // console.log(myDto, 'msdkn');
 
+    const lastProduct = await this.productRepo.findOne({
+      order: { id: 'DESC' }, // get last inserted product
+    });
+
+    const slug = myDto.name
+      .toLowerCase()
+      .replace(/\s+/g, '-') // replace spaces with dashes
+      .replace(/[^a-z0-9\-]/g, ''); // remove special chars
+
+    // if no products exist yet, start from 1
+    const nextId = lastProduct ? lastProduct.id + 1 : 1;
+
+    myDto.productId = `${slug}-${nextId}`;
+
+    const newProduct = this.productRepo.create({ ...myDto });
     const savedProduct = await this.productRepo.save(newProduct);
 
+    console.log(savedProduct, 'ss');
+    // console.log(savedProduct.name,'nn');
+
     return await this.createProductExtension(savedProduct, myDto.catsInfo);
+  }
+
+  // create product extension
+  async createProductExtension(product, catsInfo) {
+    const catsInfoArray = JSON.parse(catsInfo);
+
+    const processedCatsInfo = [];
+    let previousCategory = null;
+
+    catsInfoArray.forEach((item) => {
+      if (!Array.isArray(item)) {
+        previousCategory = { categoryId: item, sizes: [] };
+        processedCatsInfo.push(previousCategory);
+      } else {
+        const size = { sizeId: item[0], quantity: item[1] || 0 };
+        previousCategory.sizes.push(size);
+      }
+    });
+
+    // console.log(JSON.stringify(processedCatsInfo, null, 2));
+
+    for (const item of processedCatsInfo) {
+      const catInfoItem = new ProductSizeCategoryEntity();
+
+      catInfoItem.product = product;
+      catInfoItem.category = await this.subSubCategoryRepo.findOne({
+        where: { id: item.categoryId },
+      });
+
+      if (item.sizes.length <= 0) {
+        await this.productSizeCategoryRepo.save(catInfoItem);
+      } else {
+        for (const sizeItem of item.sizes) {
+          const sizeObject = sizeItem.sizeId
+            ? await this.getSizeById(sizeItem.sizeId)
+            : null;
+
+          const newCatInfoItem = { ...catInfoItem }; // Create a new instance
+          newCatInfoItem.size = sizeObject;
+          newCatInfoItem.quantity = sizeItem.quantity;
+
+          await this.productSizeCategoryRepo.save(newCatInfoItem);
+        }
+      }
+    }
+
+    // console.log(processedCatsInfo, 771);
+
+    return product;
   }
 
   // compress image
@@ -2276,54 +2369,6 @@ export class AdminService {
     }
 
     return savedPopUp;
-  }
-
-  async createProductExtension(product, catsInfo) {
-    const catsInfoArray = JSON.parse(catsInfo);
-
-    const processedCatsInfo = [];
-    let previousCategory = null;
-
-    catsInfoArray.forEach((item) => {
-      if (!Array.isArray(item)) {
-        previousCategory = { categoryId: item, sizes: [] };
-        processedCatsInfo.push(previousCategory);
-      } else {
-        const size = { sizeId: item[0], quantity: item[1] || 0 };
-        previousCategory.sizes.push(size);
-      }
-    });
-
-    // console.log(JSON.stringify(processedCatsInfo, null, 2));
-
-    for (const item of processedCatsInfo) {
-      const catInfoItem = new ProductSizeCategoryEntity();
-
-      catInfoItem.product = product;
-      catInfoItem.category = await this.subSubCategoryRepo.findOne({
-        where: { id: item.categoryId },
-      });
-
-      if (item.sizes.length <= 0) {
-        await this.productSizeCategoryRepo.save(catInfoItem);
-      } else {
-        for (const sizeItem of item.sizes) {
-          const sizeObject = sizeItem.sizeId
-            ? await this.getSizeById(sizeItem.sizeId)
-            : null;
-
-          const newCatInfoItem = { ...catInfoItem }; // Create a new instance
-          newCatInfoItem.size = sizeObject;
-          newCatInfoItem.quantity = sizeItem.quantity;
-
-          await this.productSizeCategoryRepo.save(newCatInfoItem);
-        }
-      }
-    }
-
-    // console.log(processedCatsInfo, 771);
-
-    return product;
   }
 
   // add product photos

@@ -1,12 +1,12 @@
 /* eslint-disable prettier/prettier */
 import {
-    Entity,
-    Column,
-    PrimaryGeneratedColumn,
-    OneToMany,
-    ManyToOne,
-    CreateDateColumn,
-    UpdateDateColumn
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  OneToMany,
+  ManyToOne,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { ColorEntity } from './colors.entity';
 import { CartsEntity } from './cart.entity';
@@ -19,94 +19,97 @@ import { ViewProductEntity } from './viewProduct.entity';
 
 @Entity('product')
 export class ProductEntity {
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @PrimaryGeneratedColumn()
-    id: number;
+  @Column()
+  name: string;
 
-    @Column()
-    name: string
+  @Column()
+  serialNo: string;
 
-    @Column()
-    serialNo: string
+  @Column({ nullable: true })
+  productId: string;
 
-    @Column({ nullable: true })
-    note: string
+  @Column({ nullable: true })
+  note: string;
 
-    @Column({ nullable: true })
-    purchaseDate: Date
+  @Column({ nullable: true })
+  purchaseDate: Date;
 
-    @Column({ default: 0 })
-    vatPercentage: number
+  @Column({ default: 0 })
+  vatPercentage: number;
 
-    @Column({ default: 0 })
-    discountPercentage: number
+  @Column({ default: 0 })
+  discountPercentage: number;
 
-    @Column({ default: 0 })
-    buyingPrice: number
+  @Column({ default: 0 })
+  buyingPrice: number;
 
-    @Column({ default: 0 })
-    sellingPrice: number
+  @Column({ default: 0 })
+  sellingPrice: number;
 
-    @Column({ nullable: true })
-    tags: string
+  @Column({ nullable: true })
+  tags: string;
 
-    @Column()
-    description: string
+  @Column()
+  description: string;
 
-    @Column({ nullable: true })
-    longDescription: string
+  @Column({ nullable: true })
+  longDescription: string;
 
-    @Column({ default: true })
-    ifStock: boolean
+  @Column({ default: true })
+  ifStock: boolean;
 
-    @Column({ nullable: true })
-    filename: string
+  @Column({ nullable: true })
+  filename: string;
 
-    @Column({ nullable: true })
-    thumbImage: string
+  @Column({ nullable: true })
+  thumbImage: string;
 
-    @Column({ default: false })
-    publishable: boolean
+  @Column({ default: false })
+  publishable: boolean;
 
-    @Column({ default: 0 })
-    totalViews: number
+  @Column({ default: 0 })
+  totalViews: number;
 
-    @Column({ default: 0 })
-    salesCount: number
+  @Column({ default: 0 })
+  salesCount: number;
 
-    // Timestamp columns
-    @CreateDateColumn({ type: 'timestamp' })
-    createdAt: Date;
+  // Timestamp columns
+  @CreateDateColumn({ type: 'timestamp' })
+  createdAt: Date;
 
-    @UpdateDateColumn({ type: 'timestamp' })
-    updateAt: Date;
+  @UpdateDateColumn({ type: 'timestamp' })
+  updateAt: Date;
 
+  // relations
+  // relations
+  // relations
+  @ManyToOne(() => ColorEntity, (color) => color.products)
+  color: ColorEntity;
 
-    // relations 
-    // relations 
-    // relations 
-    @ManyToOne(() => ColorEntity, (color) => color.products)
-    color: ColorEntity
+  @ManyToOne(() => FabricEntity, (fabric) => fabric.products)
+  fabric: FabricEntity;
 
-    @ManyToOne(() => FabricEntity, (fabric) => fabric.products)
-    fabric: FabricEntity
+  @OneToMany(
+    () => ProductPictureEntity,
+    (productPicture) => productPicture.product,
+  )
+  productPictures: ProductPictureEntity[];
 
-    @OneToMany(() => ProductPictureEntity, (productPicture) => productPicture.product)
-    productPictures: ProductPictureEntity[]
+  @OneToMany(() => ProductSizeCategoryEntity, (psc) => psc.product)
+  pscs: ProductSizeCategoryEntity[];
 
-    @OneToMany(() => ProductSizeCategoryEntity, (psc) => psc.product)
-    pscs: ProductSizeCategoryEntity[]
+  @OneToMany(() => CartsEntity, (cart) => cart.product)
+  carts: CartsEntity[];
 
-    @OneToMany(() => CartsEntity, (cart) => cart.product)
-    carts: CartsEntity[]
+  @OneToMany(() => WishEntity, (wish) => wish.product)
+  wishes: WishEntity[];
 
-    @OneToMany(() => WishEntity, (wish) => wish.product)
-    wishes: WishEntity[]
+  @OneToMany(() => ViewProductEntity, (view) => view.product)
+  views: ViewProductEntity[];
 
-    @OneToMany(() => ViewProductEntity, (view) => view.product)
-    views: ViewProductEntity[]
-
-    // @OneToMany(() => NewArrivalEntity, (arrive) => arrive.product)
-    // arrivals: NewArrivalEntity[]
-
+  // @OneToMany(() => NewArrivalEntity, (arrive) => arrive.product)
+  // arrivals: NewArrivalEntity[]
 }

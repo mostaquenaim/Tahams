@@ -44,6 +44,7 @@ import * as fs from 'fs';
 import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../decorators/roles.decorator';
 import { RolesGuard } from '../Guards/roles.guard';
+import { randomBytes } from 'crypto';
 
 @Controller('admin')
 export class AdminController {
@@ -110,7 +111,7 @@ export class AdminController {
       storage: diskStorage({
         destination: './uploads',
         filename: function (req, file, cb) {
-          cb(null, Date.now() + file.originalname);
+          cb(null, file.originalname + '-' + Date.now());
         },
       }),
     }),
@@ -181,7 +182,7 @@ export class AdminController {
       storage: diskStorage({
         destination: './uploads',
         filename: function (req, file, cb) {
-          cb(null, Date.now() + file.originalname);
+          cb(null, file.originalname + '-' + Date.now());
         },
       }),
     }),
@@ -245,12 +246,15 @@ export class AdminController {
       storage: diskStorage({
         destination: './uploads',
         filename: (req, file, cb) => {
+          const baseName = file.originalname.replace(/\.[^/.]+$/, '');
+
+          // make it lowercase and replace spaces/special chars with '-'
+          const safeName = baseName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+
           const ext = extname(file.originalname);
-          const randomName = Array(32)
-            .fill(null)
-            .map(() => Math.round(Math.random() * 16).toString(16))
-            .join('');
-          cb(null, `${randomName}${ext}`);
+          const unique = Math.random().toString(16).slice(2, 8); // 6-char random
+
+          cb(null, `${safeName}-${Date.now()}-${unique}${ext}`);
         },
       }),
     }),
@@ -608,12 +612,15 @@ export class AdminController {
       storage: diskStorage({
         destination: './uploads',
         filename: (req, file, cb) => {
+          const baseName = file.originalname.replace(/\.[^/.]+$/, '');
+
+          // make it lowercase and replace spaces/special chars with '-'
+          const safeName = baseName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+
           const ext = extname(file.originalname);
-          const randomName = Array(32)
-            .fill(null)
-            .map(() => Math.round(Math.random() * 16).toString(16))
-            .join('');
-          cb(null, `${randomName}${ext}`);
+          const unique = Math.random().toString(16).slice(2, 8); // 6-char random
+
+          cb(null, `${safeName}-${Date.now()}-${unique}${ext}`);
         },
       }),
     }),
@@ -797,6 +804,14 @@ export class AdminController {
   @Post('create-role')
   createNewRole(@Body() myDto) {
     return this.adminService.createNewRole(myDto);
+  }
+
+  // generate product ids
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Put('generate-product-ids')
+  generateProductIds(){
+    return this.adminService.generateProductIds()
   }
 
   // view all product
@@ -1049,9 +1064,7 @@ export class AdminController {
 
   // get all customization requests
   @Get('get-all-customization-requests')
-  async getAllCustomizationRequests(
-    @Body() mydto
-  ) {
+  async getAllCustomizationRequests(@Body() mydto) {
     // console.log(mydto);
     try {
       return await this.adminService.getAllCustomizationRequests(mydto.email);
@@ -1085,7 +1098,7 @@ export class AdminController {
       storage: diskStorage({
         destination: './uploads',
         filename: function (req, file, cb) {
-          cb(null, Date.now() + file.originalname);
+          cb(null, file.originalname + '-' + Date.now());
         },
       }),
     }),
@@ -1117,7 +1130,7 @@ export class AdminController {
       storage: diskStorage({
         destination: './uploads',
         filename: function (req, file, cb) {
-          cb(null, Date.now() + file.originalname);
+          cb(null, file.originalname + '-' + Date.now());
         },
       }),
     }),
@@ -1144,11 +1157,16 @@ export class AdminController {
       storage: diskStorage({
         destination: './uploads',
         filename: (req, file, cb) => {
-          const randomName = Array(32)
-            .fill(null)
-            .map(() => Math.round(Math.random() * 16).toString(16))
-            .join('');
-          cb(null, `${randomName}${extname(file.originalname)}`);
+          // take base name without extension
+          const baseName = file.originalname.replace(/\.[^/.]+$/, '');
+
+          // make it lowercase and replace spaces/special chars with '-'
+          const safeName = baseName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+
+          const ext = extname(file.originalname);
+          const unique = Math.random().toString(16).slice(2, 8); // 6-char random
+
+          cb(null, `${safeName}-${Date.now()}-${unique}${ext}`);
         },
       }),
     }),
@@ -1177,11 +1195,16 @@ export class AdminController {
       storage: diskStorage({
         destination: './uploads',
         filename: (req, file, cb) => {
-          const randomName = Array(32)
-            .fill(null)
-            .map(() => Math.round(Math.random() * 16).toString(16))
-            .join('');
-          cb(null, `${randomName}${extname(file.originalname)}`);
+          // take base name without extension
+          const baseName = file.originalname.replace(/\.[^/.]+$/, '');
+
+          // make it lowercase and replace spaces/special chars with '-'
+          const safeName = baseName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+
+          const ext = extname(file.originalname);
+          const unique = Math.random().toString(16).slice(2, 8); // 6-char random
+
+          cb(null, `${safeName}-${Date.now()}-${unique}${ext}`);
         },
       }),
     }),
@@ -1200,7 +1223,7 @@ export class AdminController {
       storage: diskStorage({
         destination: './uploads',
         filename: function (req, file, cb) {
-          cb(null, Date.now() + file.originalname);
+          cb(null, file.originalname + '-' + Date.now());
         },
       }),
     }),
