@@ -1984,6 +1984,7 @@ export class AdminService {
         where: {
           id: id,
         },
+        relations,
       });
     } else {
       // normal user: only get their own
