@@ -85,6 +85,9 @@ export class CustomizationRequestEntity {
   @Column({ nullable: true })
   phone: string;
 
+  @Column({ nullable: true })
+  address: string;
+
   // relations
   // relations
   // relations

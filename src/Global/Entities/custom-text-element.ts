@@ -33,6 +33,9 @@ export class CustomTextElement {
   @Column({ nullable: true })
   fontWeight: string;
 
+  @Column({ nullable: true })
+  rotation: number;
+
   @ManyToOne(
     () => CustomizationRequestEntity,
     (customReq) => customReq.customTexts,

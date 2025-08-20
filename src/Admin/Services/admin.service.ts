@@ -1893,6 +1893,7 @@ export class AdminService {
       previewImage: designData.previewImage,
       phone: designData.phone,
       name: designData.name,
+      address: designData.address,
       user: userInfo,
     });
 
@@ -1926,6 +1927,7 @@ export class AdminService {
       newTextObj.height = element.height;
       newTextObj.x = element.x;
       newTextObj.y = element.y;
+      newTextObj.rotation = parseInt(element.style.rotation, 10); // Ensure y is an integer
 
       // console.log(customer, 'cust', product);
       const newTextElement = this.customTextRepo.create(newTextObj);
@@ -1956,7 +1958,8 @@ export class AdminService {
       element.originalWidth = parseInt(element.originalWidth, 10); // Ensure originalWidth is an integer
       element.x = parseInt(element.x, 10); // Ensure x is an integer
       element.y = parseInt(element.y, 10); // Ensure y is an integer
-
+      element.rotation = parseInt(element.rotation, 10); // Ensure y is an integer
+ 
       element.customReq = obj;
 
       const newImgElement = this.customImgRepo.create(element);

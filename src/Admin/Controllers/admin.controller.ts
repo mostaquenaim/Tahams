@@ -993,7 +993,7 @@ export class AdminController {
     @UploadedFile() imageobj: Express.Multer.File, // Uploaded file
   ) {
     try {
-      // console.log(designData);
+      // console.log(designData,'designdata');
       // Check if imageobj is undefined or null
       if (!imageobj) {
         throw new Error('No file uploaded');
@@ -1015,7 +1015,7 @@ export class AdminController {
   async getCustomTextElement(@Param('id') id: number, @Body() textData) {
     // console.log(textData,'textdata');
     try {
-      // console.log(textData);
+      // console.log(textData,'textdata');
       // Call the service to handle the design request
       return await this.adminService.handleCustomTextElement(textData, id);
     } catch (error) {
@@ -1051,6 +1051,7 @@ export class AdminController {
     @Body() imageData,
     @UploadedFile() imageobj: Express.Multer.File, // Uploaded file
   ) {
+    // console.log(imageData);
     try {
       // console.log(imageData,'sdfsd')
       imageData.filename = imageobj.filename;

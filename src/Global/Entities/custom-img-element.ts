@@ -22,6 +22,9 @@ export class CustomImgElement {
   y: number;
 
   @Column({ nullable: true })
+  rotation: number;
+
+  @Column({ nullable: true })
   originalHeight: number;
 
   @Column({ nullable: true })
