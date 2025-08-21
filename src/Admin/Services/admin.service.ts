@@ -1959,7 +1959,7 @@ export class AdminService {
       element.x = parseInt(element.x, 10); // Ensure x is an integer
       element.y = parseInt(element.y, 10); // Ensure y is an integer
       element.rotation = parseInt(element.rotation, 10); // Ensure y is an integer
- 
+
       element.customReq = obj;
 
       const newImgElement = this.customImgRepo.create(element);
@@ -2174,8 +2174,9 @@ export class AdminService {
 
     // console.log(myDto, 'msdkn');
 
-    const lastProduct = await this.productRepo.findOne({
-      order: { id: 'DESC' }, // get last inserted product
+    const lastProduct = await this.productRepo.find({
+      order: { id: 'DESC' },
+      take: 1,
     });
 
     const slug = myDto.name
@@ -2184,7 +2185,7 @@ export class AdminService {
       .replace(/[^a-z0-9\-]/g, ''); // remove special chars
 
     // if no products exist yet, start from 1
-    const nextId = lastProduct ? lastProduct.id + 1 : 1;
+    const nextId = lastProduct.length === 1 ? lastProduct[0].id + 1 : 1;
 
     myDto.productId = `${slug}-${nextId}`;
 

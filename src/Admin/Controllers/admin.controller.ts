@@ -1015,15 +1015,15 @@ export class AdminController {
   async getCustomTextElement(@Param('id') id: number, @Body() textData) {
     // console.log(textData,'textdata');
     try {
-      // console.log(textData,'textdata');
+      console.log(textData,'textdata');
       // Call the service to handle the design request
       return await this.adminService.handleCustomTextElement(textData, id);
     } catch (error) {
       console.error('Error while sending request:', error.message);
       throw new Error('Error while sending the request');
     }
-  }
-
+  } 
+ 
   // send image customization element
   @Post('customized-image-element/:id')
   @UseInterceptors(
