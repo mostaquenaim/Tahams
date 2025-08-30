@@ -2192,7 +2192,7 @@ export class AdminService {
     const newProduct = this.productRepo.create({ ...myDto });
     const savedProduct = await this.productRepo.save(newProduct);
 
-    console.log(savedProduct, 'ss');
+    // console.log(savedProduct, 'ss');
     // console.log(savedProduct.name,'nn');
 
     return await this.createProductExtension(savedProduct, myDto.catsInfo);

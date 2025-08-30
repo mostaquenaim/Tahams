@@ -45,6 +45,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../decorators/roles.decorator';
 import { RolesGuard } from '../Guards/roles.guard';
 import { randomBytes } from 'crypto';
+import cloudinary from '../Services/cloudinary.config';
 
 @Controller('admin')
 export class AdminController {
@@ -1015,15 +1016,15 @@ export class AdminController {
   async getCustomTextElement(@Param('id') id: number, @Body() textData) {
     // console.log(textData,'textdata');
     try {
-      console.log(textData,'textdata');
+      // console.log(textData,'textdata');
       // Call the service to handle the design request
       return await this.adminService.handleCustomTextElement(textData, id);
     } catch (error) {
       console.error('Error while sending request:', error.message);
       throw new Error('Error while sending the request');
     }
-  } 
- 
+  }
+
   // send image customization element
   @Post('customized-image-element/:id')
   @UseInterceptors(
@@ -1279,5 +1280,24 @@ export class AdminController {
   getImages(@Req() req, @Res() res) {
     const filePath = req.params[0]; // gets the path after /getimage/
     res.sendFile(filePath, { root: './uploads' });
+  }
+
+  // cloudinary images
+  @Get('cloudinary-signature')
+  getSignature() {
+    const timestamp = Math.round(new Date().getTime() / 1000);
+
+    const signature = cloudinary.utils.api_sign_request(
+      { timestamp },
+      process.env.CLOUDINARY_API_SECRET,
+    );
+
+    return {
+      signature,
+      timestamp,
+      apiKey: process.env.CLOUDINARY_API_KEY,
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+      upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET,
+    };
   }
 }
