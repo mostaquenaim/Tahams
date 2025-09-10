@@ -1170,10 +1170,10 @@ export class AdminService {
   }
 
   // ProductService
-  async getProductById(id: number) {
+  async getProductById(id) {
     // console.log(id, 'id');
     return await this.productRepo.findOne({
-      where: { id },
+      where: { productId: id },
       relations: [
         'color',
         'fabric',
