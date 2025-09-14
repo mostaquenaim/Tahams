@@ -1173,7 +1173,7 @@ export class AdminService {
   async getProductById(id) {
     // console.log(id, 'id');
     return await this.productRepo.findOne({
-      where: { productId: id },
+      where: { id: id },
       relations: [
         'color',
         'fabric',
@@ -2059,7 +2059,9 @@ export class AdminService {
 
   // create new cart
   async createNewCart(myDto) {
+    // console.log(myDto);
     const selectedProduct = await this.getProductById(myDto.productId);
+    // console.log(selectedProduct,'krr');
     myDto.product = selectedProduct;
     myDto.uniqueId = uuidv4();
     myDto.category =
