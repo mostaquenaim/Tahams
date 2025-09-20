@@ -88,6 +88,9 @@ export class CustomizationRequestEntity {
   @Column({ nullable: true })
   address: string;
 
+  @Column({ nullable: true })
+  groupId: string;
+
   // relations
   // relations
   // relations

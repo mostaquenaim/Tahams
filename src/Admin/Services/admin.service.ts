@@ -1894,6 +1894,7 @@ export class AdminService {
       phone: designData.phone,
       name: designData.name,
       address: designData.address,
+      groupId: designData?.groupId,
       user: userInfo,
     });
 
