@@ -1991,8 +1991,8 @@ export class AdminService {
   }
 
   // get all customization requests
-  async getAllCustomizationRequests(email: string, id: number) {
-    console.log(id);
+  async getAllCustomizationRequests(email: string, id: string) {
+    // console.log(id);
     const userInfo = await this.getUserByEmail(email);
     // console.log(userInfo);
     const isAdmin = userInfo.role == 'admin';
@@ -2001,24 +2001,24 @@ export class AdminService {
     // console.log(email,id,'===id');
     if (isAdmin) {
       // admin: get all
-      if (id == 0) return this.customReqRepo.find({ relations });
+      if (id == '0') return this.customReqRepo.find({ relations });
       // console.log(id);
-      return this.customReqRepo.findOne({
+      return this.customReqRepo.find({
         where: {
-          id: id,
+          groupId: id,
         },
         relations,
       });
     } else {
       // normal user: only get their own
-      if (id == 0)
+      if (id == '0')
         return this.customReqRepo.find({
           where: { user: { email } },
           relations,
         });
 
-      return this.customReqRepo.findOne({
-        where: { user: { email }, id: id },
+      return this.customReqRepo.find({
+        where: { user: { email }, groupId: id },
         relations,
       });
     }

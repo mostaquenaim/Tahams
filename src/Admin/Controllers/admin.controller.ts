@@ -1075,7 +1075,7 @@ export class AdminController {
   // get all customization requests
   @Get('get-all-customization-requests')
   async getAllCustomizationRequests(
-    @Query() mydto: { email: string; id: number },
+    @Query() mydto: { email: string; id: string },
   ) {
     // console.log(mydto);
     try {
