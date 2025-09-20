@@ -879,6 +879,14 @@ export class AdminController {
     return this.adminService.deleteProductById(id, email);
   }
 
+  // delete customization request
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Delete('delete-customization-request/:id')
+  async deleteCustomizationReq(@Param('id') id: number) {
+    return await this.adminService.deleteCustomizationReq(id);
+  }
+
   // delete role by id
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')

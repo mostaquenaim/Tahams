@@ -507,6 +507,25 @@ export class AdminService {
     throw new NotFoundException(`Banner with ID ${id} not found.`);
   }
 
+  // delete customization request
+  async deleteCustomizationReq(id: number) {
+    // Find the request first
+    const myData = await this.customReqRepo.findOneBy({ id });
+
+    if (!myData) {
+      throw new NotFoundException(`Custom request with ID ${id} not found.`);
+    }
+
+    // Delete related custom images
+    await this.customImgRepo.delete({ customReq: myData });
+
+    // Delete related custom texts
+    await this.customTextRepo.delete({ customReq: myData });
+
+    // Finally delete the main request
+    return this.customReqRepo.delete(myData.id);
+  }
+
   // delete a history
   async deleteHistory(id: string, email: string) {
     // Check if the user is an admin
