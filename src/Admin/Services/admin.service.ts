@@ -1239,6 +1239,31 @@ export class AdminService {
     );
   }
 
+  // update customized request
+  async updateCustomReq(id: string, myDto: any) {
+    // console.log(myDto,'mdt');
+    // find existing records
+    const existing = await this.customReqRepo.find({
+      where: { groupId: id },
+    });
+
+    if (!existing || existing.length === 0) {
+      throw new NotFoundException(`Product type with groupId ${id} not found`);
+    }
+
+    // update each item
+    const updatedItems = existing.map((item) => {
+      return this.customReqRepo.merge(item, myDto);
+    });
+
+    await this.customReqRepo.save(updatedItems);
+
+    return {
+      message: `Updated ${updatedItems.length} records under groupId ${id}`,
+      data: updatedItems,
+    };
+  }
+
   // update category by id
   async updateActivePop(id: number) {
     // 1. Find the popup you want to make active

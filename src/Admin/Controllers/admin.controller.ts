@@ -594,6 +594,13 @@ export class AdminController {
     await this.adminService.updateProductTypeName(id, myDto);
   }
 
+  // update customization request
+  @Put('update-customization-request/:id')
+  updateCustomReq(@Param('id') id: string, @Body() mydata) {
+    // console.log(mydata, 'md');
+    return this.adminService.updateCustomReq(id, mydata);
+  }
+
   //update active pop up
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
