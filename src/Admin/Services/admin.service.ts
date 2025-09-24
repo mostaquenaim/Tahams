@@ -2414,7 +2414,7 @@ export class AdminService {
 
     if (existingProduct) {
       // Delete the existing product
-      await this.newArrivalRepo.delete(existingProduct.id);
+      await this.newArrivalRepo.update(existingProduct, { serial: 'discontinued' });
     }
 
     // Create a new product
