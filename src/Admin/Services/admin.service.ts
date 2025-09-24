@@ -865,7 +865,7 @@ export class AdminService {
     .leftJoinAndSelect("pscs.size", "size")
     .where("mainCategory.isForMen = :isForMen", { isForMen: true })
     .orderBy("product.salesCount", "DESC")
-    .take(5)
+    .take(6)
     .getMany();
 
   // 5 Women products
@@ -879,25 +879,25 @@ export class AdminService {
     .leftJoinAndSelect("pscs.size", "size")
     .where("mainCategory.isForMen = :isForMen", { isForMen: false })
     .orderBy("product.salesCount", "DESC")
-    .take(5)
+    .take(6)
     .getMany();
 
   // 2 Gender-varied products
-  const variedProducts = await this.productRepo
-    .createQueryBuilder("product")
-    .leftJoinAndSelect("product.productPictures", "productPictures")
-    .leftJoinAndSelect("product.pscs", "pscs")
-    .leftJoinAndSelect("pscs.category", "category")
-    .leftJoinAndSelect("category.category", "subCategory")
-    .leftJoinAndSelect("subCategory.category", "mainCategory")
-    .leftJoinAndSelect("pscs.size", "size")
-    .where("mainCategory.isGenderVaried = :isVaried", { isVaried: false })
-    .orderBy("product.salesCount", "DESC")
-    .take(2)
-    .getMany();
+  // const variedProducts = await this.productRepo
+  //   .createQueryBuilder("product")
+  //   .leftJoinAndSelect("product.productPictures", "productPictures")
+  //   .leftJoinAndSelect("product.pscs", "pscs")
+  //   .leftJoinAndSelect("pscs.category", "category")
+  //   .leftJoinAndSelect("category.category", "subCategory")
+  //   .leftJoinAndSelect("subCategory.category", "mainCategory")
+  //   .leftJoinAndSelect("pscs.size", "size")
+  //   .where("mainCategory.isGenderVaried = :isVaried", { isVaried: false })
+  //   .orderBy("product.salesCount", "DESC")
+  //   .take(2)
+  //   .getMany();
 
   // 🔹 Combine all results
-  const res = [...menProducts, ...womenProducts, ...variedProducts];
+  const res = [...menProducts, ...womenProducts];
   // console.log(res);
   return res
 }
