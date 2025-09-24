@@ -854,12 +854,53 @@ export class AdminService {
 
   // view popular items
   async viewPopularItems() {
-    return await this.productRepo.find({
-      order: { salesCount: 'DESC' },
-      relations: ['productPictures', 'pscs', 'pscs.category', 'pscs.size'],
-      take: 12,
-    });
-  }
+  // 5 Men products
+  const menProducts = await this.productRepo
+    .createQueryBuilder("product")
+    .leftJoinAndSelect("product.productPictures", "productPictures")
+    .leftJoinAndSelect("product.pscs", "pscs")
+    .leftJoinAndSelect("pscs.category", "category")
+    .leftJoinAndSelect("category.category", "subCategory")
+    .leftJoinAndSelect("subCategory.category", "mainCategory")
+    .leftJoinAndSelect("pscs.size", "size")
+    .where("mainCategory.isForMen = :isForMen", { isForMen: true })
+    .orderBy("product.salesCount", "DESC")
+    .take(5)
+    .getMany();
+
+  // 5 Women products
+  const womenProducts = await this.productRepo
+    .createQueryBuilder("product")
+    .leftJoinAndSelect("product.productPictures", "productPictures")
+    .leftJoinAndSelect("product.pscs", "pscs")
+    .leftJoinAndSelect("pscs.category", "category")
+    .leftJoinAndSelect("category.category", "subCategory")
+    .leftJoinAndSelect("subCategory.category", "mainCategory")
+    .leftJoinAndSelect("pscs.size", "size")
+    .where("mainCategory.isForMen = :isForMen", { isForMen: false })
+    .orderBy("product.salesCount", "DESC")
+    .take(5)
+    .getMany();
+
+  // 2 Gender-varied products
+  const variedProducts = await this.productRepo
+    .createQueryBuilder("product")
+    .leftJoinAndSelect("product.productPictures", "productPictures")
+    .leftJoinAndSelect("product.pscs", "pscs")
+    .leftJoinAndSelect("pscs.category", "category")
+    .leftJoinAndSelect("category.category", "subCategory")
+    .leftJoinAndSelect("subCategory.category", "mainCategory")
+    .leftJoinAndSelect("pscs.size", "size")
+    .where("mainCategory.isGenderVaried = :isVaried", { isVaried: false })
+    .orderBy("product.salesCount", "DESC")
+    .take(2)
+    .getMany();
+
+  // 🔹 Combine all results
+  const res = [...menProducts, ...womenProducts, ...variedProducts];
+  // console.log(res);
+  return res
+}
 
   // view new arrivals
   async viewNewArrivals() {
