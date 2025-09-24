@@ -854,53 +854,56 @@ export class AdminService {
 
   // view popular items
   async viewPopularItems() {
-  // 5 Men products
-  const menProducts = await this.productRepo
-    .createQueryBuilder("product")
-    .leftJoinAndSelect("product.productPictures", "productPictures")
-    .leftJoinAndSelect("product.pscs", "pscs")
-    .leftJoinAndSelect("pscs.category", "category")
-    .leftJoinAndSelect("category.category", "subCategory")
-    .leftJoinAndSelect("subCategory.category", "mainCategory")
-    .leftJoinAndSelect("pscs.size", "size")
-    .where("mainCategory.isForMen = :isForMen", { isForMen: true })
-    .orderBy("product.salesCount", "DESC")
-    .take(6)
-    .getMany();
+    const targetCount = 12;
+    let menProducts: any[] = [];
+    let womenProducts: any[] = [];
 
-  // 5 Women products
-  const womenProducts = await this.productRepo
-    .createQueryBuilder("product")
-    .leftJoinAndSelect("product.productPictures", "productPictures")
-    .leftJoinAndSelect("product.pscs", "pscs")
-    .leftJoinAndSelect("pscs.category", "category")
-    .leftJoinAndSelect("category.category", "subCategory")
-    .leftJoinAndSelect("subCategory.category", "mainCategory")
-    .leftJoinAndSelect("pscs.size", "size")
-    .where("mainCategory.isForMen = :isForMen", { isForMen: false })
-    .orderBy("product.salesCount", "DESC")
-    .take(6)
-    .getMany();
+    // fetch extra items to avoid duplicates issue
+    menProducts = await this.productRepo
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.productPictures', 'productPictures')
+      .leftJoinAndSelect('product.pscs', 'pscs')
+      .leftJoinAndSelect('pscs.category', 'category')
+      .leftJoinAndSelect('category.category', 'subCategory')
+      .leftJoinAndSelect('subCategory.category', 'mainCategory')
+      .leftJoinAndSelect('pscs.size', 'size')
+      .where('mainCategory.isForMen = :isForMen', { isForMen: true })
+      .orderBy('product.salesCount', 'DESC')
+      .take(15) // fetch more than needed
+      .getMany();
 
-  // 2 Gender-varied products
-  // const variedProducts = await this.productRepo
-  //   .createQueryBuilder("product")
-  //   .leftJoinAndSelect("product.productPictures", "productPictures")
-  //   .leftJoinAndSelect("product.pscs", "pscs")
-  //   .leftJoinAndSelect("pscs.category", "category")
-  //   .leftJoinAndSelect("category.category", "subCategory")
-  //   .leftJoinAndSelect("subCategory.category", "mainCategory")
-  //   .leftJoinAndSelect("pscs.size", "size")
-  //   .where("mainCategory.isGenderVaried = :isVaried", { isVaried: false })
-  //   .orderBy("product.salesCount", "DESC")
-  //   .take(2)
-  //   .getMany();
+    womenProducts = await this.productRepo
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.productPictures', 'productPictures')
+      .leftJoinAndSelect('product.pscs', 'pscs')
+      .leftJoinAndSelect('pscs.category', 'category')
+      .leftJoinAndSelect('category.category', 'subCategory')
+      .leftJoinAndSelect('subCategory.category', 'mainCategory')
+      .leftJoinAndSelect('pscs.size', 'size')
+      .where('mainCategory.isForMen = :isForMen', { isForMen: false })
+      .orderBy('product.salesCount', 'DESC')
+      .take(15) // fetch more than needed
+      .getMany();
 
-  // 🔹 Combine all results
-  const res = [...menProducts, ...womenProducts];
-  // console.log(res);
-  return res
-}
+    // combine both lists
+    let combined = [...menProducts, ...womenProducts];
+
+    // remove duplicates by product name (case-insensitive)
+    let uniqueProducts = combined.filter(
+      (product, index, self) =>
+        index ===
+        self.findIndex(
+          (p) => p.name.toLowerCase() === product.name.toLowerCase(),
+        ),
+    );
+
+    // ensure only 12 items max
+    if (uniqueProducts.length > targetCount) {
+      uniqueProducts = uniqueProducts.slice(0, targetCount);
+    }
+
+    return uniqueProducts;
+  }
 
   // view new arrivals
   async viewNewArrivals() {
