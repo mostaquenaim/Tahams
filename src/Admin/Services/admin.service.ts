@@ -854,7 +854,7 @@ export class AdminService {
 
   // view popular items
   async viewPopularItems() {
-    const targetCount = 12;
+    const targetCount = 18;
     let menProducts: any[] = [];
     let womenProducts: any[] = [];
 
@@ -886,7 +886,13 @@ export class AdminService {
       .getMany();
 
     // combine both lists
-    let combined = [...menProducts, ...womenProducts];
+    const men6 = menProducts.slice(0, 6);
+    const women6 = womenProducts.slice(0, 6);
+    
+    const menRests = menProducts.slice(6,15)
+    const womenRests = womenProducts.slice(6,15)
+
+    const combined = [...men6,...women6,...menRests,...womenRests];
 
     // remove duplicates by product name (case-insensitive)
     let uniqueProducts = combined.filter(
@@ -2414,7 +2420,9 @@ export class AdminService {
 
     if (existingProduct) {
       // Delete the existing product
-      await this.newArrivalRepo.update(existingProduct, { serial: 'discontinued' });
+      await this.newArrivalRepo.update(existingProduct, {
+        serial: 'discontinued',
+      });
     }
 
     // Create a new product
