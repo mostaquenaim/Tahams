@@ -204,6 +204,12 @@ export class AdminController {
     return this.adminService.createNewBuy(myDto);
   }
 
+  // create pathao order 
+  @Post('create-pathao-order')
+  createOrder(@Body() orderData: any) {
+    return this.adminService.createPathaoOrder(orderData);
+  }
+
   // send message to customer
   @Post('send-message-to-customer')
   @UsePipes(ValidationPipe)

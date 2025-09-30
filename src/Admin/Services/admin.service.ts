@@ -56,11 +56,20 @@ import { promisify } from 'util';
 import { CustomizationRequestEntity } from 'src/Global/Entities/customization-request.entity';
 import { CustomImgElement } from 'src/Global/Entities/custom-img-element';
 import { CustomTextElement } from 'src/Global/Entities/custom-text-element';
+import axios from 'axios';
 
 const unlinkAsync = promisify(fs.unlink);
 
 @Injectable()
 export class AdminService {
+    private baseUrl = process.env.PATHAO_BASE_URL;
+    private clientId = process.env.PATHAO_CLIENT_ID;
+    private clientSecret = process.env.PATHAO_CLIENT_SECRET;
+    private username = process.env.PATHAO_USERNAME;
+    private password = process.env.PATHAO_PASSWORD;
+    private accessToken: string;
+    private tokenExpiry: number; // store expiry timestamp
+
   constructor(
     private jwtService: JwtService,
     private mailerService: MailerService,
@@ -279,6 +288,7 @@ export class AdminService {
     }
   }
 
+  // create new customer
   async createCustomer(myDto) {
     const salt = await bcrypt.genSalt();
     const hashedPass = await bcrypt.hash(myDto.password, salt);
@@ -888,11 +898,11 @@ export class AdminService {
     // combine both lists
     const men6 = menProducts.slice(0, 6);
     const women6 = womenProducts.slice(0, 6);
-    
-    const menRests = menProducts.slice(6,15)
-    const womenRests = womenProducts.slice(6,15)
 
-    const combined = [...men6,...women6,...menRests,...womenRests];
+    const menRests = menProducts.slice(6, 15);
+    const womenRests = womenProducts.slice(6, 15);
+
+    const combined = [...men6, ...women6, ...menRests, ...womenRests];
 
     // remove duplicates by product name (case-insensitive)
     let uniqueProducts = combined.filter(
@@ -1914,6 +1924,7 @@ export class AdminService {
     return this.fabricRepo.save(newFabric);
   }
 
+  // customer login
   async customerLogin(myDto) {
     try {
       // Check if there is a customer with the provided email
@@ -1932,6 +1943,64 @@ export class AdminService {
     } catch (error) {
       // Handle authentication errors
       throw new Error('Authentication failed');
+    }
+  }
+
+  // access token for Pathao
+  private async getPathaoAccessToken() {
+    const now = Date.now();
+    if (this.accessToken && this.tokenExpiry && now < this.tokenExpiry) {
+      return this.accessToken;
+    }
+
+    const data = {
+      client_id: this.clientId,
+      client_secret: this.clientSecret,
+      grant_type: 'password',
+      username: this.username,
+      password: this.password,
+    };
+
+    try {
+      const res = await axios.post(
+        `${this.baseUrl}/aladdin/api/v1/issue-token`,
+        data,
+        {
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+
+      this.accessToken = res.data.access_token;
+      this.tokenExpiry = now + res.data.expires_in * 1000;
+
+      return this.accessToken;
+    } catch (err) {
+      console.error('Token Error:', err.response?.data || err.message);
+      throw err;
+    }
+  }
+
+  // create pathao order
+  async createPathaoOrder(order: any) {
+    // console.log(order,'order');
+    const token = await this.getPathaoAccessToken();
+
+    try {
+      const res = await axios.post(
+        `${this.baseUrl}/aladdin/api/v1/orders`,
+        order,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      return res.data;
+    } catch (err) {
+      console.error('Create Order Error:', err.response?.data || err.message);
+      throw err;
     }
   }
 
@@ -2112,6 +2181,16 @@ export class AdminService {
         console.error(`Cart not found for ID: ${cartDataId}`);
         continue;
       }
+
+      const productInfo = await this.productRepo.findOne({
+        where: {
+          id: cart.product.id,
+        },
+      });
+
+      await this.productRepo.update(productInfo.id, {
+        salesCount: productInfo.salesCount + 1,
+      });
 
       const size = await this.getSizeByName(cart.size);
       if (!size) {
