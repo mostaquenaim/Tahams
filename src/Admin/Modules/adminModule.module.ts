@@ -46,6 +46,7 @@ import { RoleEntity } from "src/Global/Entities/roles.entity";
 import { CustomizationRequestEntity } from "src/Global/Entities/customization-request.entity";
 import { CustomImgElement } from "src/Global/Entities/custom-img-element";
 import { CustomTextElement } from "src/Global/Entities/custom-text-element";
+import { CourierInfo } from "src/Global/Entities/courier-info.entity";
 // dotenv.config();
 
 @Module({
@@ -85,6 +86,7 @@ import { CustomTextElement } from "src/Global/Entities/custom-text-element";
             CategoryEntity,
             ColorSizeEntity,
             ColorEntity,
+            CourierInfo,
             CartsEntity,
             CouponEntity,
             CustomizationRequestEntity,

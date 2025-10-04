@@ -36,6 +36,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CustomizationRequestEntity } from '../Entities/customization-request.entity';
 import { CustomImgElement } from '../Entities/custom-img-element';
 import { CustomTextElement } from '../Entities/custom-text-element';
+import { CourierInfo } from '../Entities/courier-info.entity';
 // Load environment variables
 // dotenv.config();
 
@@ -68,6 +69,7 @@ import { CustomTextElement } from '../Entities/custom-text-element';
             CartsEntity,
             ColorSizeEntity,
             CouponEntity,
+            CourierInfo,
             CustomizationRequestEntity,
             CustomImgElement,
             CustomTextElement,

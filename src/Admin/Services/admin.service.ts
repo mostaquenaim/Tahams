@@ -57,6 +57,7 @@ import { CustomizationRequestEntity } from 'src/Global/Entities/customization-re
 import { CustomImgElement } from 'src/Global/Entities/custom-img-element';
 import { CustomTextElement } from 'src/Global/Entities/custom-text-element';
 import axios from 'axios';
+import { CourierInfo } from 'src/Global/Entities/courier-info.entity';
 
 const unlinkAsync = promisify(fs.unlink);
 
@@ -103,6 +104,9 @@ export class AdminService {
 
     @InjectRepository(CouponEntity)
     private couponRepo: Repository<CouponEntity>,
+
+    @InjectRepository(CourierInfo)
+    private courierRepo: Repository<CourierInfo>,
 
     @InjectRepository(CustomizationRequestEntity)
     private customReqRepo: Repository<CustomizationRequestEntity>,
