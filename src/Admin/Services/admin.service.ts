@@ -271,7 +271,7 @@ export class AdminService {
       },
     });
 
-    if(!courierInfo) return false
+    if (!courierInfo) return false;
 
     try {
       const res = await axios.get(
@@ -782,7 +782,7 @@ export class AdminService {
         'category.category.category',
       ],
     });
- 
+
     // Loop through each cart to attach courier info
     for (const cart of cartsWithHistory) {
       const trackingToken = cart.history?.trackingToken;
@@ -838,6 +838,25 @@ export class AdminService {
           'category.category.category',
         ],
       });
+
+      // Loop through each cart to attach courier info
+      for (const cart of cartsWithHistory) {
+        const trackingToken = cart.history?.trackingToken;
+        if (trackingToken) {
+          const courierInfo = await this.getCourierInfo(trackingToken);
+
+          if (courierInfo?.data) {
+            // Attach courier data to the history
+            cart.history.courierInfo = courierInfo.data;
+
+            // Update the delivery status dynamically (not saved to DB)
+            if (courierInfo.data.order_status) {
+              cart.history.deliveryStatus.name =
+                courierInfo.data.order_status.toUpperCase();
+            }
+          }
+        }
+      }
 
       // console.log(cartsWithHistory);
       return cartsWithHistory;
