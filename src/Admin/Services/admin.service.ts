@@ -63,13 +63,13 @@ const unlinkAsync = promisify(fs.unlink);
 
 @Injectable()
 export class AdminService {
-    private baseUrl = process.env.PATHAO_BASE_URL;
-    private clientId = process.env.PATHAO_CLIENT_ID;
-    private clientSecret = process.env.PATHAO_CLIENT_SECRET;
-    private username = process.env.PATHAO_USERNAME;
-    private password = process.env.PATHAO_PASSWORD;
-    private accessToken: string;
-    private tokenExpiry: number; // store expiry timestamp
+  private baseUrl = process.env.PATHAO_BASE_URL;
+  private clientId = process.env.PATHAO_CLIENT_ID;
+  private clientSecret = process.env.PATHAO_CLIENT_SECRET;
+  private username = process.env.PATHAO_USERNAME;
+  private password = process.env.PATHAO_PASSWORD;
+  private accessToken: string;
+  private tokenExpiry: number; // store expiry timestamp
 
   constructor(
     private jwtService: JwtService,
@@ -213,6 +213,87 @@ export class AdminService {
 
     // Save the updated history back to the database
     await this.buyingHistoryRepo.save(history);
+  }
+
+  // add courier info
+  async addCourierInfo(token, myDto) {
+    // console.log(myDto, 'payment', token);
+
+    // Get the buying history associated with the token
+    const cart = await this.cartRepo.find({
+      where: {
+        history: { trackingToken: token },
+      },
+      relations: ['history'],
+    });
+
+    // if cart not found
+    if (!cart || cart.length === 0) {
+      throw new Error('No cart found for this token');
+    }
+
+    // if cart found
+    const history = cart[0].history;
+
+    // Prepare courier data
+    const courierData = this.courierRepo.create({
+      consignment_id: myDto.consignment_id,
+      merchant_order_id: myDto.merchant_order_id,
+      order_status: myDto.order_status,
+      delivery_fee: myDto.delivery_fee,
+      courier_name: myDto.courier_name,
+      tracking_number: myDto.tracking_number,
+      recipient_name: myDto.recipient_name,
+      recipient_phone: myDto.recipient_phone,
+      delivery_address: myDto.delivery_address,
+    });
+
+    // Save the courier info to database
+    const savedCourier = await this.courierRepo.save(courierData);
+
+    // Optionally, update the buying history status if needed
+    history.courierInfo = savedCourier;
+    await this.buyingHistoryRepo.save(history);
+
+    // const cInfo = await this.getCourierInfo(token);
+    // console.log(cInfo, 'cInfo');
+
+    return savedCourier;
+  }
+
+  // get courier info
+  async getCourierInfo(tt: string) {
+    const token = await this.getPathaoAccessToken();
+
+    const courierInfo = await this.courierRepo.findOne({
+      where: {
+        tracking_number: tt,
+      },
+    });
+
+    if(!courierInfo) return false
+
+    try {
+      const res = await axios.get(
+        `${this.baseUrl}/aladdin/api/v1/orders/${courierInfo.consignment_id}/info`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      // console.log(res.data);
+
+      return res.data;
+    } catch (err) {
+      console.error(
+        'Fetch Order Info Error:',
+        err.response?.data || err.message,
+      );
+      throw err;
+    }
   }
 
   // create user
@@ -677,32 +758,51 @@ export class AdminService {
 
   // view all buying histories
   async getAllBuyingHistories(email: string) {
-    if (email) {
-      // console.log('in');
-      const user = await this.getUserByEmail(email);
-      // console.log('user',user,'user');
-      const cartsWithHistory = await this.cartRepo.find({
-        where: {
-          ...(user.role != 'admin' && { customer: { email: email } }),
-          // isBought: true || false
-          isBought: true,
-        },
-        relations: [
-          'history',
-          'history.deliveryStatus',
-          'history.paymentMethod',
-          'customer',
-          'product',
-          'category',
-          'category.category',
-          'category.category.category',
-        ],
-      });
-
-      // console.log(cartsWithHistory);
-      return cartsWithHistory;
+    if (!email) {
+      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
     }
-    throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+
+    // Get user first
+    const user = await this.getUserByEmail(email);
+
+    // Fetch all bought carts
+    const cartsWithHistory = await this.cartRepo.find({
+      where: {
+        ...(user.role !== 'admin' && { customer: { email } }),
+        isBought: true,
+      },
+      relations: [
+        'history',
+        'history.deliveryStatus',
+        'history.paymentMethod',
+        'customer',
+        'product',
+        'category',
+        'category.category',
+        'category.category.category',
+      ],
+    });
+ 
+    // Loop through each cart to attach courier info
+    for (const cart of cartsWithHistory) {
+      const trackingToken = cart.history?.trackingToken;
+      if (trackingToken) {
+        const courierInfo = await this.getCourierInfo(trackingToken);
+
+        if (courierInfo?.data) {
+          // Attach courier data to the history
+          cart.history.courierInfo = courierInfo.data;
+
+          // Update the delivery status dynamically (not saved to DB)
+          if (courierInfo.data.order_status) {
+            cart.history.deliveryStatus.name =
+              courierInfo.data.order_status.toUpperCase();
+          }
+        }
+      }
+    }
+
+    return cartsWithHistory;
   }
 
   // view all users / customers info

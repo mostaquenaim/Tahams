@@ -204,7 +204,7 @@ export class AdminController {
     return this.adminService.createNewBuy(myDto);
   }
 
-  // create pathao order 
+  // create pathao order
   @Post('create-pathao-order')
   createOrder(@Body() orderData: any) {
     return this.adminService.createPathaoOrder(orderData);
@@ -358,6 +358,14 @@ export class AdminController {
   ) {
     PaymentDetails.screenshot = file?.filename;
     return this.adminService.addPaymentInfo(PaymentDetails);
+  }
+
+  // add courier info
+  // @UseGuards(AuthGuard('jwt'), RolesGuard)
+  // @Roles('admin')
+  @Post('/add-courier/:token')
+  addCourierInfo(@Param('token') token: string, @Body() courierDetails) {
+    return this.adminService.addCourierInfo(token, courierDetails);
   }
 
   // get particular customer all buying history

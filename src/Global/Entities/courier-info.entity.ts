@@ -6,13 +6,24 @@ import {
   OneToOne,
   JoinColumn,
 } from 'typeorm';
-import { CategoryEntity } from './category.entity';
 import { BuyingHistoryEntity } from './buyingHistory.entity';
 
 @Entity('courier-info')
 export class CourierInfo {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @Column({ nullable: true })
+  courier_name: string;
+
+  @Column({ nullable: true })
+  recipient_name: string;
+
+  @Column({ nullable: true })
+  recipient_phone: string;
+
+  @Column({ nullable: true })
+  delivery_address: string;
 
   @Column({ nullable: true })
   consignment_id: string;
@@ -34,8 +45,4 @@ export class CourierInfo {
 
   @Column({ default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
   updated_at: Date;
-
-  @OneToOne(() => BuyingHistoryEntity)
-  @JoinColumn()
-  buyingHistory: BuyingHistoryEntity;
 }
