@@ -794,10 +794,10 @@ export class AdminService {
           cart.history.courierInfo = courierInfo.data;
 
           // Update the delivery status dynamically (not saved to DB)
-          if (courierInfo.data.order_status) {
-            cart.history.deliveryStatus.name =
-              courierInfo.data.order_status.toUpperCase();
-          }
+          // if (courierInfo.data.order_status) {
+          //   cart.history.deliveryStatus.name =
+          //     courierInfo.data.order_status.toUpperCase();
+          // }
         }
       }
     }
