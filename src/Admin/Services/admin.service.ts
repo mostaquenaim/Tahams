@@ -793,11 +793,11 @@ export class AdminService {
           // Attach courier data to the history
           cart.history.courierInfo = courierInfo.data;
 
-          // ✅ Save updated courier info to DB
-          await this.courierRepo.update(
-            cart.history.courierInfo.id,
-            courierInfo.data,
-          );
+          // Update the delivery status dynamically (not saved to DB)
+          if (courierInfo.data.order_status) {
+            cart.history.deliveryStatus.name =
+              courierInfo.data.order_status.toUpperCase();
+          }
         }
       }
     }
@@ -849,11 +849,11 @@ export class AdminService {
             // Attach courier data to the history
             cart.history.courierInfo = courierInfo.data;
 
-            // ✅ Save updated courier info to DB
-            await this.courierRepo.update(
-              cart.history.courierInfo.id,
-              courierInfo.data,
-            );
+            // Update the delivery status dynamically (not saved to DB)
+            if (courierInfo.data.order_status) {
+              cart.history.deliveryStatus.name =
+                courierInfo.data.order_status.toUpperCase();
+            }
           }
         }
       }
