@@ -789,7 +789,7 @@ export class AdminService {
         'category.category',
         'category.category.category',
       ],
-      take: limit,
+      take: 50,
     });
 
     // Loop through each cart to attach courier info
