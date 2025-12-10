@@ -47,6 +47,8 @@ import { CustomizationRequestEntity } from "src/Global/Entities/customization-re
 import { CustomImgElement } from "src/Global/Entities/custom-img-element";
 import { CustomTextElement } from "src/Global/Entities/custom-text-element";
 import { CourierInfo } from "src/Global/Entities/courier-info.entity";
+import { ActivityEntity } from "src/Global/Entities/activity.entity";
+import { CustomerActivityEntity } from "src/Global/Entities/customer-activity.entity";
 // dotenv.config();
 
 @Module({
@@ -79,6 +81,7 @@ import { CourierInfo } from "src/Global/Entities/courier-info.entity";
         }),
         TypeOrmModule.forFeature([
             ActivePopUpEntity,
+            ActivityEntity,
             AdminEntity,
             BannerEntity,
             BlacklistToken,
@@ -92,6 +95,7 @@ import { CourierInfo } from "src/Global/Entities/courier-info.entity";
             CustomizationRequestEntity,
             CustomImgElement,
             CustomTextElement,
+            CustomerActivityEntity,
             DeliveryStatusEntity,
             EmployeeEntity,
             FabricEntity,

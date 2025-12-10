@@ -370,8 +370,16 @@ export class AdminController {
 
   // get particular customer all buying history
   @Get('get-all-buying-history')
-  getAllBuyingHistories(@Query('email') email: string) {
-    return this.adminService.getAllBuyingHistories(email);
+  getAllBuyingHistories(
+    @Query('email') email: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+  ) {
+    return this.adminService.getAllBuyingHistories(
+      email,
+      Number(page),
+      Number(limit),
+    );
   }
 
   // get all customers / users

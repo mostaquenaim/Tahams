@@ -58,6 +58,8 @@ import { CustomImgElement } from 'src/Global/Entities/custom-img-element';
 import { CustomTextElement } from 'src/Global/Entities/custom-text-element';
 import axios from 'axios';
 import { CourierInfo } from 'src/Global/Entities/courier-info.entity';
+import { ActivityEntity } from 'src/Global/Entities/activity.entity';
+import { CustomerActivityEntity } from 'src/Global/Entities/customer-activity.entity';
 
 const unlinkAsync = promisify(fs.unlink);
 
@@ -83,6 +85,9 @@ export class AdminService {
 
     @InjectRepository(ActivePopUpEntity)
     private activePopRepo: Repository<ActivePopUpEntity>,
+
+    @InjectRepository(ActivityEntity)
+    private activityRepo: Repository<ActivityEntity>,
 
     @InjectRepository(ProductEntity)
     private productRepo: Repository<ProductEntity>,
@@ -110,6 +115,9 @@ export class AdminService {
 
     @InjectRepository(CustomizationRequestEntity)
     private customReqRepo: Repository<CustomizationRequestEntity>,
+
+    @InjectRepository(CustomerActivityEntity)
+    private customerActivityRepo: Repository<CustomerActivityEntity>,
 
     @InjectRepository(CustomImgElement)
     private customImgRepo: Repository<CustomImgElement>,
@@ -757,7 +765,7 @@ export class AdminService {
   }
 
   // view all buying histories
-  async getAllBuyingHistories(email: string) {
+  async getAllBuyingHistories(email: string, page: number, limit: number) {
     if (!email) {
       throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
     }
@@ -781,6 +789,7 @@ export class AdminService {
         'category.category',
         'category.category.category',
       ],
+      take: limit,
     });
 
     // Loop through each cart to attach courier info
