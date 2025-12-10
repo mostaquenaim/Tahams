@@ -790,6 +790,7 @@ export class AdminService {
         'category.category.category',
       ],
       take: 50,
+      order: { id: 'DESC' },
     });
 
     // Loop through each cart to attach courier info
