@@ -368,19 +368,29 @@ export class AdminController {
     return this.adminService.addCourierInfo(token, courierDetails);
   }
 
-  // get particular customer all buying history
+  // get all buying history
   @Get('get-all-buying-history')
   getAllBuyingHistories(
     @Query('email') email: string,
     @Query('page') page = 1,
     @Query('limit') limit = 10,
+    @Query('allItems') allItems = false,
   ) {
+    console.log(email, page, limit, allItems);
     return this.adminService.getAllBuyingHistories(
       email,
       Number(page),
       Number(limit),
+      allItems
     );
   }
+
+  // get specific order 
+  @Get('order-group/:historyId')
+async getOrderGroup(@Param('historyId') historyId: string) {
+  console.log("ordergpp");
+  return this.adminService.getOrderGroupByHistoryId(historyId);
+}
 
   // get all customers / users
   @UseGuards(AuthGuard('jwt'), RolesGuard)

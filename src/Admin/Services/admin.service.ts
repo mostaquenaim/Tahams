@@ -765,54 +765,116 @@ export class AdminService {
   }
 
   // view all buying histories
-  async getAllBuyingHistories(email: string, page: number, limit: number) {
+  async getAllBuyingHistories(
+    email: string,
+    page = 1,
+    limit = 20,
+    allItems = false,
+  ) {
     if (!email) {
       throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
     }
 
-    // Get user first
     const user = await this.getUserByEmail(email);
 
-    // Fetch all bought carts
-    const cartsWithHistory = await this.cartRepo.find({
-      where: {
-        ...(user.role !== 'admin' && { customer: { email } }),
-        isBought: true,
-      },
-      relations: [
-        'history',
-        'history.deliveryStatus',
-        'history.paymentMethod',
-        'customer',
-        'product',
-        'category',
-        'category.category',
-        'category.category.category',
-      ],
-      // take: 50,
-      // order: { id: 'DESC' },
-    });
+    // Build Query
+   const qb = this.cartRepo
+  .createQueryBuilder('cart')
+  .leftJoinAndSelect('cart.history', 'history')
+  .leftJoinAndSelect('history.deliveryStatus', 'deliveryStatus')
+  .leftJoinAndSelect('history.paymentMethod', 'paymentMethod')
+  .leftJoinAndSelect('cart.customer', 'customer')
+  .leftJoinAndSelect('cart.product', 'product')
 
-    // Loop through each cart to attach courier info
-    for (const cart of cartsWithHistory) {
-      const trackingToken = cart.history?.trackingToken;
-      if (trackingToken) {
-        const courierInfo = await this.getCourierInfo(trackingToken);
+  // 🔥 Restore all category levels
+  .leftJoinAndSelect('cart.category', 'category')
+  .leftJoinAndSelect('category.category', 'parentCategory')
+  .leftJoinAndSelect('parentCategory.category', 'grandParentCategory')
 
-        if (courierInfo?.data) {
-          // Attach courier data to the history
-          cart.history.courierInfo = courierInfo.data;
-
-          // Update the delivery status dynamically (not saved to DB)
-          if (courierInfo.data.order_status) {
-            cart.history.deliveryStatus.name =
-              courierInfo.data.order_status.toUpperCase();
-          }
-        }
-      }
+  .where('cart.isBought = :isBought', { isBought: true })
+  .orderBy('history.id', 'DESC');
+        
+    // If user is NOT admin, filter by own orders
+    if (user.role !== 'admin') {
+      qb.andWhere('customer.email = :email', { email });
     }
 
+    // ⬇ Only apply pagination when allItems is false
+    if (!allItems) {
+      const skip = (page - 1) * limit;
+      qb.skip(skip).take(limit);
+    }
+
+    // Execute query
+    const cartsWithHistory = await qb.getMany();
+
+    // Parallel courier data fetch → much faster
+    await Promise.all(
+      cartsWithHistory.map(async (cart) => {
+        const trackingToken = cart.history?.trackingToken;
+        if (!trackingToken) return cart;
+
+        try {
+          const courierInfo = await this.getCourierInfo(trackingToken);
+
+          if (courierInfo?.data) {
+            cart.history.courierInfo = courierInfo.data;
+
+            if (courierInfo.data.order_status) {
+              cart.history.deliveryStatus.name =
+                courierInfo.data.order_status.toUpperCase();
+            }
+          }
+        } catch (err) {
+          console.error('Courier API failed:', trackingToken, err.message);
+        }
+
+        return cart;
+      }),
+    );
+
     return cartsWithHistory;
+  }
+
+  async getOrderGroupByHistoryId(historyId: string) {
+    console.log('group');
+   const qb = this.cartRepo
+  .createQueryBuilder('cart')
+  .leftJoinAndSelect('cart.history', 'history')
+  .leftJoinAndSelect('history.deliveryStatus', 'deliveryStatus')
+  .leftJoinAndSelect('history.paymentMethod', 'paymentMethod')
+  .leftJoinAndSelect('cart.customer', 'customer')
+  .leftJoinAndSelect('cart.product', 'product')
+
+  // 🔥 Restore full category chain
+  .leftJoinAndSelect('cart.category', 'category')
+  .leftJoinAndSelect('category.category', 'parentCategory')
+  .leftJoinAndSelect('parentCategory.category', 'grandParentCategory')
+
+  .where('cart.isBought = :isBought', { isBought: true })
+  .andWhere('history.id = :historyId', { historyId });
+
+
+    const carts = await qb.getMany();
+
+    // Attach courier info (same as before)
+    await Promise.all(
+      carts.map(async (cart) => {
+        const token = cart.history?.trackingToken;
+        if (!token) return cart;
+
+        try {
+          const courierInfo = await this.getCourierInfo(token);
+          if (courierInfo?.data) {
+            cart.history.courierInfo = courierInfo.data;
+          }
+        } catch (_) {}
+
+        return cart;
+      }),
+    );
+
+    return carts;
   }
 
   // view all users / customers info
