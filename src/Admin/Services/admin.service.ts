@@ -1,6 +1,7 @@
 /* eslint-disable prettier/prettier */
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   HttpException,
   HttpStatus,
@@ -778,22 +779,22 @@ export class AdminService {
     const user = await this.getUserByEmail(email);
 
     // Build Query
-   const qb = this.cartRepo
-  .createQueryBuilder('cart')
-  .leftJoinAndSelect('cart.history', 'history')
-  .leftJoinAndSelect('history.deliveryStatus', 'deliveryStatus')
-  .leftJoinAndSelect('history.paymentMethod', 'paymentMethod')
-  .leftJoinAndSelect('cart.customer', 'customer')
-  .leftJoinAndSelect('cart.product', 'product')
+    const qb = this.cartRepo
+      .createQueryBuilder('cart')
+      .leftJoinAndSelect('cart.history', 'history')
+      .leftJoinAndSelect('history.deliveryStatus', 'deliveryStatus')
+      .leftJoinAndSelect('history.paymentMethod', 'paymentMethod')
+      .leftJoinAndSelect('cart.customer', 'customer')
+      .leftJoinAndSelect('cart.product', 'product')
 
-  // 🔥 Restore all category levels
-  .leftJoinAndSelect('cart.category', 'category')
-  .leftJoinAndSelect('category.category', 'parentCategory')
-  .leftJoinAndSelect('parentCategory.category', 'grandParentCategory')
+      // 🔥 Restore all category levels
+      .leftJoinAndSelect('cart.category', 'category')
+      .leftJoinAndSelect('category.category', 'parentCategory')
+      .leftJoinAndSelect('parentCategory.category', 'grandParentCategory')
 
-  .where('cart.isBought = :isBought', { isBought: true })
-  .orderBy('history.id', 'DESC');
-        
+      .where('cart.isBought = :isBought', { isBought: true })
+      .orderBy('history.id', 'DESC');
+
     // If user is NOT admin, filter by own orders
     if (user.role !== 'admin') {
       qb.andWhere('customer.email = :email', { email });
@@ -838,22 +839,21 @@ export class AdminService {
 
   async getOrderGroupByHistoryId(historyId: string) {
     console.log('group');
-   const qb = this.cartRepo
-  .createQueryBuilder('cart')
-  .leftJoinAndSelect('cart.history', 'history')
-  .leftJoinAndSelect('history.deliveryStatus', 'deliveryStatus')
-  .leftJoinAndSelect('history.paymentMethod', 'paymentMethod')
-  .leftJoinAndSelect('cart.customer', 'customer')
-  .leftJoinAndSelect('cart.product', 'product')
+    const qb = this.cartRepo
+      .createQueryBuilder('cart')
+      .leftJoinAndSelect('cart.history', 'history')
+      .leftJoinAndSelect('history.deliveryStatus', 'deliveryStatus')
+      .leftJoinAndSelect('history.paymentMethod', 'paymentMethod')
+      .leftJoinAndSelect('cart.customer', 'customer')
+      .leftJoinAndSelect('cart.product', 'product')
 
-  // 🔥 Restore full category chain
-  .leftJoinAndSelect('cart.category', 'category')
-  .leftJoinAndSelect('category.category', 'parentCategory')
-  .leftJoinAndSelect('parentCategory.category', 'grandParentCategory')
+      // 🔥 Restore full category chain
+      .leftJoinAndSelect('cart.category', 'category')
+      .leftJoinAndSelect('category.category', 'parentCategory')
+      .leftJoinAndSelect('parentCategory.category', 'grandParentCategory')
 
-  .where('cart.isBought = :isBought', { isBought: true })
-  .andWhere('history.id = :historyId', { historyId });
-
+      .where('cart.isBought = :isBought', { isBought: true })
+      .andWhere('history.id = :historyId', { historyId });
 
     const carts = await qb.getMany();
 
@@ -1119,8 +1119,14 @@ export class AdminService {
   // view new arrivals
   async viewNewArrivals() {
     const options: FindManyOptions<NewArrivalEntity> = {
-      relations: ['subsub'], // Ensure this matches your entity relation
+      where: { isActive: true },
+      relations: ['subsub'],
+      // Add the order property here
+      order: {
+        serial: 'ASC', // Use 'ASC' for 1, 2, 3... or 'DESC' for 10, 9, 8...
+      },
     };
+
     const arrivals = await this.newArrivalRepo.find(options);
     return arrivals;
   }
@@ -2682,27 +2688,83 @@ export class AdminService {
 
   // create new arrivals
   async addNewArrivals(myDto) {
-    const cat = await this.subSubCategoryRepo.findOne({
-      where: { id: parseInt(myDto.category) },
-    });
+    // if category exists
+    try {
+      const category = await this.subSubCategoryRepo.findOne({
+        where: { id: parseInt(myDto.category) },
+      });
 
-    myDto.subsub = cat;
-    // Check if a product with the same serial already exists
+      if (!category) {
+        throw new NotFoundException(
+          `Category with ID ${myDto.category} not found`,
+        );
+      }
+
+      myDto.subsub = category;
+      // Check if a product with the same serial already exists
+      // const existingProduct = await this.newArrivalRepo.findOne({
+      //   where: { serial: myDto.serial },
+      // });
+
+      await this.validateAndHandleSerial(myDto.serial);
+
+      // Create a new product
+      const newArrival = this.newArrivalRepo.create({
+        ...myDto,
+        subsub: category,
+      });
+      const savedProduct = await this.newArrivalRepo.save(newArrival);
+      return savedProduct;
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new ConflictException('Failed to create new arrival');
+    }
+  }
+
+  async discontinueNewArrival(id: number) {
+    const arrival = await this.newArrivalRepo.findOne({ where: { id } });
+
+    // 1. Guard Clause: Check existence
+    if (!arrival) {
+      throw new HttpException('New Arrival not found', HttpStatus.NOT_FOUND);
+    }
+
+    // 2. Guard Clause: Check state
+    if (!arrival.isActive) {
+      throw new HttpException(
+        'Arrival is already discontinued',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // 3. Update and Save
+    // Using .save() is generally preferred over .update() when you already have the entity
+    arrival.isActive = false;
+    await this.newArrivalRepo.save(arrival);
+
+    return {
+      message: 'New Arrival discontinued successfully',
+    };
+  }
+
+  async validateAndHandleSerial(serial: number): Promise<void> {
+    // Check if serial is within valid range
+    if (serial < 1 || serial > 8) {
+      throw new BadRequestException(`Serial must be between 1 and ${8}`);
+    }
+
+    // Check for existing product at this serial
     const existingProduct = await this.newArrivalRepo.findOne({
-      where: { serial: myDto.serial },
+      where: { serial: serial.toString() },
     });
 
     if (existingProduct) {
-      // Delete the existing product
-      await this.newArrivalRepo.update(existingProduct, {
-        serial: 'discontinued',
-      });
+      // Mark existing as discontinued
+      existingProduct.serial = 'discontinued';
+      await this.newArrivalRepo.save(existingProduct);
     }
-
-    // Create a new product
-    const newArrival = this.newArrivalRepo.create(myDto);
-    const savedProduct = await this.newArrivalRepo.save(newArrival);
-    return savedProduct;
   }
 
   parseBDDate(dateStr: string): Date {

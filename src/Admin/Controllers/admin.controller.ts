@@ -26,6 +26,7 @@ import {
   BadRequestException,
   UseGuards,
   Req,
+  HttpException,
 } from '@nestjs/common';
 import { AdminService } from '../Services/admin.service';
 import { AdminForm } from '../DTOs/adminform.dto';
@@ -381,16 +382,16 @@ export class AdminController {
       email,
       Number(page),
       Number(limit),
-      allItems
+      allItems,
     );
   }
 
-  // get specific order 
+  // get specific order
   @Get('order-group/:historyId')
-async getOrderGroup(@Param('historyId') historyId: string) {
-  console.log("ordergpp");
-  return this.adminService.getOrderGroupByHistoryId(historyId);
-}
+  async getOrderGroup(@Param('historyId') historyId: string) {
+    console.log('ordergpp');
+    return this.adminService.getOrderGroupByHistoryId(historyId);
+  }
 
   // get all customers / users
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -1166,6 +1167,17 @@ async getOrderGroup(@Param('historyId') historyId: string) {
     // console.log(imageobj.filename,mydata);
     mydata.filename = imageobj.filename;
     return this.adminService.addNewArrivals(mydata);
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Patch('discontinue-new-arrival/:id')
+  async discontinueNewArrival(@Param('id') id: number) {
+    if (!id) {
+      throw new HttpException('Arrival ID is required', HttpStatus.BAD_REQUEST);
+    }
+
+    return this.adminService.discontinueNewArrival(id);
   }
 
   //add pop up

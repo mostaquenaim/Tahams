@@ -14,6 +14,9 @@ export class NewArrivalEntity {
     @Column({ nullable: true })
     serial: string
 
+    @Column({default: true})
+    isActive: boolean
+
     @Column({ nullable: true })
     category: string
 
@@ -22,9 +25,6 @@ export class NewArrivalEntity {
 
     @Column({ nullable: true })
     filename: string
-
-    // @ManyToOne(() => ProductEntity, (product) => product.arrivals)
-    // product: ProductEntity
 
     @ManyToOne(() => SubSubCategoryEntity, (subsub) => subsub.arrivals)
     subsub: SubSubCategoryEntity
