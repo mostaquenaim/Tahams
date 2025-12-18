@@ -983,7 +983,7 @@ export class AdminController {
     return this.adminService.createNewFabric(myDto);
   }
 
-  //add new product
+  //add new product/create new product
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Post('/add-product')

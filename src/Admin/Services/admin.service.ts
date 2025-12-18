@@ -2701,6 +2701,8 @@ export class AdminService {
       }
 
       myDto.subsub = category;
+      myDto.filename = await this.compressImage(myDto.filename, 'thumb');
+      
       // Check if a product with the same serial already exists
       // const existingProduct = await this.newArrivalRepo.findOne({
       //   where: { serial: myDto.serial },
