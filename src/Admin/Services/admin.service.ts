@@ -1009,14 +1009,12 @@ export class AdminService {
 
     // console.log(isAdmin);
 
-    // const allCarts = await this.cartRepo.find()
-    // console.log('allCarts',allCarts,'allCarts');
-
     const cartsWithHistory = await this.cartRepo.find({
       where: { ...(isAdmin ? {} : { customer: { email } }) },
       relations: [
         'product',
         'coupon',
+        'customer',
         'category',
         'category.category',
         'category.category.category',
