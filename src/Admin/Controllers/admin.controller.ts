@@ -1343,12 +1343,15 @@ export class AdminController {
 
   // cloudinary images
   @Get('cloudinary-signature')
-  getSignature() {
-    const timestamp = Math.round(new Date().getTime() / 1000);
+  getCloudinarySignature() {
+    const timestamp = Math.round(Date.now() / 1000);
 
     const signature = cloudinary.utils.api_sign_request(
-      { timestamp },
-      process.env.CLOUDINARY_API_SECRET,
+      {
+        timestamp,
+        folder: 'products', 
+      },
+      process.env.CLOUDINARY_API_SECRET!,
     );
 
     return {
@@ -1356,7 +1359,7 @@ export class AdminController {
       timestamp,
       apiKey: process.env.CLOUDINARY_API_KEY,
       cloudName: process.env.CLOUDINARY_CLOUD_NAME,
-      upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET,
+      folder: 'products',
     };
   }
 }
