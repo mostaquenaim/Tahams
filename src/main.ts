@@ -22,6 +22,7 @@ async function bootstrap() {
       'http://127.0.0.1:8000',
       'http://localhost:8000',
       'https://tahamsbd.com',
+      'https://www.tahamsbd.com'
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
