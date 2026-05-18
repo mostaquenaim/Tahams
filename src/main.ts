@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as session from 'express-session';
@@ -22,7 +23,7 @@ async function bootstrap() {
       'http://127.0.0.1:8000',
       'http://localhost:8000',
       'https://tahamsbd.com',
-      'https://www.tahamsbd.com'
+      'https://www.tahamsbd.com',
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,

@@ -3040,4 +3040,18 @@ export class AdminService {
 
     return null; // Return null if no user found with the provided email
   }
+
+  async fraudCheck(phone: string) {
+    const url = process.env.FRAUDURL;
+    const apiKey = process.env.FRAUDSPY_API_KEY;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: apiKey.startsWith('Bearer ') ? apiKey : `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({ phone }),
+    });
+    return res.json();
+  }
 }

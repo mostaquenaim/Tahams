@@ -1341,6 +1341,12 @@ export class AdminController {
     res.sendFile(filePath, { root: './uploads' });
   }
 
+  // fraud check
+  @Post('fraud-check')
+  async fraudCheck(@Body('phone') phone: string) {
+    return this.adminService.fraudCheck(phone);
+  }
+
   // cloudinary images
   @Get('cloudinary-signature')
   getCloudinarySignature() {
