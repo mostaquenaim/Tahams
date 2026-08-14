@@ -85,6 +85,15 @@ export class BuyingHistoryEntity {
   @Column({ default: false })
   PaymentDone: boolean
 
+  @Column({ nullable: true })
+  facebookProfile: string
+
+  @Column({ default: false })
+  isPickup: boolean
+
+  @Column({ nullable: true })
+  pickupCenter: string
+
   @ManyToOne(() => DeliveryStatusEntity, (deliveryStatus) => deliveryStatus.buyingHistories)
   deliveryStatus: DeliveryStatusEntity
 
