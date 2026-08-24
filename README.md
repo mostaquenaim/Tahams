@@ -90,8 +90,8 @@ All routes below are served under the `/api/admin` prefix unless noted otherwise
 ## Prerequisites
 
 - **Node.js 18 or later** — the fraud-check integration calls the built-in global `fetch`, which requires Node ≥ 18
-- **PostgreSQL** 13+ running locally or reachable remotely
 - npm (bundled with Node.js)
+- **PostgreSQL** — a database to connect to. You don't need it installed ahead of time; step 2 below covers getting one running (including a Docker option if you'd rather not install PostgreSQL locally at all)
 
 ## Getting Started
 
@@ -107,24 +107,38 @@ npm install
 
 This step is identical on macOS, Linux, and Windows (PowerShell or Command Prompt).
 
-### 2. Create the database
+### 2. Set up PostgreSQL
 
-TypeORM runs with `synchronize: true` (see [`src/app.module.ts`](src/app.module.ts)), so tables are created and kept in sync automatically on startup — you only need an empty database to exist first.
+You need a running PostgreSQL server with an empty database named `Tahams`. TypeORM runs with `synchronize: true` (see [`src/app.module.ts`](src/app.module.ts)), so all tables are created and kept in sync automatically on startup — you just need the empty database to exist first. Pick whichever setup below is easiest for you; none of them require pgAdmin.
 
-**macOS / Linux:**
+**Option A — Docker (fastest, no PostgreSQL install at all)**
+
+If you have [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed, this single command starts Postgres with the `Tahams` database already created — works the same on macOS, Linux, and Windows:
 
 ```bash
-createdb Tahams
+docker run --name tahams-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=Tahams -p 5432:5432 -d postgres:16
 ```
 
-**Windows:** the PostgreSQL installer doesn't always add its `bin` folder (e.g. `C:\Program Files\PostgreSQL\<version>\bin`) to `PATH`, so `createdb` may not be recognized in either PowerShell or Command Prompt. If that happens, use one of these instead:
+Then in `.env` (next step) use `DB_HOST=localhost`, `DB_PORT=5432`, `DB_USERNAME=postgres`, `DB_PASSWORD=postgres`, `DB_NAME=Tahams` (or whatever password you passed above).
 
-- Add that `bin` folder to `PATH`, then `createdb` works the same as on macOS/Linux, **or**
-- Run `psql -U postgres` to open an interactive session, then run:
-  ```sql
-  CREATE DATABASE "Tahams";
+**Option B — Install PostgreSQL natively**
+
+- **macOS** (with [Homebrew](https://brew.sh/)):
+  ```bash
+  brew install postgresql@16
+  brew services start postgresql@16
+  createdb Tahams
   ```
-- Or create the database visually with **pgAdmin**, which ships with the Windows installer.
+- **Windows**: download the installer from [postgresql.org/download/windows](https://www.postgresql.org/download/windows/) and run it. During setup, make sure "Add PostgreSQL to PATH" is checked (it usually is by default) so `createdb`/`psql` work from a terminal; you can uncheck the Stack Builder/pgAdmin components if you don't want them. Then, from PowerShell or Command Prompt:
+  ```bash
+  createdb -U postgres Tahams
+  ```
+  If `createdb` isn't recognized, PATH wasn't set — either re-run the installer and enable it, or add the `bin` folder (e.g. `C:\Program Files\PostgreSQL\<version>\bin`) to your `PATH` manually, or run `psql -U postgres` and execute `CREATE DATABASE "Tahams";` instead.
+- **Linux (Debian/Ubuntu)**:
+  ```bash
+  sudo apt install postgresql
+  sudo -u postgres createdb Tahams
+  ```
 
 ### 3. Configure environment variables
 
