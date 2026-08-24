@@ -836,6 +836,8 @@ export class AdminController {
   }
 
   // create new account
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Post('create')
   createUser(@Body() myDto) {
     return this.adminService.createUser(myDto);

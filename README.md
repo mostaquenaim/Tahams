@@ -43,6 +43,7 @@ All routes below are served under the `/api/admin` prefix unless noted otherwise
 - Customer signup via `POST /api/customer/create`
 - Email OTP send/verify flow (`/send-otp`, `/verify-otp`) and a general "send email" endpoint
 - Role-based route guards (`RolesGuard` + `@Roles()`), checked against roles on the authenticated user
+- `POST /api/admin/create` (creates an admin/employee account) is itself JWT-guarded and requires the `admin` role — so it can only be called by someone who's already an admin. The very first admin account has to be bootstrapped with `npm run seed:admin` (see Getting Started)
 - Role management: create, list, update, and delete roles
 - User management: list all users, look up by email, update a user's address
 - Logout with JWT blacklisting (revoked tokens are checked on every request via `JwtStrategy`)
@@ -91,7 +92,7 @@ All routes below are served under the `/api/admin` prefix unless noted otherwise
 
 - **Node.js 18 or later** — the fraud-check integration calls the built-in global `fetch`, which requires Node ≥ 18
 - npm (bundled with Node.js)
-- **PostgreSQL** — a database to connect to. You don't need it installed ahead of time; step 2 below covers getting one running (including a Docker option if you'd rather not install PostgreSQL locally at all)
+- **PostgreSQL** — a database to connect to. You don't need it installed ahead of time; step 3 below covers getting one running (including a Docker option if you'd rather not install PostgreSQL locally at all)
 
 ## Getting Started
 
@@ -107,42 +108,9 @@ npm install
 
 This step is identical on macOS, Linux, and Windows (PowerShell or Command Prompt).
 
-### 2. Set up PostgreSQL
+### 2. Configure environment variables
 
-You need a running PostgreSQL server with an empty database named `Tahams`. TypeORM runs with `synchronize: true` (see [`src/app.module.ts`](src/app.module.ts)), so all tables are created and kept in sync automatically on startup — you just need the empty database to exist first. Pick whichever setup below is easiest for you; none of them require pgAdmin.
-
-**Option A — Docker (fastest, no PostgreSQL install at all)**
-
-If you have [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed, this single command starts Postgres with the `Tahams` database already created — works the same on macOS, Linux, and Windows:
-
-```bash
-docker run --name tahams-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=Tahams -p 5432:5432 -d postgres:16
-```
-
-Then in `.env` (next step) use `DB_HOST=localhost`, `DB_PORT=5432`, `DB_USERNAME=postgres`, `DB_PASSWORD=postgres`, `DB_NAME=Tahams` (or whatever password you passed above).
-
-**Option B — Install PostgreSQL natively**
-
-- **macOS** (with [Homebrew](https://brew.sh/)):
-  ```bash
-  brew install postgresql@16
-  brew services start postgresql@16
-  createdb Tahams
-  ```
-- **Windows**: download the installer from [postgresql.org/download/windows](https://www.postgresql.org/download/windows/) and run it. During setup, make sure "Add PostgreSQL to PATH" is checked (it usually is by default) so `createdb`/`psql` work from a terminal; you can uncheck the Stack Builder/pgAdmin components if you don't want them. Then, from PowerShell or Command Prompt:
-  ```bash
-  createdb -U postgres Tahams
-  ```
-  If `createdb` isn't recognized, PATH wasn't set — either re-run the installer and enable it, or add the `bin` folder (e.g. `C:\Program Files\PostgreSQL\<version>\bin`) to your `PATH` manually, or run `psql -U postgres` and execute `CREATE DATABASE "Tahams";` instead.
-- **Linux (Debian/Ubuntu)**:
-  ```bash
-  sudo apt install postgresql
-  sudo -u postgres createdb Tahams
-  ```
-
-### 3. Configure environment variables
-
-Copy the example file and fill in your own values.
+Copy the example file and fill in your own values. The defaults for `DB_*` already match `docker-compose.yml` (next step), so if you're using Docker you can leave those four as-is.
 
 **macOS / Linux / Git Bash:**
 
@@ -167,13 +135,66 @@ copy .env.example .env
 | `JWT_SECRET` | Secret used to sign admin/customer JWTs (7-day expiry) |
 | `EMAIL_USER` / `EMAIL_PASSWORD` | Gmail account + [App Password](https://myaccount.google.com/apppasswords) used to send OTP/notification emails via `smtp.gmail.com` |
 | `GOOGLE_PASS` | Shared fallback "password" accepted for admin accounts flagged as Google-authenticated |
-| `DB_HOST` / `DB_PORT` / `DB_USERNAME` / `DB_PASSWORD` / `DB_NAME` | PostgreSQL connection |
+| `DB_HOST` / `DB_PORT` / `DB_USERNAME` / `DB_PASSWORD` / `DB_NAME` | PostgreSQL connection — also used by `docker-compose.yml` to configure the Postgres container, see next step |
+| `ADMIN_NAME` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Used only by `npm run seed:admin` (step 4) to create the first admin account — not read by the app itself |
 | `SESSION_SECRET` / `SESSION_MAX_AGE` | Present in `.env` for `express-session`, but no session middleware is currently registered anywhere in the app — safe to fill with placeholder values |
 | `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | [Cloudinary](https://cloudinary.com/) credentials, used only to generate a signed upload signature (`GET /api/admin/cloudinary-signature`) for direct client-side uploads into a `products` folder |
 | `PATHAO_CLIENT_ID` / `PATHAO_CLIENT_SECRET` / `PATHAO_USERNAME` / `PATHAO_PASSWORD` / `PATHAO_BASE_URL` | Pathao Merchant API credentials for courier order creation |
 | `FRAUDSPY_API_KEY` / `FRAUDURL` | [FraudSpy](https://fraudspy.com.bd/) API used by `POST /api/admin/fraud-check` |
 
-### 4. Run the app
+### 3. Set up PostgreSQL
+
+You need a running PostgreSQL server with an empty database named `Tahams` (or whatever you set `DB_NAME` to above). TypeORM runs with `synchronize: true` (see [`src/app.module.ts`](src/app.module.ts)), so all tables are created and kept in sync automatically on startup — you just need the empty database to exist first. The app itself always runs natively (`npm run start:dev`); Docker here is only used for the database.
+
+**Option A — Docker (recommended, no PostgreSQL install at all)**
+
+With [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and your `.env` from step 2 in place, [`docker-compose.yml`](docker-compose.yml) starts a Postgres container using those same `DB_*` values — works the same on macOS, Linux, and Windows:
+
+```bash
+docker compose up -d
+```
+
+Useful follow-ups:
+
+```bash
+docker compose ps              # check it's running and healthy
+docker compose logs postgres   # view Postgres logs
+docker compose down            # stop the container (data is kept)
+docker compose down -v         # stop AND delete all data — only if you want a clean slate
+```
+
+Data is stored in a named Docker volume, so it survives `docker compose down` and container restarts; only the `-v` flag above deletes it.
+
+**Option B — Install PostgreSQL natively**
+
+- **macOS** (with [Homebrew](https://brew.sh/)):
+  ```bash
+  brew install postgresql@16
+  brew services start postgresql@16
+  createdb Tahams
+  ```
+- **Windows**: download the installer from [postgresql.org/download/windows](https://www.postgresql.org/download/windows/) and run it. During setup, make sure "Add PostgreSQL to PATH" is checked (it usually is by default) so `createdb`/`psql` work from a terminal; you can uncheck the Stack Builder/pgAdmin components if you don't want them. Then, from PowerShell or Command Prompt:
+  ```bash
+  createdb -U postgres Tahams
+  ```
+  If `createdb` isn't recognized, PATH wasn't set — either re-run the installer and enable it, or add the `bin` folder (e.g. `C:\Program Files\PostgreSQL\<version>\bin`) to your `PATH` manually, or run `psql -U postgres` and execute `CREATE DATABASE "Tahams";` instead.
+- **Linux (Debian/Ubuntu)**:
+  ```bash
+  sudo apt install postgresql
+  sudo -u postgres createdb Tahams
+  ```
+
+### 4. Seed the initial admin account
+
+`POST /api/admin/create` requires an already-authenticated admin (see Features below), so there's no way to create the very first admin through the API itself. Instead, set `ADMIN_NAME` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `.env` (from step 2) and run:
+
+```bash
+npm run seed:admin
+```
+
+This connects to the database directly and inserts one admin user — it's safe to re-run; if that email already exists, it skips instead of duplicating or overwriting the password. Once seeded, sign in normally via `POST /api/admin/signin` with those same credentials to get a JWT, which you can then use to create further admin/employee accounts through `POST /api/admin/create`.
+
+### 5. Run the app
 
 ```bash
 npm run start:dev
@@ -190,6 +211,7 @@ The API is available at `http://localhost:3000/api` (global prefix `api`, port `
 | `npm run start:debug` | Start in watch mode with the debugger attached |
 | `npm run start:prod` | Run the compiled build (`dist/main.js`) |
 | `npm run build` | Compile TypeScript to `dist/` |
+| `npm run seed:admin` | Create the initial admin account from `ADMIN_NAME`/`ADMIN_EMAIL`/`ADMIN_PASSWORD` in `.env` (idempotent) |
 | `npm run lint` | Lint and auto-fix `src/` and `test/` |
 | `npm run format` | Format `src/` and `test/` with Prettier |
 | `npm run test` | Run unit tests |

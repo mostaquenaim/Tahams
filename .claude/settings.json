@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx ts-node *)",
+      "Bash(powershell -NoProfile -Command \"Get-Process -Id 41060 | Select-Object Id, ProcessName, Path | Format-List\")",
+      "Bash(docker run *)"
+    ]
+  }
+}
