@@ -85,7 +85,7 @@ Each domain module (`Admin`, `Customer`, `Employee`) follows the same internal l
 ### 1. Clone and install dependencies
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/mostaquenaim/Tahams
 cd Tahams-backend
 npm install
 ```
