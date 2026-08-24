@@ -3,7 +3,25 @@
     "allow": [
       "Bash(npx ts-node *)",
       "Bash(powershell -NoProfile -Command \"Get-Process -Id 41060 | Select-Object Id, ProcessName, Path | Format-List\")",
-      "Bash(docker run *)"
+      "Bash(docker run *)",
+      "Bash(docker exec *)",
+      "Bash(break)",
+      "Bash(DB_HOST=localhost DB_PORT=15432 DB_USERNAME=verifyuser DB_PASSWORD=verifypass DB_NAME=verifydb ADMIN_NAME=\"Verify Admin\" ADMIN_EMAIL=\"verify-admin@example.com\" ADMIN_PASSWORD=\"verifypass123\" npx ts-node -r tsconfig-paths/register scripts/seed-admin.ts)",
+      "Bash(DB_HOST=localhost DB_PORT=15432 DB_USERNAME=verifyuser DB_PASSWORD=verifypass DB_NAME=verifydb JWT_SECRET=verify-secret ADMIN_NAME=\"Verify Admin\" ADMIN_EMAIL=\"verify-admin@example.com\" ADMIN_PASSWORD=\"verifypass123\" npx ts-node -r tsconfig-paths/register scripts/seed-admin.ts)",
+      "Bash(docker stop *)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" -X POST http://localhost:3000/api/admin/create -H \"Content-Type: application/json\" -d '{\"name\":\"x\",\"email\":\"probe@example.com\",\"password\":\"x\",\"role\":\"admin\"}')",
+      "Bash(curl -s -o /dev/null -w \"GET /api/employee -> HTTP %{http_code}\\\\n\" http://localhost:3000/api/employee)",
+      "Bash(curl -s -o /dev/null -w \"GET / -> HTTP %{http_code}\\\\n\" http://localhost:3000/)",
+      "Bash(curl -s -w \"\\\\nGET /api/admin/get-all-roles -> HTTP %{http_code}\\\\n\" http://localhost:3000/api/admin/get-all-roles -H \"Authorization: Bearer bogus\")",
+      "Bash(rm -f e:/Tahams/Tahams-backend/scripts/../scripts/nul)",
+      "Bash(DB_HOST=localhost DB_PORT=15432 DB_USERNAME=verifyuser DB_PASSWORD=verifypass DB_NAME=verifydb JWT_SECRET=verify-secret EMAIL_USER=x EMAIL_PASSWORD=x npx ts-node -r tsconfig-paths/register scripts/_verify-boot.ts)",
+      "Bash(echo \"launched with PID $!\")",
+      "Bash(disown)",
+      "Bash(curl -s -o /dev/null -w \"GET /api/employee -> HTTP %{http_code}\\\\n\" http://localhost:3999/api/employee)",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" -X POST http://localhost:3999/api/admin/create -H \"Content-Type: application/json\" -d '{\"name\":\"x\",\"email\":\"probe@example.com\",\"password\":\"x\",\"role\":\"admin\"}')",
+      "Bash(curl -s -w '\\\\nHTTP %{http_code}\\\\n' -X POST http://localhost:3999/api/admin/create -H 'Content-Type: application/json' -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -d '{\"name\":\"Second Admin\",\"email\":\"second-admin@example.com\",\"password\":\"second123\",\"role\":\"admin\"}')",
+      "Bash(powershell -NoProfile -Command ' *)",
+      "Bash(rm -f \"e:\\\\Tahams\\\\Tahams-backend\\\\scripts\\\\_verify-boot.ts\")"
     ]
   }
 }

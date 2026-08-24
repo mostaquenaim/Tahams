@@ -1,6 +1,9 @@
 import 'dotenv/config';
-import { DataSource } from 'typeorm';
+import { NestFactory } from '@nestjs/core';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { AppModule } from '../src/app.module';
 import { UserEntity } from '../src/Global/Entities/user.entity';
 
 async function run() {
@@ -15,21 +18,18 @@ async function run() {
     process.exit(1);
   }
 
-  const dataSource = new DataSource({
-    type: 'postgres',
-    host: process.env.DB_HOST,
-    port: Number(process.env.DB_PORT),
-    username: process.env.DB_USERNAME,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    entities: [UserEntity],
-    synchronize: true,
+  // Boots the same module graph the app itself uses (AppModule -> TypeOrmModule with
+  // autoLoadEntities), so the DB connection and schema always match production exactly -
+  // no risk of this script drifting out of sync with the real entity graph.
+  const app = await NestFactory.createApplicationContext(AppModule, {
+    logger: false,
   });
 
-  await dataSource.initialize();
-  const userRepo = dataSource.getRepository(UserEntity);
-
   try {
+    const userRepo = app.get<Repository<UserEntity>>(
+      getRepositoryToken(UserEntity),
+    );
+
     const existing = await userRepo.findOne({ where: { email } });
     if (existing) {
       console.log(
@@ -49,7 +49,7 @@ async function run() {
 
     console.log(`Admin account created: ${email} (role: admin)`);
   } finally {
-    await dataSource.destroy();
+    await app.close();
   }
 }
 
