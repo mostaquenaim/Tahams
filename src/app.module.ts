@@ -16,7 +16,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env'
+      // Absolute path so env loading doesn't depend on the process's cwd
+      // (PM2 can launch the process from a different directory than a
+      // manual `node dist/src/main.js`, silently dropping every var).
+      envFilePath: join(__dirname, '..', '..', '.env'),
     }),
     AdminModule,
     CustomerModule,
