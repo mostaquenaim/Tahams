@@ -778,6 +778,9 @@ export class AdminService {
     }
 
     const user = await this.getUserByEmail(email);
+    if (!user) {
+      throw new UnauthorizedException(`User not found for email: ${email}`);
+    }
 
     // Build Query
     const qb = this.cartRepo
@@ -2367,6 +2370,9 @@ export class AdminService {
   async getAllCustomizationRequests(email: string, id: string) {
     // console.log(id);
     const userInfo = await this.getUserByEmail(email);
+    if (!userInfo) {
+      throw new UnauthorizedException(`User not found for email: ${email}`);
+    }
     // console.log(userInfo);
     const isAdmin = userInfo.role == 'admin';
     const relations = ['user', 'customTexts', 'customImages'];

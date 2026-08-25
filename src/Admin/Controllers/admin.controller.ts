@@ -1128,6 +1128,9 @@ export class AdminController {
       return result; // Make sure to return the data properly
     } catch (error) {
       console.error('Error getting request:', error.message);
+      if (error instanceof HttpException) {
+        throw error;
+      }
       throw new Error('Error getting the request');
     }
   }
