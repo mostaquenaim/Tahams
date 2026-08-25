@@ -192,7 +192,22 @@ Data is stored in a named Docker volume, so it survives `docker compose down` an
 npm run seed:admin
 ```
 
-This connects to the database directly and inserts one admin user — it's safe to re-run; if that email already exists, it skips instead of duplicating or overwriting the password. Once seeded, sign in normally via `POST /api/admin/signin` with those same credentials to get a JWT, which you can then use to create further admin/employee accounts through `POST /api/admin/create`.
+This boots the app's own database connection and inserts one admin user — it's safe to re-run; if that email already exists, it skips instead of duplicating or overwriting the password. Once seeded, sign in normally to get a JWT:
+
+```bash
+curl -X POST http://localhost:3000/api/admin/signin \
+  -H "Content-Type: application/json" \
+  -d '{"email":"<ADMIN_EMAIL>","password":"<ADMIN_PASSWORD>"}'
+```
+
+Then use that `access_token` to create further admin/employee accounts through `POST /api/admin/create`:
+
+```bash
+curl -X POST http://localhost:3000/api/admin/create \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <access_token>" \
+  -d '{"name":"New Admin","email":"new-admin@example.com","password":"...","role":"admin"}'
+```
 
 ### 5. Run the app
 
