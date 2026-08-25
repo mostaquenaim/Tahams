@@ -3,10 +3,7 @@ import {
   Entity,
   Column,
   PrimaryGeneratedColumn,
-  OneToOne,
-  JoinColumn,
 } from 'typeorm';
-import { BuyingHistoryEntity } from './buyingHistory.entity';
 
 @Entity('courier-info')
 export class CourierInfo {

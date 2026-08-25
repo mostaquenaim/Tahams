@@ -73,6 +73,7 @@ export class AdminService {
   private password = process.env.PATHAO_PASSWORD;
   private accessToken: string;
   private tokenExpiry: number; // store expiry timestamp
+  private tokenFetchPromise: Promise<string> | null = null; // dedupe concurrent token fetches
 
   constructor(
     private jwtService: JwtService,
@@ -809,30 +810,29 @@ export class AdminService {
     // Execute query
     const cartsWithHistory = await qb.getMany();
 
-    // Parallel courier data fetch → much faster
-    await Promise.all(
-      cartsWithHistory.map(async (cart) => {
-        const trackingToken = cart.history?.trackingToken;
-        if (!trackingToken) return cart;
+    // Courier data fetch, capped concurrency → avoids tripping the
+    // courier API's rate limit when a page has many orders.
+    await this.mapWithConcurrency(cartsWithHistory, 5, async (cart) => {
+      const trackingToken = cart.history?.trackingToken;
+      if (!trackingToken) return cart;
 
-        try {
-          const courierInfo = await this.getCourierInfo(trackingToken);
+      try {
+        const courierInfo = await this.getCourierInfo(trackingToken);
 
-          if (courierInfo?.data) {
-            cart.history.courierInfo = courierInfo.data;
+        if (courierInfo?.data) {
+          cart.history.courierInfo = courierInfo.data;
 
-            if (courierInfo.data.order_status) {
-              cart.history.deliveryStatus.name =
-                courierInfo.data.order_status.toUpperCase();
-            }
+          if (courierInfo.data.order_status) {
+            cart.history.deliveryStatus.name =
+              courierInfo.data.order_status.toUpperCase();
           }
-        } catch (err) {
-          console.error('Courier API failed:', trackingToken, err.message);
         }
+      } catch (err: any) {
+        console.error('Courier API failed:', trackingToken, err.message);
+      }
 
-        return cart;
-      }),
-    );
+      return cart;
+    });
 
     return cartsWithHistory;
   }
@@ -857,22 +857,20 @@ export class AdminService {
 
     const carts = await qb.getMany();
 
-    // Attach courier info (same as before)
-    await Promise.all(
-      carts.map(async (cart) => {
-        const token = cart.history?.trackingToken;
-        if (!token) return cart;
+    // Attach courier info, capped concurrency (same reasoning as above)
+    await this.mapWithConcurrency(carts, 5, async (cart) => {
+      const token = cart.history?.trackingToken;
+      if (!token) return cart;
 
-        try {
-          const courierInfo = await this.getCourierInfo(token);
-          if (courierInfo?.data) {
-            cart.history.courierInfo = courierInfo.data;
-          }
-        } catch (_) {}
+      try {
+        const courierInfo = await this.getCourierInfo(token);
+        if (courierInfo?.data) {
+          cart.history.courierInfo = courierInfo.data;
+        }
+      } catch (_) {}
 
-        return cart;
-      }),
-    );
+      return cart;
+    });
 
     return carts;
   }
@@ -2145,11 +2143,42 @@ export class AdminService {
     }
   }
 
+  // Run async tasks with a capped concurrency so we don't fire dozens of
+  // simultaneous requests at the courier API and trip its rate limit.
+  private async mapWithConcurrency<T, R>(
+    items: T[],
+    limit: number,
+    fn: (item: T) => Promise<R>,
+  ): Promise<R[]> {
+    const results: R[] = new Array(items.length);
+    let nextIndex = 0;
+
+    const workers = Array.from(
+      { length: Math.min(limit, items.length) },
+      async () => {
+        while (nextIndex < items.length) {
+          const current = nextIndex++;
+          results[current] = await fn(items[current]);
+        }
+      },
+    );
+
+    await Promise.all(workers);
+    return results;
+  }
+
   // access token for Pathao
   private async getPathaoAccessToken() {
     const now = Date.now();
     if (this.accessToken && this.tokenExpiry && now < this.tokenExpiry) {
       return this.accessToken;
+    }
+
+    // If a fetch is already in flight, reuse it instead of firing another
+    // request — otherwise N concurrent callers trigger N token requests
+    // and Pathao rate-limits the issue-token endpoint.
+    if (this.tokenFetchPromise) {
+      return this.tokenFetchPromise;
     }
 
     const data = {
@@ -2160,23 +2189,24 @@ export class AdminService {
       password: this.password,
     };
 
-    try {
-      const res = await axios.post(
-        `${this.baseUrl}/aladdin/api/v1/issue-token`,
-        data,
-        {
-          headers: { 'Content-Type': 'application/json' },
-        },
-      );
+    this.tokenFetchPromise = axios
+      .post(`${this.baseUrl}/aladdin/api/v1/issue-token`, data, {
+        headers: { 'Content-Type': 'application/json' },
+      })
+      .then((res) => {
+        this.accessToken = res.data.access_token;
+        this.tokenExpiry = Date.now() + res.data.expires_in * 1000;
+        return this.accessToken;
+      })
+      .catch((err) => {
+        console.error('Token Error:', err.response?.data || err.message);
+        throw err;
+      })
+      .finally(() => {
+        this.tokenFetchPromise = null;
+      });
 
-      this.accessToken = res.data.access_token;
-      this.tokenExpiry = now + res.data.expires_in * 1000;
-
-      return this.accessToken;
-    } catch (err) {
-      console.error('Token Error:', err.response?.data || err.message);
-      throw err;
-    }
+    return this.tokenFetchPromise;
   }
 
   // create pathao order
