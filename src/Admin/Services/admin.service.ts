@@ -84,11 +84,17 @@ export class AdminService {
     { data: any; fetchedAt: number; terminal: boolean }
   >();
   private readonly COURIER_CACHE_TTL_MS = 3 * 60 * 1000;
+  // Covers slugs from both sources: the live "/orders/{id}/info" API
+  // (order_status_slug — exact values unconfirmed, kept from the original
+  // code) and the webhook's `event` field, humanized by
+  // humanizeCourierEvent() below (e.g. "order.delivered" -> "delivered").
   private readonly TERMINAL_COURIER_STATUSES = new Set([
     'delivered',
     'cancelled',
     'pickup_cancelled',
     'returned',
+    'returned_to_merchant',
+    'paid_return',
   ]);
 
   constructor(
@@ -372,12 +378,19 @@ export class AdminService {
   // courier cache, so the order-list/details pages reflect it immediately
   // without needing to call Pathao's live API at all.
   async handlePathaoWebhook(body: any, signature: string) {
-    const webhookSecret = process.env.PATHAO_WEBHOOK_SECRET;
-
+    // These are two DIFFERENT secrets:
+    //  - HANDSHAKE_SECRET: fixed, shown by Pathao in the dashboard panel —
+    //    echoed back as-is to prove we control this URL.
+    //  - PATHAO_WEBHOOK_SECRET: chosen by us, typed into the dashboard's
+    //    "Secret" field — used to verify X-PATHAO-Signature on real events.
     if (body?.event === 'webhook_integration') {
-      return { type: 'handshake' as const, secret: webhookSecret };
+      return {
+        type: 'handshake' as const,
+        secret: process.env.PATHAO_WEBHOOK_HANDSHAKE_SECRET,
+      };
     }
 
+    const webhookSecret = process.env.PATHAO_WEBHOOK_SECRET;
     if (!webhookSecret || signature !== webhookSecret) {
       console.error('Pathao webhook: rejected, signature mismatch');
       throw new UnauthorizedException('Invalid webhook signature');
@@ -402,22 +415,19 @@ export class AdminService {
       return { type: 'ack' as const, message: 'Unknown consignment, ignored' };
     }
 
-    const orderStatus =
-      body?.order_status || body?.event || courierInfo.order_status;
-    const slug = String(
-      body?.order_status_slug ||
-        (body?.event ? String(body.event).split('.').pop() : orderStatus) ||
-        '',
-    ).toLowerCase();
+    // Pathao's webhook payload only carries `event` (e.g. "order.created",
+    // "order.pickup_cancelled") — no separate status/status_slug field like
+    // the live info API has. Derive both from it.
+    const { label, slug } = this.humanizeCourierEvent(body?.event);
 
-    courierInfo.order_status = orderStatus;
+    courierInfo.order_status = label;
     await this.courierRepo.save(courierInfo);
 
     if (courierInfo.tracking_number) {
       this.courierInfoCache.set(courierInfo.tracking_number, {
         data: {
           data: {
-            order_status: orderStatus,
+            order_status: label,
             order_status_slug: slug,
             consignment_id: consignmentId,
           },
@@ -428,6 +438,20 @@ export class AdminService {
     }
 
     return { type: 'ack' as const, message: 'Processed' };
+  }
+
+  // "order.pickup_cancelled" -> { label: "Pickup Cancelled", slug: "pickup_cancelled" }
+  private humanizeCourierEvent(event: string): { label: string; slug: string } {
+    const suffix = String(event || '').split('.').pop() || '';
+    const slug = suffix.toLowerCase();
+    const label =
+      suffix
+        .split('_')
+        .filter(Boolean)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ') || 'Unknown';
+
+    return { label, slug };
   }
 
   // create user
