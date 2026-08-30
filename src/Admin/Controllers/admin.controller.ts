@@ -20,6 +20,7 @@ import {
   ParseIntPipe,
   Patch,
   Query,
+  Headers,
   UploadedFiles,
   ParseFilePipeBuilder,
   HttpStatus,
@@ -369,6 +370,30 @@ export class AdminController {
     return this.adminService.addCourierInfo(token, courierDetails);
   }
 
+  // Pathao delivery-status webhook. Handles both the one-off
+  // "webhook_integration" verification handshake sent from the merchant
+  // dashboard and the ongoing signed order-status-update events.
+  @Post('pathao-webhook')
+  async pathaoWebhook(
+    @Body() body: any,
+    @Headers('x-pathao-signature') signature: string,
+    @Res() res,
+  ) {
+    const result = await this.adminService.handlePathaoWebhook(
+      body,
+      signature,
+    );
+
+    if (result.type === 'handshake') {
+      res.setHeader(
+        'X-Pathao-Merchant-Webhook-Integration-Secret',
+        result.secret,
+      );
+    }
+
+    return res.status(202).json({ message: result.message || 'ok' });
+  }
+
   // get all buying history
   @Get('get-all-buying-history')
   getAllBuyingHistories(
@@ -383,6 +408,32 @@ export class AdminController {
       Number(page),
       Number(limit),
       allItems,
+    );
+  }
+
+  // grouped/paginated order list for the admin order-management page
+  // (returns { data, total, page, limit, totalPages } instead of a bare
+  // array, so pagination and per-page counts are accurate)
+  @Get('get-grouped-buying-history')
+  getGroupedBuyingHistories(
+    @Query('email') email: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('allItems') allItems: string | boolean = false,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('region') region?: string,
+    @Query('hideCancelled') hideCancelled: string | boolean = false,
+  ) {
+    return this.adminService.getGroupedBuyingHistories(
+      email,
+      Number(page),
+      Number(limit),
+      allItems === 'true' || allItems === true,
+      search,
+      status,
+      region,
+      hideCancelled === 'true' || hideCancelled === true,
     );
   }
 

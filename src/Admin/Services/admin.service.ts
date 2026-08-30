@@ -13,7 +13,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, In, Like } from 'typeorm';
 import { AdminForm } from '../DTOs/adminform.dto';
-import { Repository, FindManyOptions } from 'typeorm';
+import { Repository, FindManyOptions, SelectQueryBuilder } from 'typeorm';
 import { AdminEntity } from '../Entities/admin.entity';
 import { UserEntity } from 'src/Global/Entities/user.entity';
 import { ProductEntity } from 'src/Global/Entities/product.entity';
@@ -74,6 +74,22 @@ export class AdminService {
   private accessToken: string;
   private tokenExpiry: number; // store expiry timestamp
   private tokenFetchPromise: Promise<string> | null = null; // dedupe concurrent token fetches
+
+  // In-memory courier status cache, keyed by trackingToken. Avoids hammering
+  // the Pathao API on every order-list page load — statuses that have
+  // reached a terminal state never change again, so those are cached
+  // indefinitely; everything else is refreshed after COURIER_CACHE_TTL_MS.
+  private courierInfoCache = new Map<
+    string,
+    { data: any; fetchedAt: number; terminal: boolean }
+  >();
+  private readonly COURIER_CACHE_TTL_MS = 3 * 60 * 1000;
+  private readonly TERMINAL_COURIER_STATUSES = new Set([
+    'delivered',
+    'cancelled',
+    'pickup_cancelled',
+    'returned',
+  ]);
 
   constructor(
     private jwtService: JwtService,
@@ -304,6 +320,114 @@ export class AdminService {
       );
       throw err;
     }
+  }
+
+  // get courier info, but served from the in-memory cache when possible
+  // instead of hitting the live Pathao API on every call.
+  private async getCachedCourierInfo(trackingToken: string) {
+    const cached = this.courierInfoCache.get(trackingToken);
+    const now = Date.now();
+
+    if (
+      cached &&
+      (cached.terminal || now - cached.fetchedAt < this.COURIER_CACHE_TTL_MS)
+    ) {
+      return cached.data;
+    }
+
+    try {
+      const fresh = await this.getCourierInfo(trackingToken);
+
+      if (fresh?.data) {
+        const slug = String(
+          fresh.data.order_status_slug || fresh.data.order_status || '',
+        ).toLowerCase();
+
+        this.courierInfoCache.set(trackingToken, {
+          data: fresh,
+          fetchedAt: now,
+          terminal: this.TERMINAL_COURIER_STATUSES.has(slug),
+        });
+      }
+
+      return fresh;
+    } catch (err) {
+      // Live call failed (rate limit, network, etc) — prefer serving a
+      // stale-but-known status over showing nothing on the admin page.
+      if (cached) return cached.data;
+      throw err;
+    }
+  }
+
+  // Handle a Pathao webhook call. Two kinds of requests arrive on the same
+  // callback URL:
+  //   1) the one-off "webhook_integration" handshake Pathao sends when the
+  //      webhook is (re-)registered from the merchant dashboard — must be
+  //      acknowledged with the configured secret echoed back in a header.
+  //   2) real delivery status-update events — signed with X-PATHAO-Signature
+  //      so we can confirm they actually came from Pathao.
+  //
+  // On a real event, the fresh status is written into CourierInfo (so it
+  // survives a server restart) and pushed straight into the in-memory
+  // courier cache, so the order-list/details pages reflect it immediately
+  // without needing to call Pathao's live API at all.
+  async handlePathaoWebhook(body: any, signature: string) {
+    const webhookSecret = process.env.PATHAO_WEBHOOK_SECRET;
+
+    if (body?.event === 'webhook_integration') {
+      return { type: 'handshake' as const, secret: webhookSecret };
+    }
+
+    if (!webhookSecret || signature !== webhookSecret) {
+      console.error('Pathao webhook: rejected, signature mismatch');
+      throw new UnauthorizedException('Invalid webhook signature');
+    }
+
+    console.log('Pathao webhook event received:', JSON.stringify(body));
+
+    const consignmentId = body?.consignment_id;
+    if (!consignmentId) {
+      return { type: 'ack' as const, message: 'No consignment_id, ignored' };
+    }
+
+    const courierInfo = await this.courierRepo.findOne({
+      where: { consignment_id: consignmentId },
+    });
+
+    if (!courierInfo) {
+      console.warn(
+        'Pathao webhook: no matching order for consignment_id',
+        consignmentId,
+      );
+      return { type: 'ack' as const, message: 'Unknown consignment, ignored' };
+    }
+
+    const orderStatus =
+      body?.order_status || body?.event || courierInfo.order_status;
+    const slug = String(
+      body?.order_status_slug ||
+        (body?.event ? String(body.event).split('.').pop() : orderStatus) ||
+        '',
+    ).toLowerCase();
+
+    courierInfo.order_status = orderStatus;
+    await this.courierRepo.save(courierInfo);
+
+    if (courierInfo.tracking_number) {
+      this.courierInfoCache.set(courierInfo.tracking_number, {
+        data: {
+          data: {
+            order_status: orderStatus,
+            order_status_slug: slug,
+            consignment_id: consignmentId,
+          },
+        },
+        fetchedAt: Date.now(),
+        terminal: this.TERMINAL_COURIER_STATUSES.has(slug),
+      });
+    }
+
+    return { type: 'ack' as const, message: 'Processed' };
   }
 
   // create user
@@ -767,6 +891,11 @@ export class AdminService {
   }
 
   // view all buying histories
+  // NOTE: kept response shape (a bare array) and behavior unchanged on
+  // purpose — useOrder.js (my-orders, dashboard, legacy order-details)
+  // depends on this exact contract. Only the courier-info fetch was
+  // switched to the shared cache. The admin order-list page now calls
+  // getGroupedBuyingHistories below instead, which paginates correctly.
   async getAllBuyingHistories(
     email: string,
     page = 1,
@@ -814,13 +943,14 @@ export class AdminService {
     const cartsWithHistory = await qb.getMany();
 
     // Courier data fetch, capped concurrency → avoids tripping the
-    // courier API's rate limit when a page has many orders.
+    // courier API's rate limit when a page has many orders. Served from
+    // the in-memory cache when the status is already known/terminal.
     await this.mapWithConcurrency(cartsWithHistory, 5, async (cart) => {
       const trackingToken = cart.history?.trackingToken;
       if (!trackingToken) return cart;
 
       try {
-        const courierInfo = await this.getCourierInfo(trackingToken);
+        const courierInfo = await this.getCachedCourierInfo(trackingToken);
 
         if (courierInfo?.data) {
           cart.history.courierInfo = courierInfo.data;
@@ -838,6 +968,184 @@ export class AdminService {
     });
 
     return cartsWithHistory;
+  }
+
+  // Grouped/paginated order list for the admin order-management page.
+  //
+  // Pagination is done in two steps because a single "order" (history row)
+  // can span multiple cart rows (one per product). Paginating cart rows
+  // directly — like getAllBuyingHistories above does — can split one
+  // order's products across two pages and makes total/hasNextPage
+  // impossible to know.
+  //   1) find which history ids belong on the requested page (+ total count)
+  //   2) fetch full cart/product/category rows only for those history ids
+  async getGroupedBuyingHistories(
+    email: string,
+    page = 1,
+    limit = 20,
+    allItems = false,
+    search?: string,
+    status?: string,
+    region?: string,
+    hideCancelled = false,
+  ) {
+    if (!email) {
+      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+    }
+
+    const user = await this.getUserByEmail(email);
+    if (!user) {
+      throw new UnauthorizedException(`User not found for email: ${email}`);
+    }
+
+    const isAdmin = user.role === 'admin';
+
+    // Shared filters, applied identically to the count/id query and the
+    // detail query so pagination and the fetched rows always agree.
+    const applyFilters = (qb: SelectQueryBuilder<CartsEntity>) => {
+      qb.leftJoin('cart.history', 'history')
+        .leftJoin('history.deliveryStatus', 'deliveryStatus')
+        .leftJoin('cart.customer', 'customer')
+        .leftJoin('cart.product', 'product')
+        .where('cart.isBought = :isBought', { isBought: true })
+        .andWhere('history.isDraft = :isDraft', { isDraft: false });
+
+      if (!isAdmin) {
+        qb.andWhere('customer.email = :email', { email });
+      }
+
+      if (search) {
+        qb.andWhere(
+          '(customer.name ILIKE :search OR history.fullName ILIKE :search OR history.phone_no ILIKE :search OR product.name ILIKE :search)',
+          { search: `%${search}%` },
+        );
+      }
+
+      if (status && status !== 'all') {
+        qb.andWhere('LOWER(deliveryStatus.name) = LOWER(:status)', {
+          status,
+        });
+      }
+
+      if (region && region !== 'all') {
+        qb.andWhere('LOWER(history.region) = LOWER(:region)', { region });
+      }
+
+      if (hideCancelled) {
+        qb.andWhere('LOWER(deliveryStatus.name) != :cancelled', {
+          cancelled: 'cancelled',
+        });
+      }
+
+      return qb;
+    };
+
+    const { count } = await applyFilters(
+      this.cartRepo.createQueryBuilder('cart'),
+    )
+      .select('COUNT(DISTINCT history.id)', 'count')
+      .getRawOne();
+    const total = Number(count) || 0;
+
+    // Revenue stats are computed over the whole filtered set (not just the
+    // current page), so the summary cards stay correct while paging.
+    // deliveryFee lives on `history`, one row per order — summing it across
+    // joined cart rows would multiply it by the item count, so it's summed
+    // separately from distinct (history.id, deliveryFee) pairs.
+    const { itemsTotal } = await applyFilters(
+      this.cartRepo.createQueryBuilder('cart'),
+    )
+      .select('COALESCE(SUM(cart.totalPrice), 0)', 'itemsTotal')
+      .getRawOne();
+
+    const feeRows = await applyFilters(this.cartRepo.createQueryBuilder('cart'))
+      .select('history.id', 'id')
+      .addSelect('history.deliveryFee', 'fee')
+      .distinct(true)
+      .getRawMany();
+    const deliveryFeeTotal = feeRows.reduce(
+      (sum, row) => sum + (Number(row.fee) || 0),
+      0,
+    );
+
+    const totalRevenue = (Number(itemsTotal) || 0) + deliveryFeeTotal;
+    const avgOrderValue = total > 0 ? totalRevenue / total : 0;
+
+    const idQb = applyFilters(this.cartRepo.createQueryBuilder('cart'))
+      .select('history.id', 'id')
+      .distinct(true)
+      .orderBy('history.id', 'DESC');
+
+    if (!allItems) {
+      idQb.offset((page - 1) * limit).limit(limit);
+    }
+
+    const historyIds = (await idQb.getRawMany()).map((row) => row.id);
+
+    if (historyIds.length === 0) {
+      return {
+        data: [],
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: limit ? Math.ceil(total / limit) : total > 0 ? 1 : 0,
+        totalRevenue,
+        avgOrderValue,
+      };
+    }
+
+    const cartsWithHistory = await this.cartRepo
+      .createQueryBuilder('cart')
+      .leftJoinAndSelect('cart.history', 'history')
+      .leftJoinAndSelect('history.deliveryStatus', 'deliveryStatus')
+      .leftJoinAndSelect('history.paymentMethod', 'paymentMethod')
+      .leftJoinAndSelect('cart.customer', 'customer')
+      .leftJoinAndSelect('cart.product', 'product')
+
+      // 🔥 Restore all category levels
+      .leftJoinAndSelect('cart.category', 'category')
+      .leftJoinAndSelect('category.category', 'parentCategory')
+      .leftJoinAndSelect('parentCategory.category', 'grandParentCategory')
+
+      .where('cart.isBought = :isBought', { isBought: true })
+      .andWhere('history.id IN (:...historyIds)', { historyIds })
+      .orderBy('history.id', 'DESC')
+      .getMany();
+
+    // Courier data fetch, capped concurrency → avoids tripping the
+    // courier API's rate limit when a page has many orders. Served from
+    // the in-memory cache when the status is already known/terminal.
+    await this.mapWithConcurrency(cartsWithHistory, 5, async (cart) => {
+      const trackingToken = cart.history?.trackingToken;
+      if (!trackingToken) return cart;
+
+      try {
+        const courierInfo = await this.getCachedCourierInfo(trackingToken);
+
+        if (courierInfo?.data) {
+          cart.history.courierInfo = courierInfo.data;
+
+          if (courierInfo.data.order_status) {
+            cart.history.deliveryStatus.name =
+              courierInfo.data.order_status.toUpperCase();
+          }
+        }
+      } catch (err: any) {
+        console.error('Courier API failed:', trackingToken, err.message);
+      }
+
+      return cart;
+    });
+
+    return {
+      data: cartsWithHistory,
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      totalPages: limit ? Math.ceil(total / limit) : 1,
+      totalRevenue,
+      avgOrderValue,
+    };
   }
 
   async getOrderGroupByHistoryId(historyId: string) {
@@ -860,15 +1168,22 @@ export class AdminService {
 
     const carts = await qb.getMany();
 
-    // Attach courier info, capped concurrency (same reasoning as above)
+    // Attach courier info, capped concurrency (same reasoning as above).
+    // Mirrors the same deliveryStatus.name sync as getAllBuyingHistories so
+    // the order-details page never shows a different status than the list.
     await this.mapWithConcurrency(carts, 5, async (cart) => {
       const token = cart.history?.trackingToken;
       if (!token) return cart;
 
       try {
-        const courierInfo = await this.getCourierInfo(token);
+        const courierInfo = await this.getCachedCourierInfo(token);
         if (courierInfo?.data) {
           cart.history.courierInfo = courierInfo.data;
+
+          if (courierInfo.data.order_status) {
+            cart.history.deliveryStatus.name =
+              courierInfo.data.order_status.toUpperCase();
+          }
         }
       } catch (_) {}
 
@@ -916,7 +1231,7 @@ export class AdminService {
       for (const cart of cartsWithHistory) {
         const trackingToken = cart.history?.trackingToken;
         if (trackingToken) {
-          const courierInfo = await this.getCourierInfo(trackingToken);
+          const courierInfo = await this.getCachedCourierInfo(trackingToken);
 
           if (courierInfo?.data) {
             // Attach courier data to the history
