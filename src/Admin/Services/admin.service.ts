@@ -219,7 +219,6 @@ export class AdminService {
 
   // add payment info
   async addPaymentInfo(myDto) {
-    // console.log(myDto, 'payment')
 
     // Get the buying history associated with the token and customer
     const cart = await this.getBuyingHistoryByToken(
@@ -249,7 +248,6 @@ export class AdminService {
 
   // add courier info
   async addCourierInfo(token, myDto) {
-    // console.log(myDto, 'payment', token);
 
     // Get the buying history associated with the token
     const cart = await this.cartRepo.find({
@@ -288,7 +286,6 @@ export class AdminService {
     await this.buyingHistoryRepo.save(history);
 
     // const cInfo = await this.getCourierInfo(token);
-    // console.log(cInfo, 'cInfo');
 
     return savedCourier;
   }
@@ -316,7 +313,6 @@ export class AdminService {
         },
       );
 
-      // console.log(res.data);
 
       return res.data;
     } catch (err) {
@@ -396,7 +392,6 @@ export class AdminService {
       throw new UnauthorizedException('Invalid webhook signature');
     }
 
-    console.log('Pathao webhook event received:', JSON.stringify(body));
 
     const consignmentId = body?.consignment_id;
     if (!consignmentId) {
@@ -541,7 +536,6 @@ export class AdminService {
 
   // Method to send email
   async sendEmail(myDto) {
-    console.log('ekhane');
     try {
       await this.mailerService.sendMail({
         to: myDto.email,
@@ -578,7 +572,6 @@ export class AdminService {
     const otpEntity = this.otpRepository.create({ email, otp });
     await this.otpRepository.save(otpEntity);
 
-    console.log('thik ');
     // Send OTP email
     await this.sendEmail({
       email,
@@ -592,10 +585,8 @@ export class AdminService {
   // verify otp
   async verifyOtp(email: string, otp: string) {
     const otpData = await this.otpRepository.findOne({ where: { email, otp } });
-    console.log(otpData, 'otpdd');
 
     if (!otpData) {
-      console.log('bad otp');
       throw new BadRequestException('Invalid or expired OTP');
     }
 
@@ -605,7 +596,6 @@ export class AdminService {
       (currentTime.getTime() - otpCreationTime.getTime()) / (1000 * 60); // Time difference in minutes
 
     if (otpData.otp !== otp || timeDifference > 10) {
-      console.log('otp error');
       throw new BadRequestException('Invalid or expired OTP');
     }
 
@@ -646,7 +636,6 @@ export class AdminService {
             },
           };
         }
-        console.log('emailpass');
         return {
           status: HttpStatus.OK,
           message: 'Login successful',
@@ -660,8 +649,6 @@ export class AdminService {
         myData.loggedInWith === 'Google' ||
         myDto.password === process.env.GOOGLE_PASS
       ) {
-        console.log('google');
-        // console.log('object =', this.jwtService.sign(payload));
         return {
           status: HttpStatus.OK,
           message: 'Login with google successful',
@@ -752,9 +739,7 @@ export class AdminService {
   // delete a cart item
   async deleteCartItem(id: string) {
     const myData = await this.cartRepo.findOneBy({ uniqueId: id });
-    // console.log(myData, "169");
     if (myData) {
-      // console.log(myData, "171");
       return this.cartRepo.delete(myData.id);
     }
     throw new NotFoundException(`Banner with ID ${id} not found.`);
@@ -795,7 +780,6 @@ export class AdminService {
       trackingToken: id,
     });
 
-    // console.log(historyEntry);
 
     if (!historyEntry) {
       throw new NotFoundException(`History with ID ${id} not found.`);
@@ -841,7 +825,6 @@ export class AdminService {
         .andWhere(filters)
         .getMany();
 
-      // console.log(products, 'prdsts');
 
       return products;
     } catch (error) {
@@ -1173,7 +1156,6 @@ export class AdminService {
   }
 
   async getOrderGroupByHistoryId(historyId: string) {
-    console.log('group');
     const qb = this.cartRepo
       .createQueryBuilder('cart')
       .leftJoinAndSelect('cart.history', 'history')
@@ -1253,9 +1235,7 @@ export class AdminService {
   // get history by id
   async getBuyingHistoryByToken(token: string, email: string) {
     if (email) {
-      // console.log('in');
       const user = await this.getUserByEmail(email);
-      // console.log('user',user,'user');
       const cartsWithHistory = await this.cartRepo.find({
         where: {
           ...(user?.role != 'admin' && { customer: { email: email } }),
@@ -1293,14 +1273,12 @@ export class AdminService {
         }
       }
 
-      // console.log(cartsWithHistory);
       return cartsWithHistory;
     }
     throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
   }
 
   async getBuyingHistoryStatusByToken(token: string) {
-    // console.log(token);
     const query = {
       where: { trackingToken: token },
       relations: ['deliveryStatus', 'paymentMethod'],
@@ -1370,7 +1348,6 @@ export class AdminService {
     const user = await this.userRepo.findOneBy({ email });
     const isAdmin = user?.role == 'admin';
 
-    // console.log(isAdmin);
 
     const cartsWithHistory = await this.cartRepo.find({
       where: { ...(isAdmin ? {} : { customer: { email } }) },
@@ -1384,9 +1361,7 @@ export class AdminService {
       ],
     });
 
-    // console.log('cartsWithHistory',cartsWithHistory,'cartsWithHistory');
 
-    // console.log(cartsWithHistory, "259");
     return cartsWithHistory;
   }
 
@@ -1499,7 +1474,6 @@ export class AdminService {
       relations: ['popup'],
     });
 
-    // console.log(activePop, 'acc');
     return activePop.length > 0 && activePop[0]?.popup;
   }
 
@@ -1606,7 +1580,6 @@ export class AdminService {
         return await this.productRepo.update(productId, { totalViews });
       }
 
-      console.log('View counts synced successfully');
     } catch (error) {
       console.error('Error syncing view counts:', error.message);
       throw error;
@@ -1627,13 +1600,11 @@ export class AdminService {
 
       for (const cart of carts) {
         const productId = cart.product.id;
-        console.log(productId);
         productCountMap[productId] = (productCountMap[productId] || 0) + 1;
       }
 
       // Step 3: Update salesCount for each product
       for (const [productIdStr, count] of Object.entries(productCountMap)) {
-        // console.log(count);
         const productId = parseInt(productIdStr, 10);
         await this.productRepo.update(productId, { salesCount: count });
       }
@@ -1662,7 +1633,6 @@ export class AdminService {
 
   // check if wished
   async checkIfWished(productId, customerEmail) {
-    console.log(productId, customerEmail, 'okk');
 
     // const getAllWish = await this.wishRepo.find(
     //   {
@@ -1673,13 +1643,11 @@ export class AdminService {
     //   }
     // )
 
-    // console.log(getAllWish,'getAllWish');
 
     const wished = await this.wishRepo.findOne({
       where: { product: { id: productId }, customer: { email: customerEmail } },
     });
 
-    // console.log(wished,'wished');
 
     return { isWished: wished ? true : false, wished };
   }
@@ -1767,7 +1735,6 @@ export class AdminService {
       ],
     });
 
-    // console.log(products);
     return products;
   }
 
@@ -1779,7 +1746,6 @@ export class AdminService {
         (product) => product.publishable,
       );
 
-      // console.log(products, 'break', publishableProducts);
       return publishableProducts;
     } catch (error) {
       console.error('Error finding publishable products:', error);
@@ -1812,7 +1778,6 @@ export class AdminService {
 
   // ProductService
   async getProductById(id) {
-    // console.log(id, 'id');
     return await this.productRepo.findOne({
       where: { productId: id },
       relations: [
@@ -1863,7 +1828,6 @@ export class AdminService {
 
   // update customized request
   async updateCustomReq(id: string, myDto: any) {
-    // console.log(myDto,'mdt');
     // find existing records
     const existing = await this.customReqRepo.find({
       where: { groupId: id },
@@ -1921,7 +1885,6 @@ export class AdminService {
   async updateSubSubCategory(id: number, filename: string) {
     const res = await this.subSubCategoryRepo.update(id, { filename });
 
-    // console.log(res);
 
     return res;
   }
@@ -1955,7 +1918,6 @@ export class AdminService {
 
   // update buying by id
   async updateBuyingHistory(token: string, updates: any, email: string) {
-    // console.log(updates);
     const user = await this.userRepo.findOneBy({ email });
 
     if (!user) {
@@ -2025,7 +1987,6 @@ export class AdminService {
       relations: ['cart'],
     });
 
-    // console.log(entity);
 
     if (!entity) {
       throw new Error(`Entity with id ${id} not found`);
@@ -2040,7 +2001,6 @@ export class AdminService {
     // Save the updated entity back to the database
     const res = await this.returnRepo.save(entity);
 
-    console.log(`Entity with id ${id} updated to isApproved: true`);
 
     return res;
   }
@@ -2162,7 +2122,6 @@ export class AdminService {
     updates: any,
     email: string,
   ) {
-    // console.log(updates);
     const user = await this.userRepo.findOneBy({ email });
 
     if (!user) {
@@ -2257,14 +2216,12 @@ export class AdminService {
   async deleteProductTypeById(id: number) {
     try {
       const productType = await this.subSubCategoryRepo.findOneBy({ id });
-      // console.log(productType);
 
       if (!productType) {
         throw new NotFoundException(`Product type with ID ${id} not found.`);
       }
 
       const deleted = this.subSubCategoryRepo.delete(productType.id);
-      console.log(deleted);
 
       return deleted;
     } catch (error) {
@@ -2276,14 +2233,12 @@ export class AdminService {
   async deleteCategoryById(id: number) {
     try {
       const cat = await this.categoryRepo.findOneBy({ id });
-      // console.log(cat);
 
       if (!cat) {
         throw new NotFoundException(`Category with ID ${id} not found.`);
       }
 
       const deleted = this.categoryRepo.delete(cat.id);
-      console.log(deleted);
 
       return deleted;
     } catch (error) {
@@ -2295,14 +2250,12 @@ export class AdminService {
   async deleteSubCategoryById(id: number) {
     try {
       const cat = await this.subCategoryRepo.findOneBy({ id });
-      // console.log(cat);
 
       if (!cat) {
         throw new NotFoundException(`Category with ID ${id} not found.`);
       }
 
       const deleted = this.subCategoryRepo.delete(cat.id);
-      console.log(deleted);
 
       return deleted;
     } catch (error) {
@@ -2329,11 +2282,9 @@ export class AdminService {
 
   // remove wish list item
   async removeWish(wishId) {
-    console.log('myData', wishId);
     try {
       const wish = await this.wishRepo.findOne({ where: { id: wishId } });
 
-      // console.log('wishesss', wish);
 
       if (!wish) {
         throw new NotFoundException(`Wish not found.`);
@@ -2436,7 +2387,6 @@ export class AdminService {
   // create new sub-sub-category
   async createNewSubSubCategory(myDto) {
     const category = await this.getSubCategoryById(myDto.categoryId);
-    // console.log(category, 583);
     myDto.category = category;
     const newCategory = this.subSubCategoryRepo.create({ ...myDto });
     return this.subSubCategoryRepo.save(newCategory);
@@ -2444,14 +2394,12 @@ export class AdminService {
 
   // Confirm or cancel order
   async confirmReturnOrCancellation(selectedProducts, reason: string) {
-    // console.log(selectedProducts);
     const createdReturns = [];
 
     for (const product of selectedProducts) {
       const cart = await this.cartRepo.findOne({
         where: { id: product.cartId },
       });
-      // console.log(cart);
 
       if (cart) {
         const returnEntity = new ReturnEntity();
@@ -2466,7 +2414,6 @@ export class AdminService {
       }
     }
 
-    console.log(`Return or cancellation confirmed for reason: ${reason}`);
     return {
       success: true,
       createdReturns,
@@ -2494,9 +2441,7 @@ export class AdminService {
         where: { email: myDto.email },
       });
 
-      // console.log(existingCustomer, "583");
       if (!existingCustomer) {
-        // console.log("innnn");
         const newCustomer = this.createCustomer(myDto);
         return newCustomer;
       }
@@ -2576,7 +2521,6 @@ export class AdminService {
 
   // create pathao order
   async createPathaoOrder(order: any) {
-    // console.log(order,'order');
     const token = await this.getPathaoAccessToken();
 
     try {
@@ -2600,7 +2544,6 @@ export class AdminService {
 
   // create new buy
   async createNewBuy(myDto) {
-    // console.log(myDto, "544");
 
     myDto.deliveryStatus = await this.getDeliveryStatusById(
       myDto?.deliveryStatusId || 1,
@@ -2612,9 +2555,7 @@ export class AdminService {
     myDto.adminNote = 'Order created.';
     const newBuy = this.buyingHistoryRepo.create({ ...myDto });
 
-    // console.log(myDto,844);
     const savedBuy = await this.buyingHistoryRepo.save(newBuy);
-    // console.log(myDto.carts, 'carts');
     this.createNewCartObject(savedBuy, myDto.carts);
     return savedBuy;
   }
@@ -2630,9 +2571,7 @@ export class AdminService {
     myDto.trackingToken = uuidv4();
     const newBuy = this.buyingHistoryRepo.create({ ...myDto });
 
-    // console.log(myDto,844);
     const savedBuy = await this.buyingHistoryRepo.save(newBuy);
-    // console.log(myDto.carts, 'carts');
     return savedBuy;
   }
 
@@ -2688,7 +2627,6 @@ export class AdminService {
       newTextObj.y = element.y;
       newTextObj.rotation = parseInt(element.style.rotation, 10); // Ensure y is an integer
 
-      // console.log(customer, 'cust', product);
       const newTextElement = this.customTextRepo.create(newTextObj);
 
       return await this.customTextRepo.save(newTextElement);
@@ -2731,20 +2669,16 @@ export class AdminService {
 
   // get all customization requests
   async getAllCustomizationRequests(email: string, id: string) {
-    // console.log(id);
     const userInfo = await this.getUserByEmail(email);
     if (!userInfo) {
       throw new UnauthorizedException(`User not found for email: ${email}`);
     }
-    // console.log(userInfo);
     const isAdmin = userInfo.role == 'admin';
     const relations = ['user', 'customTexts', 'customImages'];
 
-    // console.log(email,id,'===id');
     if (isAdmin) {
       // admin: get all
       if (id == '0') return this.customReqRepo.find({ relations });
-      // console.log(id);
       return this.customReqRepo.find({
         where: {
           groupId: id,
@@ -2768,7 +2702,6 @@ export class AdminService {
 
   // create new cart object
   async createNewCartObject(buy, cartsData) {
-    // console.log(buy, 'buy', cartsData, 'cartsData');
     for (const cartDataId of cartsData) {
       const cart = await this.cartRepo.findOne({
         where: { id: cartDataId },
@@ -2861,9 +2794,7 @@ export class AdminService {
 
   // create new wish
   async createNewWish(myDto) {
-    // console.log('myDto', myDto);
     if (!myDto.productId || !myDto.customerEmail) {
-      // console.log("object");
       throw new BadRequestException(
         'Product ID and customer email are required',
       );
@@ -2880,7 +2811,6 @@ export class AdminService {
         customer = await this.userRepo.save({ email: myDto.customerEmail });
       }
 
-      // console.log(customer, 'cust', product);
       const newWish = this.wishRepo.create({ product, customer });
 
       return await this.wishRepo.save(newWish);
@@ -2906,7 +2836,6 @@ export class AdminService {
     for (const pd of allProducts) {
       if (pd.productId != null || pd.productId != '') return;
 
-      console.log(pd.id);
 
       const slug = pd.name
         .toLowerCase()
@@ -2926,7 +2855,6 @@ export class AdminService {
 
   // create new product
   async createNewProduct(myDto) {
-    // console.log('md', myDto, 'md');
     const selectedColor = await this.getColorByName(myDto.color);
     myDto.color = selectedColor;
     myDto.ifStock = false;
@@ -2944,7 +2872,6 @@ export class AdminService {
     // add thumb image
     myDto.thumbImage = await this.compressImage(myDto.filename, 'thumb');
 
-    // console.log(myDto, 'msdkn');
 
     const lastProduct = await this.productRepo.find({
       order: { id: 'DESC' },
@@ -2964,8 +2891,6 @@ export class AdminService {
     const newProduct = this.productRepo.create({ ...myDto });
     const savedProduct = await this.productRepo.save(newProduct);
 
-    // console.log(savedProduct, 'ss');
-    // console.log(savedProduct.name,'nn');
 
     return await this.createProductExtension(savedProduct, myDto.catsInfo);
   }
@@ -2987,7 +2912,6 @@ export class AdminService {
       }
     });
 
-    // console.log(JSON.stringify(processedCatsInfo, null, 2));
 
     for (const item of processedCatsInfo) {
       const catInfoItem = new ProductSizeCategoryEntity();
@@ -3014,7 +2938,6 @@ export class AdminService {
       }
     }
 
-    // console.log(processedCatsInfo, 771);
 
     return product;
   }
@@ -3039,7 +2962,6 @@ export class AdminService {
         .webp({ quality: 80 })
         .toFile(absOutputPath);
 
-      console.log(`✅ Compressed image saved at: ${absOutputPath}`);
     } catch (err) {
       console.error(
         `❌ Failed to compress image for ${inputPath}:`,
@@ -3175,7 +3097,6 @@ export class AdminService {
 
   // create new pop up
   async addNewPopUp(myDto) {
-    console.log(myDto, 'date dto');
     // Check for existing active popup
     const activePopups = await this.activePopRepo.find({
       order: { id: 'ASC' },
@@ -3185,7 +3106,6 @@ export class AdminService {
     const allPopUps = await this.popUpRepo.find();
     // 2025-06-26T17:13',
     //   endDate: '2025-06-30T17:24',
-    console.log(allPopUps, 'allls');
 
     const existingActive = activePopups[0]; // first row, if any
 
@@ -3213,7 +3133,6 @@ export class AdminService {
         await this.activePopRepo.update({ id: 1 }, { popup: savedPopUp });
       } else {
         // still valid, do not update
-        console.log('Current active popup is still valid. No update done.');
       }
     } else {
       // No active popup row, create new one
@@ -3277,7 +3196,6 @@ export class AdminService {
         where: { product },
       });
 
-      console.log(oldPictures);
 
       for (const pic of oldPictures) {
         const oldImagePath = pic.filename

@@ -26,7 +26,6 @@ export class EmployeeController {
 
   @Post('create')
   createUser(@Body() createUser: EmployeeForm) {
-    // console.log(createUser)
     return this.appService.createUser(createUser);
   }
 
@@ -60,7 +59,6 @@ export class EmployeeController {
       })
     }))
   uploadFile(@UploadedFile() file: Express.Multer.File) {
-    // console.log(file);
     return file.filename;
   }
 
