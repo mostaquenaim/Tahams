@@ -51,7 +51,7 @@ import cloudinary from '../Services/cloudinary.config';
 
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(private readonly adminService: AdminService) { }
 
   //Login to account
   @Post('/signin')
@@ -414,6 +414,8 @@ export class AdminController {
   // grouped/paginated order list for the admin order-management page
   // (returns { data, total, page, limit, totalPages } instead of a bare
   // array, so pagination and per-page counts are accurate)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Get('get-grouped-buying-history')
   getGroupedBuyingHistories(
     @Query('email') email: string,
@@ -438,10 +440,23 @@ export class AdminController {
   }
 
   // get specific order
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Get('order-group/:historyId')
   async getOrderGroup(@Param('historyId') historyId: string) {
     console.log('ordergpp');
     return this.adminService.getOrderGroupByHistoryId(historyId);
+  }
+
+  // update the single admin note for an order
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Patch('order-note/:historyId')
+  async updateOrderNote(
+    @Param('historyId', ParseIntPipe) historyId: number,
+    @Body('note') note: string,
+  ) {
+    return this.adminService.updateOrderNote(historyId, note);
   }
 
   // get all customers / users
@@ -1160,7 +1175,7 @@ export class AdminController {
       // Call the service to handle the design request
       return await this.adminService.handleCustomImageElement(imageData, id);
     } catch (error) {
-      console.error('Error while sending request:', error.message);
+      console.error('Error while sending request:', error?.message || "");
       throw new Error('Error while sending the request');
     }
   }
@@ -1178,7 +1193,7 @@ export class AdminController {
       );
       return result; // Make sure to return the data properly
     } catch (error) {
-      console.error('Error getting request:', error.message);
+      console.error('Error getting request:', error?.message || "");
       if (error instanceof HttpException) {
         throw error;
       }
@@ -1411,7 +1426,7 @@ export class AdminController {
     const signature = cloudinary.utils.api_sign_request(
       {
         timestamp,
-        folder: 'products', 
+        folder: 'products',
       },
       process.env.CLOUDINARY_API_SECRET!,
     );
