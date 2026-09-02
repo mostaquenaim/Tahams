@@ -88,9 +88,6 @@ export class BuyingHistoryEntity {
   @Column({ nullable: true })
   facebookProfile: string
 
-  @Column({ nullable: true, type: 'text' })
-  notes: string
-
   @Column({ default: false })
   isPickup: boolean
 
