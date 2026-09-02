@@ -1217,6 +1217,29 @@ export class AdminService {
     return carts;
   }
 
+  async updateOrderNote(historyId: number, note: string) {
+    const normalizedNote = typeof note === 'string' ? note.trim() : '';
+
+    if (!normalizedNote) {
+      throw new BadRequestException('Note is required');
+    }
+
+    if (normalizedNote.length > 250) {
+      throw new BadRequestException('Note cannot exceed 250 characters');
+    }
+
+    const history = await this.buyingHistoryRepo.findOne({
+      where: { id: historyId },
+    });
+
+    if (!history) {
+      throw new NotFoundException('Order not found');
+    }
+
+    history.adminNote = normalizedNote;
+    return this.buyingHistoryRepo.save(history);
+  }
+
   // view all users / customers info
   async getAllUsers() {
     return this.userRepo.find();
@@ -2586,6 +2609,7 @@ export class AdminService {
       myDto?.paymentMethodId || 1,
     );
     myDto.trackingToken = uuidv4();
+    myDto.adminNote = 'Order created.';
     const newBuy = this.buyingHistoryRepo.create({ ...myDto });
 
     // console.log(myDto,844);
