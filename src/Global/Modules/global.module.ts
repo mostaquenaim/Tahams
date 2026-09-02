@@ -19,6 +19,7 @@ import { PaymentMethodEntity } from "../Entities/paymentMethod.entity";
 import { SubSubCategoryEntity } from "../Entities/subSubCategory.entity";
 import { ColorSizeEntity } from "../Entities/color-size-combined.entity";
 import { PaymentInfo } from "../Entities/paymentInfo.entity";
+import { CompanyEntity } from "../Entities/companyInfo.entity";
 // import * as dotenv from 'dotenv';
 import { FabricEntity } from '../Entities/fabrics.entity';
 import { ProductSizeCategoryEntity } from '../Entities/productSizeCategory.entity';
@@ -71,6 +72,7 @@ import { CustomerActivityEntity } from '../Entities/customer-activity.entity';
             ColorEntity,
             CartsEntity,
             ColorSizeEntity,
+            CompanyEntity,
             CouponEntity,
             CourierInfo,
             CustomizationRequestEntity,
