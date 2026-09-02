@@ -56,9 +56,7 @@ export class AdminController {
   //Login to account
   @Post('/signin')
   async signIn(@Body() myDto) {
-    // console.log('ekhane ashche');
     const res = await this.adminService.signIn(myDto);
-    // console.log(res,'reposne');
     return res;
   }
 
@@ -72,9 +70,7 @@ export class AdminController {
   @Post('customer-login')
   @UsePipes(ValidationPipe)
   async customerLogin(@Body() myDto) {
-    // console.log(myDto,"197");
     const response = await this.adminService.customerLogin(myDto);
-    // console.log(response,"198");
     return response;
   }
 
@@ -98,7 +94,6 @@ export class AdminController {
   @Post('verify-otp')
   @UsePipes(ValidationPipe)
   async verifyOtp(@Body() verifyOtpDto) {
-    // console.log(verifyOtpDto);
     return await this.adminService.verifyOtp(
       verifyOtpDto.email,
       verifyOtpDto.otp,
@@ -132,7 +127,6 @@ export class AdminController {
     file: Express.Multer.File,
   ) {
     myDto.filename = file.filename;
-    // console.log(myDto)
     return this.adminService.addBanner(myDto);
   }
 
@@ -202,21 +196,23 @@ export class AdminController {
   @Post('add-to-buy')
   @UsePipes(ValidationPipe)
   createNewBuy(@Body() myDto: any) {
-    console.log('134', myDto);
     return this.adminService.createNewBuy(myDto);
   }
 
   // create pathao order
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Post('create-pathao-order')
   createOrder(@Body() orderData: any) {
     return this.adminService.createPathaoOrder(orderData);
   }
 
   // send message to customer
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Post('send-message-to-customer')
   @UsePipes(ValidationPipe)
   sendMessageToCustomer(@Body() myDto: any) {
-    // console.log("134", myDto);
     return this.adminService.sendMessageToCustomer(myDto);
   }
 
@@ -227,11 +223,12 @@ export class AdminController {
     @Query('email') email: string,
     @Body() updates: { [key: string]: any },
   ) {
-    // console.log('in', updates);
     return this.adminService.updateBuyingHistory(tt, updates, email);
   }
 
   // update role by id
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Patch('update-role/:id')
   async updateRole(@Param('id', ParseIntPipe) id: number, @Body() dto) {
     return this.adminService.updateRoleById(id, dto);
@@ -242,7 +239,6 @@ export class AdminController {
   @Roles('admin')
   @Patch('approve-request')
   updateApproveReq(@Body() updateObj) {
-    // console.log(updateObj);
     return this.adminService.updateApproveReq(updateObj.id);
   }
 
@@ -274,7 +270,6 @@ export class AdminController {
     @UploadedFile() filename?: Express.Multer.File,
   ) {
     try {
-      // console.log(id,updateProductDto);
       // Call the service to update product
       const updatedProduct = await this.adminService.updateProduct(
         id,
@@ -288,10 +283,11 @@ export class AdminController {
   }
 
   // Shuffle category serial
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Post('shuffle-category')
   async shuffleCategorySerial(@Body() categoryDto) {
     try {
-      // console.log(id,updateProductDto);
       // Call the service to update product
       const updatedProduct =
         await this.adminService.shuffleCategorySerial(categoryDto);
@@ -313,7 +309,6 @@ export class AdminController {
       updates,
       email,
     );
-    // console.log(result);
     return result;
   }
 
@@ -337,7 +332,6 @@ export class AdminController {
     // @Query('email') email: string,
   ) {
     const result = await this.adminService.getBuyingHistoryStatusByToken(token);
-    // console.log(result);
     return result;
   }
 
@@ -395,6 +389,8 @@ export class AdminController {
   }
 
   // get all buying history
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Get('get-all-buying-history')
   getAllBuyingHistories(
     @Query('email') email: string,
@@ -402,7 +398,6 @@ export class AdminController {
     @Query('limit') limit = 10,
     @Query('allItems') allItems = false,
   ) {
-    console.log(email, page, limit, allItems);
     return this.adminService.getAllBuyingHistories(
       email,
       Number(page),
@@ -414,6 +409,8 @@ export class AdminController {
   // grouped/paginated order list for the admin order-management page
   // (returns { data, total, page, limit, totalPages } instead of a bare
   // array, so pagination and per-page counts are accurate)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Get('get-grouped-buying-history')
   getGroupedBuyingHistories(
     @Query('email') email: string,
@@ -438,9 +435,10 @@ export class AdminController {
   }
 
   // get specific order
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Get('order-group/:historyId')
   async getOrderGroup(@Param('historyId') historyId: string) {
-    console.log('ordergpp');
     return this.adminService.getOrderGroupByHistoryId(historyId);
   }
 
@@ -472,7 +470,6 @@ export class AdminController {
   @Post('add-Wish')
   @UsePipes(ValidationPipe)
   createNewWish(@Body() myDto) {
-    // console.log(myDto, 'wish dto');
     return this.adminService.createNewWish(myDto);
   }
 
@@ -480,35 +477,30 @@ export class AdminController {
   @Delete('remove-wish/:wishId')
   // @UsePipes(ValidationPipe)
   removeWish(@Param('wishId') wishId: number) {
-    // console.log('delete wush',wishId);
     return this.adminService.removeWish(wishId);
   }
 
   // delete a cart
   @Delete('delete-cart/:uniqueId')
   deleteCartItem(@Param('uniqueId') id) {
-    // console.log(id,"210");
     return this.adminService.deleteCartItem(id);
   }
 
   // delete history
   @Put('delete-history/:id')
   deleteHistory(@Param('id') id, @Query('email') email) {
-    // console.log(id,"210");
     return this.adminService.deleteHistory(id, email);
   }
 
   // delete carts
   @Delete('delete-carts')
   deleteCarts(@Body() myDto) {
-    // console.log(myDto,"220");
     return this.adminService.deleteCarts(myDto.checkedItems);
   }
 
   // get particular customer cart history
   @Get('get-all-carts')
   getAllCarts(@Query('email') email: string) {
-    // console.log(email, "209");
     return this.adminService.getAllCarts(email);
   }
 
@@ -633,7 +625,6 @@ export class AdminController {
   @Get('get-product-by-cat/:name')
   @UsePipes(ValidationPipe)
   getProductByCat(@Param('name') name) {
-    // console.log(name);
     return this.adminService.getProductByCat(name);
   }
 
@@ -652,6 +643,8 @@ export class AdminController {
   }
 
   //update category by id
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Put('updateCategory/:id')
   @UsePipes(ValidationPipe)
   async updateCategory(@Param('id', ParseIntPipe) id: number, @Body() myDto) {
@@ -659,6 +652,8 @@ export class AdminController {
   }
 
   //update category by id
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Put('updateSubCategory/:id')
   @UsePipes(ValidationPipe)
   async updateSubCategory(
@@ -669,6 +664,8 @@ export class AdminController {
   }
 
   //update product type name
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Put('update-product-type-name/:id')
   @UsePipes(ValidationPipe)
   async updateProductTypeName(
@@ -679,9 +676,10 @@ export class AdminController {
   }
 
   // update customization request
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Put('update-customization-request/:id')
   updateCustomReq(@Param('id') id: string, @Body() mydata) {
-    // console.log(mydata, 'md');
     return this.adminService.updateCustomReq(id, mydata);
   }
 
@@ -698,6 +696,8 @@ export class AdminController {
   }
 
   //update sub sub category by id
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Put('update-sub-sub-category/:id')
   @UseInterceptors(
     FileInterceptor('myFile', {
@@ -723,7 +723,6 @@ export class AdminController {
     // @Body() myDto,
     @UploadedFile() myFile: Express.Multer.File, // Add this to handle the file
   ) {
-    // console.log(myFile,'666'); // Access the uploaded file here
     await this.adminService.updateSubSubCategory(id, myFile.filename);
   }
 
@@ -739,11 +738,12 @@ export class AdminController {
   @Post('add-category')
   @UsePipes(ValidationPipe)
   createNewCategory(@Body() myDto) {
-    // console.log(myDto,"337");
     return this.adminService.createNewCategory(myDto);
   }
 
   // add new payment method
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Post('add-payment-method')
   @UsePipes(ValidationPipe)
   createPaymentMethod(@Body() myDto) {
@@ -758,12 +758,16 @@ export class AdminController {
   }
 
   // sync view count
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Get('sync-view-count')
   syncViewCount() {
     return this.adminService.syncViewCount();
   }
 
   // sync sales count
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Put('sync-sales-count')
   syncSalesCount() {
     return this.adminService.syncSalesCount();
@@ -822,6 +826,8 @@ export class AdminController {
   }
 
   // add new coupon
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Post('add-coupon')
   @UsePipes(ValidationPipe)
   createNewCoupon(@Body() myDto: CouponForm) {
@@ -829,6 +835,8 @@ export class AdminController {
   }
 
   // add new color
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Post('add-color')
   @UsePipes(ValidationPipe)
   createNewColor(@Body() myDto) {
@@ -848,6 +856,8 @@ export class AdminController {
   }
 
   // disable coupon
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Patch('disable-coupon/:id')
   disableCoupon(@Param('id') id: number) {
     return this.adminService.disableCoupon(id);
@@ -895,6 +905,8 @@ export class AdminController {
   }
 
   // create new role
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Post('create-role')
   createNewRole(@Body() myDto) {
     return this.adminService.createNewRole(myDto);
@@ -911,7 +923,6 @@ export class AdminController {
   // view all product
   @Get('view-all-products')
   viewAllProducts(@Query('filter') query: any) {
-    // console.log(query);
     return this.adminService.viewAllProducts(query && query);
   }
 
@@ -927,7 +938,6 @@ export class AdminController {
   // get product by search query
   @Get('search-products')
   async getProductByQuery(@Query('q') searchQuery: string) {
-    console.log('Search Query:', searchQuery); // Debugging
     const products = await this.adminService.getProductByQuery(searchQuery);
     return products;
   }
@@ -935,7 +945,6 @@ export class AdminController {
   // get product by search query for search bar
   @Get('search-bar-products')
   async getLessProductByQuery(@Query('q') searchQuery: string) {
-    console.log('Search Query:', searchQuery); // Debugging
     const products = await this.adminService.getLessProductByQuery(searchQuery);
     return products;
   }
@@ -968,7 +977,6 @@ export class AdminController {
     @Param('id') id: number,
     @Query('email') email: string,
   ) {
-    console.log(id);
     return this.adminService.deleteProductById(id, email);
   }
 
@@ -985,7 +993,6 @@ export class AdminController {
   @Roles('admin')
   @Delete('delete-role/:id')
   async deleteRoleById(@Param('id') id: number) {
-    console.log(id);
     return this.adminService.deleteRoleById(id);
   }
 
@@ -994,7 +1001,6 @@ export class AdminController {
   @Roles('admin')
   @Delete('delete-product-type/:id')
   async deleteProductTypeById(@Param('id') id: number) {
-    console.log(id);
     return this.adminService.deleteProductTypeById(id);
   }
 
@@ -1023,6 +1029,8 @@ export class AdminController {
   }
 
   // add new size
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Post('add-size')
   @UsePipes(ValidationPipe)
   createNewSize(@Body() myDto) {
@@ -1030,6 +1038,8 @@ export class AdminController {
   }
 
   // add new fabric
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Post('add-fabric')
   @UsePipes(ValidationPipe)
   createNewFabric(@Body() myDto) {
@@ -1095,7 +1105,6 @@ export class AdminController {
     @UploadedFile() imageobj: Express.Multer.File, // Uploaded file
   ) {
     try {
-      // console.log(designData,'designdata');
       // Check if imageobj is undefined or null
       if (!imageobj) {
         throw new Error('No file uploaded');
@@ -1115,9 +1124,7 @@ export class AdminController {
   // send text customization element
   @Post('customized-text-element/:id')
   async getCustomTextElement(@Param('id') id: number, @Body() textData) {
-    // console.log(textData,'textdata');
     try {
-      // console.log(textData,'textdata');
       // Call the service to handle the design request
       return await this.adminService.handleCustomTextElement(textData, id);
     } catch (error) {
@@ -1153,9 +1160,7 @@ export class AdminController {
     @Body() imageData,
     @UploadedFile() imageobj: Express.Multer.File, // Uploaded file
   ) {
-    // console.log(imageData);
     try {
-      // console.log(imageData,'sdfsd')
       imageData.filename = imageobj.filename;
       // Call the service to handle the design request
       return await this.adminService.handleCustomImageElement(imageData, id);
@@ -1170,7 +1175,6 @@ export class AdminController {
   async getAllCustomizationRequests(
     @Query() mydto: { email: string; id: string },
   ) {
-    // console.log(mydto);
     try {
       const result = await this.adminService.getAllCustomizationRequests(
         mydto.email,
@@ -1187,9 +1191,10 @@ export class AdminController {
   }
 
   // update discount
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Put('update-discount')
   updateDiscount(@Body() mydata) {
-    // console.log(mydata, 'md');
     return this.adminService.updateDiscount(mydata);
   }
 
@@ -1220,7 +1225,6 @@ export class AdminController {
     @Body() mydata,
     @UploadedFile() imageobj: Express.Multer.File,
   ) {
-    // console.log(imageobj.filename,mydata);
     mydata.filename = imageobj.filename;
     return this.adminService.addNewArrivals(mydata);
   }
@@ -1260,13 +1264,13 @@ export class AdminController {
   )
   @UsePipes(new ValidationPipe())
   addNewPopUp(@Body() mydata, @UploadedFile() imageobj: Express.Multer.File) {
-    // console.log(imageobj.filename,mydata);
-    console.log('test');
     mydata.filename = imageobj.filename;
     return this.adminService.addNewPopUp(mydata);
   }
 
   // product pictures add
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Post('/add-product-pictures')
   @UseInterceptors(
     FilesInterceptor('myfiles', 10, {
@@ -1295,15 +1299,14 @@ export class AdminController {
     }),
   )
   async addProductPictures(@UploadedFiles() files, @Body() mydata) {
-    // console.log(files,"523");
-    // console.log(mydata); // Log other data sent with the request
     const filenames = files.map((file) => file.filename);
-    // console.log(filenames,"525"); // Log filenames of uploaded files
     mydata.filenames = filenames; // Assuming your service method expects an array of filenames
     return this.adminService.addProductPictures(mydata);
   }
 
   // update product pictures
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Post('/update-product-pictures')
   @UseInterceptors(
     FilesInterceptor('myfiles', 10, {
@@ -1333,7 +1336,6 @@ export class AdminController {
     }),
   )
   async updateProductPictures(@UploadedFiles() files, @Body() mydata) {
-    // console.log(files, 'filess');
     const filenames = files.map((file) => file.filename);
     mydata.filenames = filenames;
     return this.adminService.updateProductPictures(mydata);
@@ -1377,9 +1379,7 @@ export class AdminController {
   // get wishlist
   @Get('get-wish-by-user/:email')
   async getWishByUser(@Param('email') email: string) {
-    // console.log(email,"572");
     const res = await this.adminService.getWishByUser(email);
-    // console.log(res,"574");
     return res;
   }
 
@@ -1404,6 +1404,8 @@ export class AdminController {
   }
 
   // cloudinary images
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Get('cloudinary-signature')
   getCloudinarySignature() {
     const timestamp = Math.round(Date.now() / 1000);
