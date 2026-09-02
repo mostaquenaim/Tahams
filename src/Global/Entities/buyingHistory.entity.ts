@@ -97,6 +97,9 @@ export class BuyingHistoryEntity {
   @Column({ nullable: true })
   pickupCenter: string
 
+  @Column({ length: 250, default: 'Order created.', nullable: true })
+  adminNote: string
+
   @ManyToOne(() => DeliveryStatusEntity, (deliveryStatus) => deliveryStatus.buyingHistories)
   deliveryStatus: DeliveryStatusEntity
 
