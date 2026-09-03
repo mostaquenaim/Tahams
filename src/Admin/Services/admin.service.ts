@@ -898,11 +898,16 @@ export class AdminService {
   }
 
   // view all buying histories
-  // NOTE: kept response shape (a bare array) and behavior unchanged on
-  // purpose — useOrder.js (my-orders, dashboard, legacy order-details)
-  // depends on this exact contract. Only the courier-info fetch was
-  // switched to the shared cache. The admin order-list page now calls
-  // getGroupedBuyingHistories below instead, which paginates correctly.
+  // Response is shaped per role (see shapeBuyingHistoryResponse):
+  //  - customers get their own carts with a minimal customer profile
+  //    (name, email, mbl_no, address, city, region — never the password),
+  //    their own coupon and returns, and a history without the admin-only
+  //    fields (adminNote, isChecked, checkedDate, isDraft);
+  //  - admins get the same carts plus the full history (adminNote,
+  //    isChecked, checkedDate, isDraft) and the full customer profile
+  //    minus the password.
+  // The admin order-list page now calls getGroupedBuyingHistories below
+  // instead, which paginates correctly.
   async getAllBuyingHistories(
     email: string,
     page = 1,
@@ -918,6 +923,8 @@ export class AdminService {
       throw new UnauthorizedException(`User not found for email: ${email}`);
     }
 
+    const isAdmin = user.role === 'admin';
+
     // Build Query
     const qb = this.cartRepo
       .createQueryBuilder('cart')
@@ -926,6 +933,7 @@ export class AdminService {
       .leftJoinAndSelect('history.paymentMethod', 'paymentMethod')
       .leftJoinAndSelect('cart.customer', 'customer')
       .leftJoinAndSelect('cart.product', 'product')
+      .leftJoinAndSelect('cart.coupon', 'coupon')
 
       // 🔥 Restore all category levels
       .leftJoinAndSelect('cart.category', 'category')
@@ -936,7 +944,7 @@ export class AdminService {
       .orderBy('history.id', 'DESC');
 
     // If user is NOT admin, filter by own orders
-    if (user.role !== 'admin') {
+    if (!isAdmin) {
       qb.andWhere('customer.email = :email', { email });
     }
 
@@ -948,6 +956,11 @@ export class AdminService {
 
     // Execute query
     const cartsWithHistory = await qb.getMany();
+
+    // Fetch returns separately: returns is a OneToMany on cart, so joining
+    // it into the paginated query would multiply rows and break
+    // skip/take. Load them in one query for this page and group by cart id.
+    const returnsByCart = await this.getReturnsByCart(cartsWithHistory);
 
     // Courier data fetch, capped concurrency → avoids tripping the
     // courier API's rate limit when a page has many orders. Served from
@@ -974,16 +987,120 @@ export class AdminService {
       return cart;
     });
 
-    // Non-admin users must not see the admin's internal note, so strip it
-    // from every returned history before sending the response.
-    if (user.role !== 'admin') {
-      for (const cart of cartsWithHistory) {
-        if (cart.history && 'adminNote' in cart.history) {
-          delete cart.history.adminNote;
-        }
-      }
+    return this.shapeBuyingHistoryResponse(
+      cartsWithHistory,
+      returnsByCart,
+      isAdmin,
+    );
+  }
+
+  // Load all returns for the given carts and group them by cart id, so a
+  // OneToMany join doesn't multiply rows and break skip/take pagination.
+  private async getReturnsByCart(carts: CartsEntity[]) {
+    const cartIds = carts.map((c) => c.id);
+    if (cartIds.length === 0) return new Map<number, ReturnEntity[]>();
+
+    const returns = await this.returnRepo
+      .createQueryBuilder('ret')
+      .leftJoinAndSelect('ret.cart', 'cart')
+      .where('cart.id IN (:...cartIds)', { cartIds })
+      .getMany();
+
+    const returnsByCart = new Map<number, ReturnEntity[]>();
+    for (const ret of returns) {
+      if (!ret.cart) continue;
+      const list = returnsByCart.get(ret.cart.id) || [];
+      list.push(ret);
+      returnsByCart.set(ret.cart.id, list);
     }
-    return cartsWithHistory;
+    return returnsByCart;
+  }
+
+  // Shape each cart into the buying-history response contract.
+  // Customers see: cart fields, category, product, their own coupon, a
+  // minimal customer profile (name, email, mbl_no, address, city, region —
+  // never the password), their own returns, and a history without the
+  // admin-only fields. Admins additionally get the full history (id,
+  // adminNote, isChecked, checkedDate, isDraft) and the full customer
+  // profile minus the password.
+  private shapeBuyingHistoryResponse(
+    carts: CartsEntity[],
+    returnsByCart: Map<number, ReturnEntity[]>,
+    isAdmin: boolean,
+  ) {
+    return carts.map((cart) => {
+      const { history, customer } = cart;
+
+      const shapedCustomer = customer
+        ? isAdmin
+          ? (({ password, ...rest }) => rest)(customer)
+          : {
+              name: customer.name,
+              email: customer.email,
+              mbl_no: customer.mbl_no,
+              address: customer.address,
+              city: customer.city,
+              region: customer.region,
+            }
+        : null;
+
+      const shapedHistory = history
+        ? {
+            trackingToken: history.trackingToken,
+            fullName: history.fullName,
+            address: history.address,
+            region: history.region,
+            city: history.city,
+            phone_no: history.phone_no,
+            deliveryFee: history.deliveryFee,
+            BuyingDate: history.BuyingDate,
+            receivedDate: history.receivedDate,
+            processedDate: history.processedDate,
+            readyToShipDate: history.readyToShipDate,
+            droppedOffDate: history.droppedOffDate,
+            outDate: history.outDate,
+            deliveredDate: history.deliveredDate,
+            cancelDate: history.cancelDate,
+            returnDate: history.returnDate,
+            PaymentDetails: history.PaymentDetails,
+            screenshot: history.screenshot,
+            PaymentDone: history.PaymentDone,
+            facebookProfile: history.facebookProfile,
+            isPickup: history.isPickup,
+            pickupCenter: history.pickupCenter,
+            deliveryStatus: history.deliveryStatus,
+            paymentMethod: history.paymentMethod,
+            courierInfo: history.courierInfo,
+            // Admin-only fields
+            ...(isAdmin && {
+              id: history.id,
+              adminNote: history.adminNote,
+              isChecked: history.isChecked,
+              checkedDate: history.checkedDate,
+              isDraft: history.isDraft,
+            }),
+          }
+        : null;
+
+      return {
+        id: cart.id,
+        uniqueId: cart.uniqueId,
+        size: cart.size,
+        maleSize: cart.maleSize,
+        femaleSize: cart.femaleSize,
+        Quantity: cart.Quantity,
+        ProductName: cart.ProductName,
+        created_at: cart.created_at,
+        isBought: cart.isBought,
+        totalPrice: cart.totalPrice,
+        category: cart.category,
+        product: cart.product,
+        coupon: cart.coupon,
+        customer: shapedCustomer,
+        returns: returnsByCart.get(cart.id) || [],
+        history: shapedHistory,
+      };
+    });
   }
 
   // Grouped/paginated order list for the admin order-management page.
@@ -2145,7 +2262,7 @@ export class AdminService {
     email: string,
   ) {
     const user = await this.userRepo.findOneBy({ email });
-
+    
     if (!user) {
       throw new NotFoundException(`User not found.`);
     }
