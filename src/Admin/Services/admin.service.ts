@@ -211,7 +211,7 @@ export class AdminService {
 
     @InjectRepository(BlacklistToken)
     private blackListRepo: Repository<BlacklistToken>,
-  ) {}
+  ) { }
 
   async addBanner(myDto) {
     return this.bannerRepo.save(myDto);
@@ -1200,7 +1200,7 @@ export class AdminService {
               courierInfo.data.order_status.toUpperCase();
           }
         }
-      } catch (_) {}
+      } catch (_) { }
 
       return cart;
     });
@@ -1266,25 +1266,38 @@ export class AdminService {
       // Loop through each cart to attach courier info
       for (const cart of cartsWithHistory) {
         const trackingToken = cart.history?.trackingToken;
+
         if (trackingToken) {
-          const courierInfo = await this.getCachedCourierInfo(trackingToken);
+          try {
+            const courierInfo = await this.getCachedCourierInfo(trackingToken);
 
-          if (courierInfo?.data) {
-            // Attach courier data to the history
-            cart.history.courierInfo = courierInfo.data;
+            if (courierInfo?.data) {
+              cart.history.courierInfo = courierInfo.data;
 
-            // Update the delivery status dynamically (not saved to DB)
-            if (courierInfo.data.order_status) {
-              cart.history.deliveryStatus.name =
-                courierInfo.data.order_status.toUpperCase();
+              if (
+                courierInfo.data.order_status &&
+                cart.history.deliveryStatus
+              ) {
+                cart.history.deliveryStatus.name =
+                  courierInfo.data.order_status.toUpperCase();
+              }
             }
+          } catch (error) {
+            console.error(
+              'Courier API Error:',
+              error.response?.data || error.message,
+            );
+
+            // Don't let courier API failure break the order API
+            cart.history.courierInfo = null;
           }
         }
       }
 
       return cartsWithHistory;
+    } else {
+      throw new NotFoundException(`Email not found`);
     }
-    throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
   }
 
   async getBuyingHistoryStatusByToken(token: string) {
@@ -2763,7 +2776,7 @@ export class AdminService {
         (cart.product.sellingPrice -
           (cart.product.sellingPrice * cart.product.discountPercentage) / 100 +
           (cart.product.sellingPrice * cart.product.vatPercentage) / 100) *
-          cart.Quantity,
+        cart.Quantity,
       );
       cart.history = buy;
       await this.cartRepo.save(cart);
@@ -3030,7 +3043,7 @@ export class AdminService {
 
       myDto.subsub = category;
       myDto.filename = await this.compressImage(myDto.filename, 'thumb');
-      
+
       // Check if a product with the same serial already exists
       // const existingProduct = await this.newArrivalRepo.findOne({
       //   where: { serial: myDto.serial },
@@ -3126,7 +3139,7 @@ export class AdminService {
       url: myDto?.url || null,
       isActive: existingActive
         ? existingActive?.popup?.endDate < now &&
-          (myDto.isActive === 'true' || myDto.isActive === true)
+        (myDto.isActive === 'true' || myDto.isActive === true)
         : myDto.isActive === 'true' || myDto.isActive === true,
       startDate: myDto.startDate ? this.parseBDDate(myDto.startDate) : null,
       endDate: myDto.endDate ? this.parseBDDate(myDto.endDate) : null,
