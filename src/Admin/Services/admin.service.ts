@@ -974,6 +974,15 @@ export class AdminService {
       return cart;
     });
 
+    // Non-admin users must not see the admin's internal note, so strip it
+    // from every returned history before sending the response.
+    if (user.role !== 'admin') {
+      for (const cart of cartsWithHistory) {
+        if (cart.history && 'adminNote' in cart.history) {
+          delete cart.history.adminNote;
+        }
+      }
+    }
     return cartsWithHistory;
   }
 
