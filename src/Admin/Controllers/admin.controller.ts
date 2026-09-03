@@ -389,8 +389,6 @@ export class AdminController {
   }
 
   // get all buying history
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
   @Get('get-all-buying-history')
   getAllBuyingHistories(
     @Query('email') email: string,
