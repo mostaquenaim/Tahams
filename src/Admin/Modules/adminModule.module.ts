@@ -40,6 +40,8 @@ import { JwtModule } from "@nestjs/jwt";
 import { BlacklistToken } from "src/Global/Entities/blacklist-token.entity";
 import { PassportModule } from "@nestjs/passport";
 import { RolesGuard } from "../Guards/roles.guard";
+import { OrderAccessGuard } from "../Guards/order-access.guard";
+import { FirebaseAuthGuard } from "../Guards/firebase-auth.guard";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { JwtStrategy } from "../strategies/jwt.strategy";
 import { RoleEntity } from "src/Global/Entities/roles.entity";
@@ -127,6 +129,8 @@ import { CustomerActivityEntity } from "src/Global/Entities/customer-activity.en
         AdminService,
         JwtStrategy,
         RolesGuard,
+        OrderAccessGuard,
+        FirebaseAuthGuard,
         ConfigService
     ],
 })

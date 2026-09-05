@@ -46,6 +46,8 @@ import * as fs from 'fs';
 import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../decorators/roles.decorator';
 import { RolesGuard } from '../Guards/roles.guard';
+import { OrderAccessGuard } from '../Guards/order-access.guard';
+import { FirebaseAuthGuard } from '../Guards/firebase-auth.guard';
 import { randomBytes } from 'crypto';
 import cloudinary from '../Services/cloudinary.config';
 
@@ -217,13 +219,14 @@ export class AdminController {
   }
 
   // update buying history
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Patch('update-history/:token')
   updateBuyingHistory(
     @Param('token') tt: string,
-    @Query('email') email: string,
     @Body() updates: { [key: string]: any },
   ) {
-    return this.adminService.updateBuyingHistory(tt, updates, email);
+    return this.adminService.updateBuyingHistory(tt, updates);
   }
 
   // update role by id
@@ -389,18 +392,26 @@ export class AdminController {
   }
 
   // get all buying history
+  // Requires either a verified admin JWT (sees everyone) or a verified
+  // Firebase ID token (sees only that token's own email) - see
+  // OrderAccessGuard. A caller with neither is rejected; guests without a
+  // Firebase session use the per-order tracking-token flow instead.
+  @UseGuards(OrderAccessGuard)
   @Get('get-all-buying-history')
   getAllBuyingHistories(
+    @Req() req,
     @Query('email') email: string,
     @Query('page') page = 1,
     @Query('limit') limit = 10,
     @Query('allItems') allItems = false,
   ) {
+    const isVerifiedAdmin = !!req.isVerifiedAdmin;
     return this.adminService.getAllBuyingHistories(
-      email,
+      isVerifiedAdmin ? email : req.verifiedEmail,
       Number(page),
       Number(limit),
       allItems,
+      isVerifiedAdmin,
     );
   }
 
@@ -411,6 +422,7 @@ export class AdminController {
   @Roles('admin')
   @Get('get-grouped-buying-history')
   getGroupedBuyingHistories(
+    @Req() req,
     @Query('email') email: string,
     @Query('page') page = 1,
     @Query('limit') limit = 10,
@@ -429,6 +441,7 @@ export class AdminController {
       status,
       region,
       hideCancelled === 'true' || hideCancelled === true,
+      req.user?.role === 'admin',
     );
   }
 
@@ -496,9 +509,11 @@ export class AdminController {
   }
 
   // delete history
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Put('delete-history/:id')
-  deleteHistory(@Param('id') id, @Query('email') email) {
-    return this.adminService.deleteHistory(id, email);
+  deleteHistory(@Param('id') id) {
+    return this.adminService.deleteHistory(id);
   }
 
   // delete carts
@@ -645,10 +660,15 @@ export class AdminController {
   }
 
   // get user by email
+  // Used to prefill a returning customer's saved checkout details. Must
+  // never look up an email the caller merely names in the URL - only the
+  // verified Firebase token's own email, or anyone could read anyone
+  // else's name/address/phone by guessing their email.
+  @UseGuards(FirebaseAuthGuard)
   @Get('get-user-by-email/:email')
   @UsePipes(ValidationPipe)
-  getUserByEmail(@Param('email') email) {
-    return this.adminService.getUserByEmail(email);
+  getUserByEmail(@Req() req) {
+    return this.adminService.getUserByEmail(req.verifiedEmail);
   }
 
   //update category by id
@@ -736,9 +756,21 @@ export class AdminController {
   }
 
   // update user address
+  // Must only ever update the address of the user matching the verified
+  // Firebase token, never any id the caller happens to name in the URL -
+  // see updateUserAddress in the service for the ownership check.
+  @UseGuards(FirebaseAuthGuard)
   @Put('update-user-address/:id')
-  async updateUserAddress(@Param('id') id: number, @Body() updateAddressDto) {
-    return this.adminService.updateUserAddress(id, updateAddressDto);
+  async updateUserAddress(
+    @Req() req,
+    @Param('id') id: number,
+    @Body() updateAddressDto,
+  ) {
+    return this.adminService.updateUserAddress(
+      id,
+      updateAddressDto,
+      req.verifiedEmail,
+    );
   }
 
   // add new category
@@ -853,12 +885,16 @@ export class AdminController {
   }
 
   // get all coupons
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Get('get-coupons')
   getAllCoupons() {
     return this.adminService.getAllCoupons();
   }
 
   // get particular coupon
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Get('get-coupons/:id')
   getParticularCoupon(@Param('id') id: number) {
     return this.adminService.getParticularCoupon(id);
@@ -881,12 +917,16 @@ export class AdminController {
   }
 
   // get all delivery status
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Get('get-all-delivery-status')
   getAllDeliveryStatus() {
     return this.adminService.getAllDeliveryStatus();
   }
 
   // get all payment methods
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Get('get-all-payment-methods')
   getAllPaymentMethod() {
     return this.adminService.getAllPaymentMethod();
@@ -1180,14 +1220,21 @@ export class AdminController {
   }
 
   // get all customization requests
+  // Same identity rule as get-all-buying-history: a verified admin JWT sees
+  // everyone's requests, a verified Firebase ID token sees only its own
+  // email's requests - never derived from the query string.
+  @UseGuards(OrderAccessGuard)
   @Get('get-all-customization-requests')
   async getAllCustomizationRequests(
+    @Req() req,
     @Query() mydto: { email: string; id: string },
   ) {
     try {
+      const isVerifiedAdmin = !!req.isVerifiedAdmin;
       const result = await this.adminService.getAllCustomizationRequests(
-        mydto.email,
+        isVerifiedAdmin ? mydto.email : req.verifiedEmail,
         mydto.id,
+        isVerifiedAdmin,
       );
       return result; // Make sure to return the data properly
     } catch (error) {
@@ -1351,6 +1398,11 @@ export class AdminController {
   }
 
   // update admin profile
+  // Must only ever update the caller's own admin record - never whatever
+  // email happens to be in the request body, or anyone could overwrite
+  // another admin's profile (including their password) with no login at all.
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Put('/updateProfile')
   @UseInterceptors(
     FileInterceptor('filename', {
@@ -1363,6 +1415,7 @@ export class AdminController {
     }),
   )
   updateAdmin(
+    @Req() req,
     @Body() myDto: AdminForm,
     @UploadedFile(
       new ParseFilePipe({
@@ -1374,7 +1427,7 @@ export class AdminController {
     )
     file: Express.Multer.File,
   ) {
-    return this.adminService.updateAdmin(myDto, myDto.email);
+    return this.adminService.updateAdmin(myDto, req.user.email);
   }
 
   // check admin
