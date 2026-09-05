@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 import { MailerModule } from '@nestjs-modules/mailer';
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductEntity } from '../Entities/product.entity';
 import { PartnerEntity } from "../Entities/partner.entity";
@@ -43,6 +43,7 @@ import { CustomerActivityEntity } from '../Entities/customer-activity.entity';
 // Load environment variables
 // dotenv.config();
 
+@Global()
 @Module({
     imports: [
         ConfigModule,
