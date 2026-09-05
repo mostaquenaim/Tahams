@@ -765,16 +765,7 @@ export class AdminService {
   }
 
   // delete a history
-  async deleteHistory(id: string, email: string) {
-    // Check if the user is an admin
-    const user = await this.userRepo.findOne({
-      where: { email, role: 'admin' },
-    });
-
-    if (!user) {
-      throw new ForbiddenException('Unauthorized');
-    }
-
+  async deleteHistory(id: string) {
     // Find the cart entry by unique ID
     const historyEntry = await this.buyingHistoryRepo.findOneBy({
       trackingToken: id,
@@ -908,14 +899,21 @@ export class AdminService {
     page = 1,
     limit = 20,
     allItems = false,
+    isVerifiedAdmin = false,
   ) {
-    if (!email) {
-      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
-    }
+    // A verified admin doesn't need to prove ownership of any particular
+    // email - only the non-admin (verified-Firebase-customer) path needs
+    // one, and the guard already guarantees it's set when isVerifiedAdmin
+    // is false.
+    if (!isVerifiedAdmin) {
+      if (!email) {
+        throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+      }
 
-    const user = await this.getUserByEmail(email);
-    if (!user) {
-      throw new UnauthorizedException(`User not found for email: ${email}`);
+      const user = await this.getUserByEmail(email);
+      if (!user) {
+        throw new UnauthorizedException(`User not found for email: ${email}`);
+      }
     }
 
     // Build Query
@@ -935,8 +933,10 @@ export class AdminService {
       .where('cart.isBought = :isBought', { isBought: true })
       .orderBy('history.id', 'DESC');
 
-    // If user is NOT admin, filter by own orders
-    if (user.role !== 'admin') {
+    // Only a verified admin JWT unlocks seeing every customer's orders -
+    // never derived from the (client-supplied, unverified) email above,
+    // or anyone could see everyone's orders by naming an admin's address.
+    if (!isVerifiedAdmin) {
       qb.andWhere('customer.email = :email', { email });
     }
 
@@ -995,6 +995,7 @@ export class AdminService {
     status?: string,
     region?: string,
     hideCancelled = false,
+    isVerifiedAdmin = false,
   ) {
     if (!email) {
       throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
@@ -1005,7 +1006,9 @@ export class AdminService {
       throw new UnauthorizedException(`User not found for email: ${email}`);
     }
 
-    const isAdmin = user.role === 'admin';
+    // Derived only from the verified JWT on the request, never from the
+    // (client-supplied) email above - see getAllBuyingHistories.
+    const isAdmin = isVerifiedAdmin;
 
     // Shared filters, applied identically to the count/id query and the
     // detail query so pagination and the fetched rows always agree.
@@ -1235,11 +1238,14 @@ export class AdminService {
   // get history by id
   async getBuyingHistoryByToken(token: string, email: string) {
     if (email) {
-      const user = await this.getUserByEmail(email);
+      // No admin panel calls this - only guests/customers right after
+      // checkout, always with their own email. There's no legitimate case
+      // for skipping the email match, and doing so let anyone who merely
+      // knew a tracking token view that order without knowing the actual
+      // customer's email, just by naming an admin's email instead.
       const cartsWithHistory = await this.cartRepo.find({
         where: {
-          ...(user?.role != 'admin' && { customer: { email: email } }),
-          // isBought: true || false
+          customer: { email: email },
           history: { trackingToken: token },
         },
         relations: [
@@ -1273,7 +1279,7 @@ export class AdminService {
         }
       }
 
-      return cartsWithHistory;
+      return cartsWithHistory.map((cart) => this.toCustomerCart(cart));
     }
     throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
   }
@@ -1890,11 +1896,23 @@ export class AdminService {
   }
 
   // update user address
-  async updateUserAddress(userId: number, updateAddressDto) {
+  async updateUserAddress(
+    userId: number,
+    updateAddressDto,
+    verifiedEmail: string,
+  ) {
     const user = await this.userRepo.findOne({ where: { id: userId } });
 
     if (!user) {
       throw new NotFoundException(`User with ID ${userId} not found.`);
+    }
+
+    // The id in the URL is just a client-supplied number - only the email
+    // proven by the caller's Firebase token may actually be updated.
+    if (user.email !== verifiedEmail) {
+      throw new UnauthorizedException(
+        'Cannot update another user\'s address.',
+      );
     }
 
     user.name = updateAddressDto?.name || user.name;
@@ -1917,17 +1935,7 @@ export class AdminService {
   }
 
   // update buying by id
-  async updateBuyingHistory(token: string, updates: any, email: string) {
-    const user = await this.userRepo.findOneBy({ email });
-
-    if (!user) {
-      throw new NotFoundException(`User not found.`);
-    }
-
-    if (user.role != 'admin') {
-      throw new ForbiddenException(`Only admins can update buying history.`);
-    }
-
+  async updateBuyingHistory(token: string, updates: any) {
     const history = await this.buyingHistoryRepo.findOneBy({
       trackingToken: token,
     });
@@ -2477,6 +2485,62 @@ export class AdminService {
     return results;
   }
 
+  // strip admin/internal-only fields from a cart (+ history + customer) before
+  // returning it to a customer-facing endpoint
+  private toCustomerCart(cart: CartsEntity) {
+    return {
+      id: cart.id,
+      uniqueId: cart.uniqueId,
+      size: cart.size,
+      maleSize: cart.maleSize,
+      femaleSize: cart.femaleSize,
+      Quantity: cart.Quantity,
+      ProductName: cart.ProductName,
+      created_at: cart.created_at,
+      isBought: cart.isBought,
+      totalPrice: cart.totalPrice,
+      category: cart.category,
+      product: cart.product,
+      coupon: cart.coupon,
+      customer: cart.customer && {
+        name: cart.customer.name,
+        email: cart.customer.email,
+        mbl_no: cart.customer.mbl_no,
+        address: cart.customer.address,
+        city: cart.customer.city,
+        region: cart.customer.region,
+      },
+      history: cart.history && {
+        trackingToken: cart.history.trackingToken,
+        fullName: cart.history.fullName,
+        address: cart.history.address,
+        region: cart.history.region,
+        city: cart.history.city,
+        phone_no: cart.history.phone_no,
+        deliveryFee: cart.history.deliveryFee,
+        BuyingDate: cart.history.BuyingDate,
+        receivedDate: cart.history.receivedDate,
+        processedDate: cart.history.processedDate,
+        readyToShipDate: cart.history.readyToShipDate,
+        droppedOffDate: cart.history.droppedOffDate,
+        outDate: cart.history.outDate,
+        deliveredDate: cart.history.deliveredDate,
+        cancelDate: cart.history.cancelDate,
+        returnDate: cart.history.returnDate,
+        PaymentDetails: cart.history.PaymentDetails,
+        screenshot: cart.history.screenshot,
+        PaymentDone: cart.history.PaymentDone,
+        facebookProfile: cart.history.facebookProfile,
+        isPickup: cart.history.isPickup,
+        pickupCenter: cart.history.pickupCenter,
+        deliveryStatus: cart.history.deliveryStatus,
+        paymentMethod: cart.history.paymentMethod,
+        courierInfo: cart.history.courierInfo,
+      },
+      returns: cart.returns,
+    };
+  }
+
   // access token for Pathao
   private async getPathaoAccessToken() {
     const now = Date.now();
@@ -2668,12 +2732,20 @@ export class AdminService {
   }
 
   // get all customization requests
-  async getAllCustomizationRequests(email: string, id: string) {
-    const userInfo = await this.getUserByEmail(email);
-    if (!userInfo) {
-      throw new UnauthorizedException(`User not found for email: ${email}`);
+  async getAllCustomizationRequests(
+    email: string,
+    id: string,
+    isVerifiedAdmin = false,
+  ) {
+    if (!isVerifiedAdmin) {
+      const userInfo = await this.getUserByEmail(email);
+      if (!userInfo) {
+        throw new UnauthorizedException(`User not found for email: ${email}`);
+      }
     }
-    const isAdmin = userInfo.role == 'admin';
+    // Derived only from the verified JWT on the request, never from the
+    // (client-supplied) email above - see getAllBuyingHistories.
+    const isAdmin = isVerifiedAdmin;
     const relations = ['user', 'customTexts', 'customImages'];
 
     if (isAdmin) {
