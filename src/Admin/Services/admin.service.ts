@@ -1622,6 +1622,38 @@ export class AdminService {
     }
   }
 
+  // apply +/- stock deltas to a product's size/category rows, keyed by
+  // product_size_category id - never lets quantity go negative
+  async updateProductStock(
+    productId: number,
+    stockChanges: Record<string, number>,
+  ) {
+    const pscIds = Object.keys(stockChanges || {}).map(Number);
+    if (pscIds.length === 0) {
+      return { updated: 0 };
+    }
+
+    // Scoping the lookup to this productId too means an id for a different
+    // product can't sneak a stock change in under the wrong product's route.
+    const pscs = await this.productSizeCategoryRepo.find({
+      where: { id: In(pscIds), product: { id: productId } },
+    });
+
+    if (pscs.length !== pscIds.length) {
+      throw new NotFoundException(
+        'One or more size/category rows were not found for this product.',
+      );
+    }
+
+    for (const psc of pscs) {
+      const delta = Number(stockChanges[psc.id]) || 0;
+      psc.quantity = Math.max(0, psc.quantity + delta);
+    }
+
+    await this.productSizeCategoryRepo.save(pscs);
+    return { updated: pscs.length };
+  }
+
   // get category by name
   async getCategoryByName(name) {
     return await this.categoryRepo.findOneBy({ name: name });
