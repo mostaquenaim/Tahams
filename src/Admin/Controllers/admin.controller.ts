@@ -814,6 +814,17 @@ export class AdminController {
     return this.adminService.syncSalesCount();
   }
 
+  // apply +/- stock changes to a product's size/category rows
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Put('update-product-stock/:id')
+  updateProductStock(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('stockChanges') stockChanges: Record<string, number>,
+  ) {
+    return this.adminService.updateProductStock(id, stockChanges);
+  }
+
   // add new sub-category
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
