@@ -889,11 +889,14 @@ export class AdminService {
   }
 
   // view all buying histories
-  // NOTE: kept response shape (a bare array) and behavior unchanged on
-  // purpose — useOrder.js (my-orders, dashboard, legacy order-details)
-  // depends on this exact contract. Only the courier-info fetch was
-  // switched to the shared cache. The admin order-list page now calls
-  // getGroupedBuyingHistories below instead, which paginates correctly.
+  //
+  // Returns a JSON object: { total, page, limit, totalPages, orders: [...] }.
+  // Admins see every order; non-admin customers only see their own. Orders
+  // are assembled with SQL joins (cart → history → status/payment and
+  // cart → customer/product), paginated per order so one order's items are
+  // never split across pages, and trimmed to the fields the customer and
+  // admin dashboards actually render — no password hashes, no internal cost
+  // data, no raw entity graphs.
   async getAllBuyingHistories(
     email: string,
     page = 1,
@@ -916,22 +919,82 @@ export class AdminService {
       }
     }
 
-    // Build Query
-    const qb = this.cartRepo
+    const isAdmin = user.role === 'admin';
+    const fetchAll = allItems === true || (allItems as any) === 'true';
+
+    // Shared filter block, applied identically to the count query and the
+    // id-page query so pagination and the fetched rows always agree.
+    const applyFilters = (qb: SelectQueryBuilder<CartsEntity>) => {
+      qb.leftJoin('cart.history', 'history')
+        .leftJoin('cart.customer', 'customer')
+        .where('cart.isBought = :isBought', { isBought: true })
+        .andWhere('history.isDraft = :isDraft', { isDraft: false });
+
+      // Non-admins are scoped to their own orders
+      if (!isAdmin) {
+        qb.andWhere('customer.email = :email', { email });
+      }
+
+      return qb;
+    };
+
+    // 1) Count matching orders (distinct history rows) for pagination info.
+    const { count } = await applyFilters(
+      this.cartRepo.createQueryBuilder('cart'),
+    )
+      .select('COUNT(DISTINCT history.id)', 'count')
+      .getRawOne();
+    const total = Number(count) || 0;
+
+    const totalPages = fetchAll
+      ? total > 0
+        ? 1
+        : 0
+      : limit > 0
+        ? Math.ceil(total / limit)
+        : 0;
+
+    // 2) Page over order ids first, so one order's items can never be split
+    // across two pages, then fetch full rows for exactly those ids.
+    const idQb = applyFilters(this.cartRepo.createQueryBuilder('cart'))
+      .select('history.id', 'id')
+      .distinct(true)
+      .orderBy('history.id', 'DESC');
+
+    // ⬇ Only apply pagination when allItems is false
+    if (!fetchAll) {
+      idQb.offset((page - 1) * limit).limit(limit);
+    }
+
+    const historyIds = (await idQb.getRawMany())
+      .map((row) => Number(row.id))
+      .filter((id) => Number.isFinite(id));
+
+    if (historyIds.length === 0) {
+      return {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages,
+        orders: [],
+      };
+    }
+
+    // 3) One joined query for everything on the page: order + delivery
+    // status + payment method + customer + product, in a single SQL round.
+    const carts = await this.cartRepo
       .createQueryBuilder('cart')
       .leftJoinAndSelect('cart.history', 'history')
       .leftJoinAndSelect('history.deliveryStatus', 'deliveryStatus')
       .leftJoinAndSelect('history.paymentMethod', 'paymentMethod')
       .leftJoinAndSelect('cart.customer', 'customer')
       .leftJoinAndSelect('cart.product', 'product')
-
-      // 🔥 Restore all category levels
-      .leftJoinAndSelect('cart.category', 'category')
-      .leftJoinAndSelect('category.category', 'parentCategory')
-      .leftJoinAndSelect('parentCategory.category', 'grandParentCategory')
-
       .where('cart.isBought = :isBought', { isBought: true })
-      .orderBy('history.id', 'DESC');
+      .andWhere('history.isDraft = :isDraft', { isDraft: false })
+      .andWhere('history.id IN (:...historyIds)', { historyIds })
+      .orderBy('history.id', 'DESC')
+      .addOrderBy('cart.id', 'ASC')
+      .getMany();
 
     // Only a verified admin JWT unlocks seeing every customer's orders -
     // never derived from the (client-supplied, unverified) email above,
@@ -957,24 +1020,100 @@ export class AdminService {
       if (!trackingToken) return cart;
 
       try {
-        const courierInfo = await this.getCachedCourierInfo(trackingToken);
-
-        if (courierInfo?.data) {
-          cart.history.courierInfo = courierInfo.data;
-
-          if (courierInfo.data.order_status) {
-            cart.history.deliveryStatus.name =
-              courierInfo.data.order_status.toUpperCase();
-          }
-        }
+        const info = await this.getCachedCourierInfo(token);
+        if (info?.data) courierByToken.set(token, info.data);
       } catch (err: any) {
-        console.error('Courier API failed:', trackingToken, err.message);
+        console.error('Courier API failed:', token, err.message);
       }
-
-      return cart;
     });
 
-    return cartsWithHistory;
+    // 5) Group the joined cart rows per order and keep only the fields the
+    // customer and admin dashboards need.
+    const ordersMap = new Map<number, any>();
+    for (const cart of carts) {
+      const history = cart.history;
+      if (!history) continue;
+
+      let order = ordersMap.get(history.id);
+      if (!order) {
+        const courier = courierByToken.get(history.trackingToken);
+        const liveStatus = courier?.order_status
+          ? String(courier.order_status).toUpperCase()
+          : null;
+
+        order = {
+          id: history.id,
+          trackingToken: history.trackingToken,
+          fullName: history.fullName,
+          phone_no: history.phone_no,
+          address: history.address,
+          region: history.region,
+          city: history.city,
+          isPickup: history.isPickup,
+          pickupCenter: history.pickupCenter,
+          deliveryFee: history.deliveryFee,
+          BuyingDate: history.BuyingDate,
+          isChecked: history.isChecked,
+          PaymentDone: history.PaymentDone,
+          PaymentDetails: history.PaymentDetails,
+          screenshot: history.screenshot,
+          deliveryStatus: {
+            id: history.deliveryStatus?.id ?? null,
+            name: liveStatus ?? history.deliveryStatus?.name ?? null,
+          },
+          paymentMethod: history.paymentMethod?.name ?? null,
+          customer: cart.customer
+            ? {
+                id: cart.customer.id,
+                name: cart.customer.name,
+                email: cart.customer.email,
+                phone: cart.customer.mbl_no,
+              }
+            : null,
+          courier: courier
+            ? {
+                consignment_id: courier.consignment_id ?? null,
+                order_status: courier.order_status ?? null,
+                order_status_slug: courier.order_status_slug ?? null,
+              }
+            : null,
+          items: [],
+          itemsTotal: 0,
+        };
+        ordersMap.set(history.id, order);
+      }
+
+      order.items.push({
+        cartId: cart.id,
+        uniqueId: cart.uniqueId,
+        productName: cart.ProductName,
+        quantity: cart.Quantity,
+        size: cart.size ?? null,
+        totalPrice: cart.totalPrice,
+        product: cart.product
+          ? {
+              id: cart.product.id,
+              name: cart.product.name,
+              thumbImage: cart.product.thumbImage,
+              sellingPrice: cart.product.sellingPrice,
+            }
+          : null,
+      });
+      order.itemsTotal += Number(cart.totalPrice) || 0;
+    }
+
+    const orders = [...ordersMap.values()].map((order) => ({
+      ...order,
+      grandTotal: order.itemsTotal + (Number(order.deliveryFee) || 0),
+    }));
+
+    return {
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      totalPages,
+      orders,
+    };
   }
 
   // Grouped/paginated order list for the admin order-management page.
