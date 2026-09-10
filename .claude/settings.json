@@ -21,7 +21,31 @@
       "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" -X POST http://localhost:3999/api/admin/create -H \"Content-Type: application/json\" -d '{\"name\":\"x\",\"email\":\"probe@example.com\",\"password\":\"x\",\"role\":\"admin\"}')",
       "Bash(curl -s -w '\\\\nHTTP %{http_code}\\\\n' -X POST http://localhost:3999/api/admin/create -H 'Content-Type: application/json' -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -d '{\"name\":\"Second Admin\",\"email\":\"second-admin@example.com\",\"password\":\"second123\",\"role\":\"admin\"}')",
       "Bash(powershell -NoProfile -Command ' *)",
-      "Bash(rm -f \"e:\\\\Tahams\\\\Tahams-backend\\\\scripts\\\\_verify-boot.ts\")"
+      "Bash(rm -f \"e:\\\\Tahams\\\\Tahams-backend\\\\scripts\\\\_verify-boot.ts\")",
+      "Read(//e/Tahams/Frontend/Tahams-frontend-og/pages/login/**)",
+      "Bash(cd \"E:/Tahams/Frontend/Tahams-frontend-og\" && grep -rn \"admin/create\" --include=*.js --include=*.jsx . | grep -v node_modules)",
+      "Read(//e/Tahams/Frontend/Tahams-frontend-og/**)",
+      "Read(//e/Tahams/Frontend/Tahams-frontend-og/pages/**)",
+      "Read(//e/Tahams/Frontend/Tahams-frontend-og/pages/register/**)",
+      "Bash(timeout 30 grep -rln \"check-email\\\\|GOOGLE_PASS\\\\|admin/create\\\\b\" --include=\"*.js\" --include=\"*.jsx\" components Hooks Contexts pages)",
+      "Bash(find \"E:/Tahams/Frontend/Tahams-frontend-og/Hooks\" -iname \"*axiosPublic*\")",
+      "Read(//e/Tahams/Frontend/Tahams-frontend-og/Hooks/**)",
+      "Bash(grep -n \"generateRandomPassword\\\\|check-email\\\\|GOOGLE_PASS\\\\|setSuccess\" \"E:/Tahams/Frontend/Tahams-frontend-og/pages/login/index.js\")",
+      "Bash(cd \"E:/Tahams/Frontend/Tahams-frontend-og\" && grep -rln \"customer-login\" --include=\"*.js\" pages components Hooks Contexts 2>/dev/null)",
+      "Bash(wmic process *)",
+      "Bash(powershell -NoProfile -Command \"Get-Process -Id 35752 | Select-Object Id,StartTime,Path\")",
+      "Bash(curl -s -X POST http://localhost:3011/api/admin/google-signin -H \"Content-Type: application/json\")",
+      "Bash(curl -s -X POST http://localhost:3011/api/admin/google-signin -H \"Authorization: Bearer garbage.invalid.token\")",
+      "Bash(curl -s -X POST http://localhost:3011/api/admin/signin -H \"Content-Type: application/json\" -d '{\"email\":\"admin123@tahamsbd.com\",\"password\":\"totally-wrong\"}')",
+      "Bash(curl -s -X POST http://localhost:3011/api/admin/signin -H \"Content-Type: application/json\" -d '{\"email\":\"nonexistent-user-xyz@example.com\",\"password\":\"anything\"}')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3011/api/admin/check-email?email=admin123@tahamsbd.com\")",
+      "Bash(node -e ' *)",
+      "Bash(powershell -NoProfile -Command \"Get-CimInstance Win32_Process -Filter \\\\\"CommandLine LIKE '%3011%' or \\(Name='node.exe'\\)\\\\\" | Select-Object ProcessId,CommandLine\")",
+      "Bash(powershell -NoProfile -Command \"Stop-Process -Id 26376 -Force\")"
+    ],
+    "additionalDirectories": [
+      "E:\\Tahams\\Frontend\\Tahams-frontend-og\\pages\\login",
+      "E:\\Tahams\\Frontend\\Tahams-frontend-og\\pages\\register"
     ]
   }
 }

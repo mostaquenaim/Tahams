@@ -62,10 +62,11 @@ export class AdminController {
     return res;
   }
 
-  // check email
-  @Get('/check-email')
-  async checkEmail(@Query('email') email: string) {
-    return await this.adminService.checkEmail(email);
+  // Google login - verifies the caller's Firebase ID token server-side
+  // (never trusts a client-supplied email/password) before issuing our JWT.
+  @Post('google-signin')
+  async googleSignIn(@Headers('authorization') authHeader: string) {
+    return await this.adminService.googleSignIn(authHeader);
   }
 
   // customerlogin

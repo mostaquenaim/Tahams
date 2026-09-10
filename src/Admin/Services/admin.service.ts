@@ -39,6 +39,7 @@ import { MoreThan } from 'typeorm';
 import { FabricEntity } from 'src/Global/Entities/fabrics.entity';
 import { ProductSizeCategoryEntity } from 'src/Global/Entities/productSizeCategory.entity';
 import { OtpEntity } from 'src/Global/Entities/otp.entity';
+import { verifyFirebaseIdToken } from '../Services/firebase-admin.config';
 import { ViewProductEntity } from 'src/Global/Entities/viewProduct.entity';
 import { ReturnEntity } from 'src/Global/Entities/return.entity';
 import { GenderEntity } from 'src/Global/Entities/gender.entity';
@@ -527,11 +528,47 @@ export class AdminService {
   }
 
   // create new customer
+  // Public self-registration path (via /customer-login) - never trust
+  // `role` or any other field from the caller here, only the whitelisted
+  // customer-profile fields, or a crafted request could self-promote to
+  // admin. The entity's `role` column defaults to 'customer'.
   async createCustomer(myDto) {
+    const {
+      name,
+      email,
+      password,
+      filename,
+      loggedInWith,
+      uniqueId,
+      mbl_no,
+      address,
+      city,
+      region,
+      state,
+      postal_code,
+      date_of_birth,
+      gender,
+    } = myDto;
+
     const salt = await bcrypt.genSalt();
-    const hashedPass = await bcrypt.hash(myDto.password, salt);
-    myDto.password = hashedPass;
-    return this.userRepo.save(myDto);
+    const hashedPass = await bcrypt.hash(password, salt);
+
+    return this.userRepo.save({
+      name,
+      email,
+      password: hashedPass,
+      filename,
+      loggedInWith,
+      uniqueId,
+      mbl_no,
+      address,
+      city,
+      region,
+      state,
+      postal_code,
+      date_of_birth,
+      gender,
+    });
   }
 
   // Method to send email
@@ -610,6 +647,10 @@ export class AdminService {
         where: { email: myDto.email },
       });
 
+      if (!myData) {
+        return { status: HttpStatus.NOT_FOUND, message: 'User not found' };
+      }
+
       const jti = uuidv4();
       const payload = {
         email: myData.email,
@@ -618,14 +659,12 @@ export class AdminService {
         jti,
       };
 
-      if (!myData) {
-        return { status: HttpStatus.NOT_FOUND, message: 'User not found' };
-      }
-
-      const isPasswordValid = await bcrypt.compare(
-        myDto.password,
-        myData.password,
-      );
+      // Google-only accounts have no password hash saved - bcrypt.compare
+      // throws on a null hash, so skip straight to the Google check below
+      // instead of crashing into the generic 500 handler.
+      const isPasswordValid =
+        !!myData.password &&
+        (await bcrypt.compare(myDto.password, myData.password));
 
       if (isPasswordValid) {
         if (myData.loggedInWith === 'Google') {
@@ -639,19 +678,6 @@ export class AdminService {
         return {
           status: HttpStatus.OK,
           message: 'Login successful',
-          access_token: this.jwtService.sign(payload),
-          jti,
-          data: myData,
-        };
-      }
-
-      if (
-        myData.loggedInWith === 'Google' ||
-        myDto.password === process.env.GOOGLE_PASS
-      ) {
-        return {
-          status: HttpStatus.OK,
-          message: 'Login with google successful',
           access_token: this.jwtService.sign(payload),
           jti,
           data: myData,
@@ -683,22 +709,91 @@ export class AdminService {
     return token && token.expiry > Date.now(); // Token expired check
   }
 
-  // check email
-  async checkEmail(
-    email: string,
-  ): Promise<{ status: HttpStatus; message: string }> {
-    const existingUser = await this.userRepo.findOne({ where: { email } });
+  // Google login - the only legitimate way to authenticate a Google
+  // account. Verifies the caller's Firebase ID token server-side and takes
+  // the email from the VERIFIED token, never from anything the client
+  // claims - a prior version trusted a client-supplied email plus a
+  // `loggedInWith` DB flag (settable by anyone via the old public
+  // check-email endpoint) or a public GOOGLE_PASS constant baked into the
+  // frontend bundle, both of which let anyone sign in as any known email,
+  // including admin accounts, with no real credential at all.
+  async googleSignIn(authHeader?: string) {
+    const token = authHeader?.startsWith('Bearer ')
+      ? authHeader.slice(7)
+      : null;
 
-    if (!existingUser) {
-      return { status: HttpStatus.NOT_FOUND, message: 'User not found' };
+    if (!token) {
+      return { status: HttpStatus.UNAUTHORIZED, message: 'Missing Google session' };
     }
 
-    if (existingUser.loggedInWith === 'Google') {
-      return { status: HttpStatus.OK, message: 'Email is already in use' };
+    let decoded: { email?: string; name?: string; picture?: string; uid: string };
+    try {
+      decoded = await verifyFirebaseIdToken(token);
+    } catch (verifyError: any) {
+      // Also catches server misconfiguration (e.g. FIREBASE_SERVICE_ACCOUNT
+      // not set) - logged here since that's an ops problem, not really the
+      // caller's "invalid token" as the response implies.
+      console.error('Firebase token verification failed:', verifyError.message);
+      return {
+        status: HttpStatus.UNAUTHORIZED,
+        message: 'Invalid or expired Google session',
+      };
     }
 
-    await this.userRepo.update(existingUser.id, { loggedInWith: 'Google' });
-    return { status: HttpStatus.OK, message: 'Email updated successfully' };
+    if (!decoded.email) {
+      return { status: HttpStatus.UNAUTHORIZED, message: 'Google account has no email' };
+    }
+
+    try {
+      let myData = await this.userRepo.findOne({ where: { email: decoded.email } });
+
+      if (!myData) {
+        try {
+          myData = await this.userRepo.save({
+            name: decoded.name,
+            email: decoded.email,
+            filename: decoded.picture,
+            loggedInWith: 'Google',
+            uniqueId: decoded.uid,
+          });
+        } catch (saveError) {
+          // Two near-simultaneous first-time sign-ins for the same brand-new
+          // email (e.g. a double click) race on the unique email constraint -
+          // the loser here just re-reads what the winner created instead of
+          // failing the request.
+          myData = await this.userRepo.findOne({ where: { email: decoded.email } });
+          if (!myData) {
+            throw saveError;
+          }
+        }
+      } else if (myData.loggedInWith !== 'Google') {
+        await this.userRepo.update(myData.id, { loggedInWith: 'Google' });
+        myData.loggedInWith = 'Google';
+      }
+
+      const jti = uuidv4();
+      const payload = {
+        email: myData.email,
+        sub: myData.id,
+        role: myData.role,
+        jti,
+      };
+
+      return {
+        status: HttpStatus.OK,
+        message: 'Login with google successful',
+        access_token: this.jwtService.sign(payload),
+        jti,
+        data: myData,
+      };
+    } catch (error) {
+      console.error('Google sign-in failed:', error.message);
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: 'An error occurred during login',
+        error: error.message,
+      };
+    }
   }
 
   // update admin profile
