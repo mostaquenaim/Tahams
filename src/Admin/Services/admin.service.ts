@@ -2638,6 +2638,7 @@ export class AdminService {
         region: cart.customer.region,
       },
       history: cart.history && {
+        id: cart.history.id,
         trackingToken: cart.history.trackingToken,
         fullName: cart.history.fullName,
         address: cart.history.address,
