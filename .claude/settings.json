@@ -41,11 +41,24 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3011/api/admin/check-email?email=admin123@tahamsbd.com\")",
       "Bash(node -e ' *)",
       "Bash(powershell -NoProfile -Command \"Get-CimInstance Win32_Process -Filter \\\\\"CommandLine LIKE '%3011%' or \\(Name='node.exe'\\)\\\\\" | Select-Object ProcessId,CommandLine\")",
-      "Bash(powershell -NoProfile -Command \"Stop-Process -Id 26376 -Force\")"
+      "Bash(powershell -NoProfile -Command \"Stop-Process -Id 26376 -Force\")",
+      "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\);process.stdin.on\\('end',\\(\\)=>{const p=JSON.parse\\(d\\);console.log\\(JSON.stringify\\({type:p.type,main:p.main,module:p.module,exports:p.exports},null,2\\)\\);}\\);\")",
+      "Bash(curl -s -X POST http://localhost:3012/api/admin/google-signin -H \"Content-Type: application/json\")",
+      "Bash(curl -s -X POST http://localhost:3012/api/admin/google-signin -H \"Authorization: Bearer garbage.invalid.token\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3012/api/admin/check-email?email=admin123@tahamsbd.com\")",
+      "Bash(curl -s -X POST http://localhost:3012/api/admin/signin -H \"Content-Type: application/json\" -d '{\"email\":\"nonexistent-xyz@example.com\",\"password\":\"x\"}')",
+      "Bash(powershell -NoProfile -Command \"Stop-Process -Id 14084 -Force\")",
+      "Bash(git commit -m ' *)",
+      "Bash(cd \"E:/Tahams/Frontend/Tahams-frontend-og\" 2>/dev/null && grep -rn \"Order details not available\\\\|get-buying-history-by-token\\\\|getBuyingHistoryByToken\" --include=*.tsx --include=*.ts --include=*.js --include=*.jsx . 2>/dev/null | grep -v node_modules)",
+      "Bash(cd \"E:/Tahams/Frontend/Tahams-frontend-og\" && find . -maxdepth 1 -iname \"firebase*\" -not -path \"*/node_modules/*\")"
     ],
     "additionalDirectories": [
       "E:\\Tahams\\Frontend\\Tahams-frontend-og\\pages\\login",
-      "E:\\Tahams\\Frontend\\Tahams-frontend-og\\pages\\register"
+      "E:\\Tahams\\Frontend\\Tahams-frontend-og\\pages\\register",
+      "E:\\Tahams\\Frontend\\Tahams-frontend-og\\Hooks",
+      "E:\\Tahams\\Frontend\\Tahams-frontend-og\\pages\\my-orders\\details\\cancel-or-return",
+      "E:\\Tahams\\Frontend\\Tahams-frontend-og\\pages\\admin\\Auth",
+      "E:\\Tahams\\Frontend\\Tahams-frontend-og\\components\\Auth"
     ]
   }
 }

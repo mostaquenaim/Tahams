@@ -69,6 +69,24 @@ export class AdminController {
     return await this.adminService.googleSignIn(authHeader);
   }
 
+  // Email/password login for an existing account, via a verified Firebase
+  // ID token rather than a second, separately-stored password - see
+  // AdminService.firebaseSignIn for why.
+  @Post('firebase-signin')
+  async firebaseSignIn(@Headers('authorization') authHeader: string) {
+    return await this.adminService.firebaseSignIn(authHeader);
+  }
+
+  // Merge a guest's cart/order history into the real account they just
+  // logged into or registered as - see AdminService.mergeGuestCart.
+  @Post('merge-guest-cart')
+  async mergeGuestCart(
+    @Body('guestEmail') guestEmail: string,
+    @Body('realEmail') realEmail: string,
+  ) {
+    return await this.adminService.mergeGuestCart(guestEmail, realEmail);
+  }
+
   // customerlogin
   @Post('customer-login')
   @UsePipes(ValidationPipe)
@@ -321,10 +339,12 @@ export class AdminController {
   async getBuyingHistoryByToken(
     @Param('token') token,
     @Query('email') email: string,
+    @Query('phone') phone: string,
   ) {
     const result = await this.adminService.getBuyingHistoryByToken(
       token,
       email,
+      phone,
     );
     return result;
   }
@@ -849,10 +869,16 @@ export class AdminController {
   async confirmReturnOrCancellation(
     @Body('selectedProducts') selectedProducts: string[],
     @Body('reason') reason: string,
+    @Body('token') token: string,
+    @Body('email') email: string,
+    @Body('phone') phone: string,
   ) {
     return await this.adminService.confirmReturnOrCancellation(
       selectedProducts,
       reason,
+      token,
+      email,
+      phone,
     );
   }
 
