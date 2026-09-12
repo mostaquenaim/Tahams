@@ -796,6 +796,76 @@ export class AdminService {
     }
   }
 
+  // Email/password login for existing accounts - verifies the caller's
+  // Firebase ID token (obtained from signInWithEmailAndPassword on the
+  // frontend) server-side and takes the email from the VERIFIED token,
+  // exactly like googleSignIn. This never checks this backend's own
+  // separately-stored bcrypt password (see signIn()) - that old dual-store
+  // design meant Firebase's forgot-password reset (the only reset flow
+  // that exists) changed Firebase's copy but not this one, so a user could
+  // "successfully" reset their password and still fail the very next login
+  // against the stale backend hash. Firebase is now the only password
+  // check; this endpoint only looks up an existing account by the verified
+  // email and never creates one (unlike googleSignIn, whose first-time
+  // Google login legitimately does).
+  async firebaseSignIn(authHeader?: string) {
+    const token = authHeader?.startsWith('Bearer ')
+      ? authHeader.slice(7)
+      : null;
+
+    if (!token) {
+      return { status: HttpStatus.UNAUTHORIZED, message: 'Missing session' };
+    }
+
+    let decoded: { email?: string };
+    try {
+      decoded = await verifyFirebaseIdToken(token);
+    } catch (verifyError: any) {
+      console.error('Firebase token verification failed:', verifyError.message);
+      return {
+        status: HttpStatus.UNAUTHORIZED,
+        message: 'Invalid or expired session',
+      };
+    }
+
+    if (!decoded.email) {
+      return { status: HttpStatus.UNAUTHORIZED, message: 'Account has no email' };
+    }
+
+    try {
+      const myData = await this.userRepo.findOne({
+        where: { email: decoded.email },
+      });
+
+      if (!myData) {
+        return { status: HttpStatus.NOT_FOUND, message: 'User not found' };
+      }
+
+      const jti = uuidv4();
+      const payload = {
+        email: myData.email,
+        sub: myData.id,
+        role: myData.role,
+        jti,
+      };
+
+      return {
+        status: HttpStatus.OK,
+        message: 'Login successful',
+        access_token: this.jwtService.sign(payload),
+        jti,
+        data: myData,
+      };
+    } catch (error) {
+      console.error('Firebase sign-in failed:', error.message);
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: 'An error occurred during login',
+        error: error.message,
+      };
+    }
+  }
+
   // update admin profile
   async updateAdmin(myDto: AdminForm, email: string) {
     try {
@@ -1331,52 +1401,72 @@ export class AdminService {
   }
 
   // get history by id
-  async getBuyingHistoryByToken(token: string, email: string) {
+  // email/phone are alternate proofs of ownership, not additive - a guest's
+  // "identity" is just a synthetic email invented client-side and kept in
+  // that browser's localStorage (see utils/guestCustomer.js), so it's gone
+  // the moment they switch browsers/devices or clear site data. phone_no is
+  // durable info the guest actually knows and typed in themselves at
+  // checkout, so it's accepted as a fallback when the email one doesn't
+  // match. Neither check is skippable: the trackingToken alone identifies
+  // an order, but not who is allowed to see it - that's still what the
+  // email/phone check is for (see the IDOR note this replaced).
+  async getBuyingHistoryByToken(token: string, email?: string, phone?: string) {
+    if (!email && !phone) {
+      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+    }
+
+    const relations = [
+      'history',
+      'history.deliveryStatus',
+      'history.paymentMethod',
+      'customer',
+      'product',
+      'category',
+      'category.category',
+      'category.category.category',
+    ];
+
+    let cartsWithHistory: CartsEntity[] = [];
+
     if (email) {
-      // No admin panel calls this - only guests/customers right after
-      // checkout, always with their own email. There's no legitimate case
-      // for skipping the email match, and doing so let anyone who merely
-      // knew a tracking token view that order without knowing the actual
-      // customer's email, just by naming an admin's email instead.
-      const cartsWithHistory = await this.cartRepo.find({
+      cartsWithHistory = await this.cartRepo.find({
         where: {
-          customer: { email: email },
+          customer: { email },
           history: { trackingToken: token },
         },
-        relations: [
-          'history',
-          'history.deliveryStatus',
-          'history.paymentMethod',
-          'customer',
-          'product',
-          'category',
-          'category.category',
-          'category.category.category',
-        ],
+        relations,
       });
+    }
 
-      // Loop through each cart to attach courier info
-      for (const cart of cartsWithHistory) {
-        const trackingToken = cart.history?.trackingToken;
-        if (trackingToken) {
-          const courierInfo = await this.getCachedCourierInfo(trackingToken);
+    if (cartsWithHistory.length === 0 && phone) {
+      cartsWithHistory = await this.cartRepo.find({
+        where: {
+          history: { trackingToken: token, phone_no: phone },
+        },
+        relations,
+      });
+    }
 
-          if (courierInfo?.data) {
-            // Attach courier data to the history
-            cart.history.courierInfo = courierInfo.data;
+    // Loop through each cart to attach courier info
+    for (const cart of cartsWithHistory) {
+      const trackingToken = cart.history?.trackingToken;
+      if (trackingToken) {
+        const courierInfo = await this.getCachedCourierInfo(trackingToken);
 
-            // Update the delivery status dynamically (not saved to DB)
-            if (courierInfo.data.order_status) {
-              cart.history.deliveryStatus.name =
-                courierInfo.data.order_status.toUpperCase();
-            }
+        if (courierInfo?.data) {
+          // Attach courier data to the history
+          cart.history.courierInfo = courierInfo.data;
+
+          // Update the delivery status dynamically (not saved to DB)
+          if (courierInfo.data.order_status) {
+            cart.history.deliveryStatus.name =
+              courierInfo.data.order_status.toUpperCase();
           }
         }
       }
-
-      return cartsWithHistory.map((cart) => this.toCustomerCart(cart));
     }
-    throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+
+    return cartsWithHistory.map((cart) => this.toCustomerCart(cart));
   }
 
   async getBuyingHistoryStatusByToken(token: string) {
@@ -2528,12 +2618,38 @@ export class AdminService {
   }
 
   // Confirm or cancel order
-  async confirmReturnOrCancellation(selectedProducts, reason: string) {
+  //
+  // cartId is a plain auto-increment integer - without proof of ownership
+  // anyone could file a return/cancellation against any other customer's
+  // cart just by guessing IDs. token + (email or phone) is the same
+  // proof-of-ownership required by getBuyingHistoryByToken (phone as a
+  // fallback for the same reason - see that method), so we require it here
+  // too: every selected cart must belong to a cart whose
+  // history.trackingToken matches, plus either customer.email or
+  // history.phone_no.
+  async confirmReturnOrCancellation(
+    selectedProducts,
+    reason: string,
+    token: string,
+    email?: string,
+    phone?: string,
+  ) {
+    if (!token || (!email && !phone)) {
+      throw new HttpException(
+        'Missing order token or email/phone',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    const ownerWhere = email
+      ? [{ customer: { email }, history: { trackingToken: token } }]
+      : [{ history: { trackingToken: token, phone_no: phone } }];
+
     const createdReturns = [];
 
     for (const product of selectedProducts) {
       const cart = await this.cartRepo.findOne({
-        where: { id: product.cartId },
+        where: ownerWhere.map((w) => ({ id: product.cartId, ...w })),
       });
 
       if (cart) {
@@ -2566,6 +2682,43 @@ export class AdminService {
   async createNewFabric(myDto) {
     const newFabric = this.fabricRepo.create({ ...myDto });
     return this.fabricRepo.save(newFabric);
+  }
+
+  // Reassigns every cart (current and past orders) tied to a guest's
+  // synthetic email over to the real account they just logged into. Guest
+  // carts are created with a random per-browser email (see
+  // utils/guestCustomer.js on the frontend) that's never authenticated -
+  // this endpoint isn't either, but it's not a meaningful IDOR: guestEmail
+  // is a client-generated, effectively unguessable value with no
+  // sensitivity of its own (the same trust level the rest of the guest-cart
+  // flow already runs on - see createNewCart), and worst case a caller can
+  // only pull an arbitrary guest cart into their own account, never anyone
+  // else's authenticated one.
+  async mergeGuestCart(guestEmail: string, realEmail: string) {
+    if (!guestEmail || !realEmail || guestEmail === realEmail) {
+      return { success: true, merged: 0 };
+    }
+
+    const guestUser = await this.userRepo.findOne({
+      where: { email: guestEmail },
+    });
+    if (!guestUser) {
+      return { success: true, merged: 0 };
+    }
+
+    const realUser = await this.userRepo.findOne({
+      where: { email: realEmail },
+    });
+    if (!realUser) {
+      return { success: true, merged: 0 };
+    }
+
+    const result = await this.cartRepo.update(
+      { customer: { id: guestUser.id } },
+      { customer: realUser },
+    );
+
+    return { success: true, merged: result.affected || 0 };
   }
 
   // customer login
