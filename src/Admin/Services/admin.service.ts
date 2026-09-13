@@ -2341,6 +2341,50 @@ export class AdminService {
     return { message: 'Category serials updated successfully' };
   }
 
+  // The timeline's step names and the `delivery-status` rows don't match
+  // one-for-one ("Processing" vs "Processed", "Pending" vs "Order Placed",
+  // "Returned" vs "Product Returned"), so match on a normalized name plus
+  // these aliases rather than the raw string - an unmatched name silently
+  // leaves the order's status untouched, which is how a rename would
+  // otherwise turn into a wrong status rather than an obvious failure.
+  //
+  // "Out for Delivery" deliberately resolves to nothing: it's a real step
+  // with its own date column but has no status row of its own.
+  private static readonly DELIVERY_STATUS_ALIASES: Record<string, string[]> = {
+    'order placed': ['pending', 'order placed'],
+    'order received': ['order received', 'received'],
+    processed: ['processing', 'processed'],
+    'ready to ship': ['ready to ship'],
+    'dropped off': ['dropped off'],
+    delivered: ['delivered'],
+    cancelled: ['cancelled', 'canceled'],
+    'product returned': ['returned', 'product returned'],
+  };
+
+  private async resolveDeliveryStatusByName(name?: string) {
+    const normalize = (value: string) =>
+      String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[_-]+/g, ' ')
+        .replace(/\s+/g, ' ');
+
+    const wanted = normalize(name);
+    if (!wanted) return null;
+
+    const statuses = await this.deliveryStatusRepo.find();
+
+    return (
+      statuses.find((status) => normalize(status.name) === wanted) ||
+      statuses.find((status) =>
+        (
+          AdminService.DELIVERY_STATUS_ALIASES[normalize(status.name)] || []
+        ).includes(wanted),
+      ) ||
+      null
+    );
+  }
+
   // update buying history / order status
   async updateBuyingHistoryStatusByToken(
     token: string,
@@ -2366,16 +2410,41 @@ export class AdminService {
       throw new NotFoundException(`Buying history not found.`);
     }
 
-    if (!updates.cancelDate && !updates.returnDate) {
-      history.deliveryStatus.id += 1;
-    } else if (updates.cancelDate) {
-      history.deliveryStatus.id = 7;
-    } else if (updates.returnDate) {
-      history.deliveryStatus.id = 8;
+    // Resolve the status the caller actually asked for, by name.
+    //
+    // This used to be `history.deliveryStatus.id += 1` per click, which was
+    // wrong twice over. The timeline has SEVEN forward steps but
+    // `delivery-status` only has SIX forward rows - "Out for Delivery" has
+    // no row of its own - so from "Dropped off" (5) onward every click was
+    // off by one: "Out for Delivery" landed on 6 (Delivered) and "Delivered"
+    // landed on 7 (CANCELLED), silently marking fully-delivered orders as
+    // cancelled with no cancelDate. It also mutated the primary key of the
+    // shared lookup row itself rather than repointing this order at a
+    // different one.
+    const targetStatusName = updates.cancelDate
+      ? 'Cancelled'
+      : updates.returnDate
+        ? 'Returned'
+        : updates.statusName;
+
+    const resolvedStatus = await this.resolveDeliveryStatusByName(
+      targetStatusName,
+    );
+
+    // A step with no row of its own ("Out for Delivery") still records its
+    // own date column - the timeline is driven by those dates - but must
+    // leave the coarser deliveryStatus alone instead of bumping it onto
+    // whatever id happens to come next.
+    if (resolvedStatus) {
+      history.deliveryStatus = resolvedStatus;
     }
 
-    // Update any column in the buying history
-    Object.assign(history, updates);
+    // dateKey/statusName are request metadata, not columns - don't copy them
+    // onto the entity.
+    const columnUpdates = { ...updates };
+    delete columnUpdates.dateKey;
+    delete columnUpdates.statusName;
+    Object.assign(history, columnUpdates);
 
     const result = await this.buyingHistoryRepo.save(history);
     return result;
