@@ -466,6 +466,17 @@ export class AdminController {
     );
   }
 
+  // aggregate stats for the admin dashboard (sales, orders, customers, monthly trend)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Get('dashboard-stats')
+  getDashboardStats(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.adminService.getDashboardStats(startDate, endDate);
+  }
+
   // get specific order
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')

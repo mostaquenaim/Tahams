@@ -1376,6 +1376,112 @@ export class AdminService {
     };
   }
 
+  // Lightweight aggregates for the admin dashboard: no product/category/courier
+  // joins (unlike getGroupedBuyingHistories), and cancelled/returned orders are
+  // always excluded since they shouldn't count toward sales performance.
+  async getDashboardStats(startDate?: string, endDate?: string) {
+    const applyFilters = (qb: SelectQueryBuilder<CartsEntity>) => {
+      qb.leftJoin('cart.history', 'history')
+        .leftJoin('history.deliveryStatus', 'deliveryStatus')
+        .leftJoin('cart.customer', 'customer')
+        .where('cart.isBought = :isBought', { isBought: true })
+        .andWhere('history.isDraft = :isDraft', { isDraft: false })
+        .andWhere('LOWER(deliveryStatus.name) NOT IN (:...excludedStatuses)', {
+          excludedStatuses: ['cancelled', 'returned'],
+        });
+
+      if (startDate) {
+        qb.andWhere('history.BuyingDate >= :startDate', { startDate });
+      }
+      if (endDate) {
+        qb.andWhere('history.BuyingDate <= :endDate', { endDate });
+      }
+
+      return qb;
+    };
+
+    // One row per order (history) in range - cheap, no product/category/courier joins.
+    const historyRows: {
+      id: number;
+      buyingDate: Date;
+      deliveryFee: string;
+      email: string | null;
+    }[] = await applyFilters(this.cartRepo.createQueryBuilder('cart'))
+      .select('history.id', 'id')
+      .addSelect('history.BuyingDate', 'buyingDate')
+      .addSelect('history.deliveryFee', 'deliveryFee')
+      .addSelect('customer.email', 'email')
+      .distinct(true)
+      .getRawMany();
+
+    // Item totals summed separately (and grouped by month) so joined cart
+    // rows don't multiply deliveryFee the way summing per-cart-row would.
+    const itemsTotalRows: { month: string; itemsTotal: string }[] =
+      await applyFilters(this.cartRepo.createQueryBuilder('cart'))
+        .select("TO_CHAR(history.BuyingDate, 'YYYY-MM')", 'month')
+        .addSelect('COALESCE(SUM(cart.totalPrice), 0)', 'itemsTotal')
+        .groupBy("TO_CHAR(history.BuyingDate, 'YYYY-MM')")
+        .getRawMany();
+
+    const itemsTotalByMonth = new Map(
+      itemsTotalRows.map((row) => [row.month, Number(row.itemsTotal) || 0]),
+    );
+
+    const totalOrders = historyRows.length;
+    const totalDeliveryFee = historyRows.reduce(
+      (sum, row) => sum + (Number(row.deliveryFee) || 0),
+      0,
+    );
+    const totalItems = itemsTotalRows.reduce(
+      (sum, row) => sum + (Number(row.itemsTotal) || 0),
+      0,
+    );
+    const totalSales = totalItems + totalDeliveryFee;
+    const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
+
+    const ordersByEmail = new Map<string, number>();
+    for (const row of historyRows) {
+      if (!row.email) continue;
+      ordersByEmail.set(row.email, (ordersByEmail.get(row.email) || 0) + 1);
+    }
+    const uniqueCustomers = ordersByEmail.size;
+    const repeatCustomers = [...ordersByEmail.values()].filter(
+      (count) => count > 1,
+    ).length;
+
+    const monthlyOrders = new Map<string, { orders: number; fee: number }>();
+    for (const row of historyRows) {
+      const month = new Date(row.buyingDate).toISOString().slice(0, 7);
+      const entry = monthlyOrders.get(month) || { orders: 0, fee: 0 };
+      entry.orders += 1;
+      entry.fee += Number(row.deliveryFee) || 0;
+      monthlyOrders.set(month, entry);
+    }
+
+    const months = new Set([
+      ...monthlyOrders.keys(),
+      ...itemsTotalByMonth.keys(),
+    ]);
+    const monthlyTrend = [...months].sort().map((month) => {
+      const entry = monthlyOrders.get(month) || { orders: 0, fee: 0 };
+      const items = itemsTotalByMonth.get(month) || 0;
+      return {
+        month,
+        orders: entry.orders,
+        sales: items + entry.fee,
+      };
+    });
+
+    return {
+      totalSales,
+      totalOrders,
+      uniqueCustomers,
+      repeatCustomers,
+      avgOrderValue,
+      monthlyTrend,
+    };
+  }
+
   async getOrderGroupByHistoryId(historyId: string) {
     const qb = this.cartRepo
       .createQueryBuilder('cart')
