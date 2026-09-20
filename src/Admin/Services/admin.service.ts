@@ -599,8 +599,16 @@ export class AdminService {
         text: myDto.text,
       });
     } catch (error) {
+      // Technical detail stays in the server log; customers get plain language
       console.log(error.response?.data ?? error.message);
-      throw new BadRequestException('Failed to send email');
+      if (error.response?.status === 422) {
+        throw new BadRequestException(
+          'We could not send an email to that address. Please check it and try again.',
+        );
+      }
+      throw new BadRequestException(
+        'We could not send the verification email right now. Please try again in a few minutes.',
+      );
     }
   }
 
@@ -612,7 +620,7 @@ export class AdminService {
     } else {
       return {
         status: HttpStatus.BAD_REQUEST,
-        message: 'Email already exists',
+        message: 'This email is already registered. Please log in instead.',
         data: null,
       };
     }
@@ -641,15 +649,27 @@ export class AdminService {
       throw error;
     }
 
+    // Only the newest code should work, so a resend invalidates earlier ones
+    await this.otpRepository
+      .createQueryBuilder()
+      .delete()
+      .where('email = :email AND id != :id', { email, id: otpEntity.id })
+      .execute();
+
     return { success: true, message: 'OTP sent' };
   }
 
   // verify otp
   async verifyOtp(email: string, otp: string) {
-    const otpData = await this.otpRepository.findOne({ where: { email, otp } });
+    const otpData = await this.otpRepository.findOne({
+      where: { email },
+      order: { createdAt: 'DESC' },
+    });
 
     if (!otpData) {
-      throw new BadRequestException('Invalid or expired OTP');
+      throw new BadRequestException(
+        'No verification code was found for this email. Please request a new code.',
+      );
     }
 
     const currentTime = new Date();
@@ -657,8 +677,16 @@ export class AdminService {
     const timeDifference =
       (currentTime.getTime() - otpCreationTime.getTime()) / (1000 * 60); // Time difference in minutes
 
-    if (otpData.otp !== otp || timeDifference > 10) {
-      throw new BadRequestException('Invalid or expired OTP');
+    if (timeDifference > 10) {
+      throw new BadRequestException(
+        'This code has expired. Please request a new one.',
+      );
+    }
+
+    if (otpData.otp !== String(otp ?? '').trim()) {
+      throw new BadRequestException(
+        'The code you entered is incorrect. Please check it and try again.',
+      );
     }
 
     await this.otpRepository.delete({ email });
