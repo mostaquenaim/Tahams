@@ -599,8 +599,16 @@ export class AdminService {
         text: myDto.text,
       });
     } catch (error) {
+      // Technical detail stays in the server log; customers get plain language
       console.log(error.response?.data ?? error.message);
-      throw new BadRequestException('Failed to send email');
+      if (error.response?.status === 422) {
+        throw new BadRequestException(
+          'We could not send an email to that address. Please check it and try again.',
+        );
+      }
+      throw new BadRequestException(
+        'We could not send the verification email right now. Please try again in a few minutes.',
+      );
     }
   }
 
@@ -612,7 +620,7 @@ export class AdminService {
     } else {
       return {
         status: HttpStatus.BAD_REQUEST,
-        message: 'Email already exists',
+        message: 'This email is already registered. Please log in instead.',
         data: null,
       };
     }
@@ -641,15 +649,27 @@ export class AdminService {
       throw error;
     }
 
+    // Only the newest code should work, so a resend invalidates earlier ones
+    await this.otpRepository
+      .createQueryBuilder()
+      .delete()
+      .where('email = :email AND id != :id', { email, id: otpEntity.id })
+      .execute();
+
     return { success: true, message: 'OTP sent' };
   }
 
   // verify otp
   async verifyOtp(email: string, otp: string) {
-    const otpData = await this.otpRepository.findOne({ where: { email, otp } });
+    const otpData = await this.otpRepository.findOne({
+      where: { email },
+      order: { createdAt: 'DESC' },
+    });
 
     if (!otpData) {
-      throw new BadRequestException('Invalid or expired OTP');
+      throw new BadRequestException(
+        'No verification code was found for this email. Please request a new code.',
+      );
     }
 
     const currentTime = new Date();
@@ -657,8 +677,16 @@ export class AdminService {
     const timeDifference =
       (currentTime.getTime() - otpCreationTime.getTime()) / (1000 * 60); // Time difference in minutes
 
-    if (otpData.otp !== otp || timeDifference > 10) {
-      throw new BadRequestException('Invalid or expired OTP');
+    if (timeDifference > 10) {
+      throw new BadRequestException(
+        'This code has expired. Please request a new one.',
+      );
+    }
+
+    if (otpData.otp !== String(otp ?? '').trim()) {
+      throw new BadRequestException(
+        'The code you entered is incorrect. Please check it and try again.',
+      );
     }
 
     await this.otpRepository.delete({ email });
@@ -1345,6 +1373,112 @@ export class AdminService {
       totalPages: limit ? Math.ceil(total / limit) : 1,
       totalRevenue,
       avgOrderValue,
+    };
+  }
+
+  // Lightweight aggregates for the admin dashboard: no product/category/courier
+  // joins (unlike getGroupedBuyingHistories), and cancelled/returned orders are
+  // always excluded since they shouldn't count toward sales performance.
+  async getDashboardStats(startDate?: string, endDate?: string) {
+    const applyFilters = (qb: SelectQueryBuilder<CartsEntity>) => {
+      qb.leftJoin('cart.history', 'history')
+        .leftJoin('history.deliveryStatus', 'deliveryStatus')
+        .leftJoin('cart.customer', 'customer')
+        .where('cart.isBought = :isBought', { isBought: true })
+        .andWhere('history.isDraft = :isDraft', { isDraft: false })
+        .andWhere('LOWER(deliveryStatus.name) NOT IN (:...excludedStatuses)', {
+          excludedStatuses: ['cancelled', 'returned'],
+        });
+
+      if (startDate) {
+        qb.andWhere('history.BuyingDate >= :startDate', { startDate });
+      }
+      if (endDate) {
+        qb.andWhere('history.BuyingDate <= :endDate', { endDate });
+      }
+
+      return qb;
+    };
+
+    // One row per order (history) in range - cheap, no product/category/courier joins.
+    const historyRows: {
+      id: number;
+      buyingDate: Date;
+      deliveryFee: string;
+      email: string | null;
+    }[] = await applyFilters(this.cartRepo.createQueryBuilder('cart'))
+      .select('history.id', 'id')
+      .addSelect('history.BuyingDate', 'buyingDate')
+      .addSelect('history.deliveryFee', 'deliveryFee')
+      .addSelect('customer.email', 'email')
+      .distinct(true)
+      .getRawMany();
+
+    // Item totals summed separately (and grouped by month) so joined cart
+    // rows don't multiply deliveryFee the way summing per-cart-row would.
+    const itemsTotalRows: { month: string; itemsTotal: string }[] =
+      await applyFilters(this.cartRepo.createQueryBuilder('cart'))
+        .select("TO_CHAR(history.BuyingDate, 'YYYY-MM')", 'month')
+        .addSelect('COALESCE(SUM(cart.totalPrice), 0)', 'itemsTotal')
+        .groupBy("TO_CHAR(history.BuyingDate, 'YYYY-MM')")
+        .getRawMany();
+
+    const itemsTotalByMonth = new Map(
+      itemsTotalRows.map((row) => [row.month, Number(row.itemsTotal) || 0]),
+    );
+
+    const totalOrders = historyRows.length;
+    const totalDeliveryFee = historyRows.reduce(
+      (sum, row) => sum + (Number(row.deliveryFee) || 0),
+      0,
+    );
+    const totalItems = itemsTotalRows.reduce(
+      (sum, row) => sum + (Number(row.itemsTotal) || 0),
+      0,
+    );
+    const totalSales = totalItems + totalDeliveryFee;
+    const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
+
+    const ordersByEmail = new Map<string, number>();
+    for (const row of historyRows) {
+      if (!row.email) continue;
+      ordersByEmail.set(row.email, (ordersByEmail.get(row.email) || 0) + 1);
+    }
+    const uniqueCustomers = ordersByEmail.size;
+    const repeatCustomers = [...ordersByEmail.values()].filter(
+      (count) => count > 1,
+    ).length;
+
+    const monthlyOrders = new Map<string, { orders: number; fee: number }>();
+    for (const row of historyRows) {
+      const month = new Date(row.buyingDate).toISOString().slice(0, 7);
+      const entry = monthlyOrders.get(month) || { orders: 0, fee: 0 };
+      entry.orders += 1;
+      entry.fee += Number(row.deliveryFee) || 0;
+      monthlyOrders.set(month, entry);
+    }
+
+    const months = new Set([
+      ...monthlyOrders.keys(),
+      ...itemsTotalByMonth.keys(),
+    ]);
+    const monthlyTrend = [...months].sort().map((month) => {
+      const entry = monthlyOrders.get(month) || { orders: 0, fee: 0 };
+      const items = itemsTotalByMonth.get(month) || 0;
+      return {
+        month,
+        orders: entry.orders,
+        sales: items + entry.fee,
+      };
+    });
+
+    return {
+      totalSales,
+      totalOrders,
+      uniqueCustomers,
+      repeatCustomers,
+      avgOrderValue,
+      monthlyTrend,
     };
   }
 
