@@ -574,13 +574,32 @@ export class AdminService {
   // Method to send email
   async sendEmail(myDto) {
     try {
+      // Resend (HTTPS) is preferred: hosts like DigitalOcean block outbound
+      // SMTP ports (25/465/587), so Gmail SMTP times out in production.
+      if (process.env.RESEND_API_KEY) {
+        await axios.post(
+          'https://api.resend.com/emails',
+          {
+            from: process.env.EMAIL_FROM,
+            to: [myDto.email],
+            subject: myDto.subject,
+            text: myDto.text,
+          },
+          {
+            headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+            timeout: 15000,
+          },
+        );
+        return;
+      }
+
       await this.mailerService.sendMail({
         to: myDto.email,
         subject: myDto.subject,
         text: myDto.text,
       });
     } catch (error) {
-      console.log(error.message);
+      console.log(error.response?.data ?? error.message);
       throw new BadRequestException('Failed to send email');
     }
   }
@@ -610,11 +629,17 @@ export class AdminService {
     await this.otpRepository.save(otpEntity);
 
     // Send OTP email
-    await this.sendEmail({
-      email,
-      subject: 'Your OTP Code',
-      text: `Your OTP code is ${otp}. It is valid for 10 minutes.`,
-    });
+    try {
+      await this.sendEmail({
+        email,
+        subject: 'Your OTP Code',
+        text: `Your OTP code is ${otp}. It is valid for 10 minutes.`,
+      });
+    } catch (error) {
+      // Don't leave an unusable OTP behind when the email never went out
+      await this.otpRepository.delete({ id: otpEntity.id });
+      throw error;
+    }
 
     return { success: true, message: 'OTP sent' };
   }
