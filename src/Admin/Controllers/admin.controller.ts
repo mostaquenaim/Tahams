@@ -534,6 +534,19 @@ export class AdminController {
     return this.adminService.removeWish(wishId);
   }
 
+  // change the quantity of an item still in the cart
+  @Put('update-cart-quantity/:uniqueId')
+  updateCartQuantity(
+    @Param('uniqueId') uniqueId: string,
+    @Body() body: { email?: string; quantity?: number },
+  ) {
+    return this.adminService.updateCartQuantity(
+      uniqueId,
+      body?.email,
+      body?.quantity,
+    );
+  }
+
   // delete a cart
   @Delete('delete-cart/:uniqueId')
   deleteCartItem(@Param('uniqueId') id) {
