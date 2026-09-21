@@ -594,6 +594,27 @@ export class AdminController {
     return result;
   }
 
+  // home page sections (storefront feed)
+  @Get('view-home-sections')
+  viewHomeSections() {
+    return this.adminService.viewHomeSections();
+  }
+
+  // home page sections (admin editor: includes hidden/empty sections)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Get('manage-home-sections')
+  manageHomeSections() {
+    return this.adminService.manageHomeSections();
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Put('home-sections')
+  saveHomeSections(@Body() body: { sections: any }) {
+    return this.adminService.saveHomeSections(body?.sections);
+  }
+
   // view active pop up
   @Get('view-active-pop-up')
   async viewActivePopUp() {

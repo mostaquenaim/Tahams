@@ -8,6 +8,7 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  OnModuleInit,
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -46,6 +47,7 @@ import { GenderEntity } from 'src/Global/Entities/gender.entity';
 import { MessageEntity } from 'src/Global/Entities/messages.entity';
 import { UnreadMessageEntity } from 'src/Global/Entities/unreadMessage.entity';
 import { NewArrivalEntity } from 'src/Global/Entities/new-arrival.entity';
+import { HomeSectionEntity } from 'src/Global/Entities/home-section.entity';
 import { PopUpEntity } from 'src/Global/Entities/pop-up.entity';
 import { ActivePopUpEntity } from 'src/Global/Entities/active-pop-up.entity';
 import { JwtService } from '@nestjs/jwt';
@@ -67,7 +69,7 @@ import { expectedDeliveryFee } from '../delivery-fees';
 const unlinkAsync = promisify(fs.unlink);
 
 @Injectable()
-export class AdminService {
+export class AdminService implements OnModuleInit {
   private baseUrl = process.env.PATHAO_BASE_URL;
   private clientId = process.env.PATHAO_CLIENT_ID;
   private clientSecret = process.env.PATHAO_CLIENT_SECRET;
@@ -180,6 +182,8 @@ export class AdminService {
 
     @InjectRepository(NewArrivalEntity)
     private newArrivalRepo: Repository<NewArrivalEntity>,
+    @InjectRepository(HomeSectionEntity)
+    private homeSectionRepo: Repository<HomeSectionEntity>,
 
     @InjectRepository(PopUpEntity)
     private popUpRepo: Repository<PopUpEntity>,
@@ -1833,6 +1837,179 @@ export class AdminService {
 
     const arrivals = await this.newArrivalRepo.find(options);
     return arrivals;
+  }
+
+  // ---- home page sections (admin-curated product rows) ----
+
+  // Rows seeded on first run so the home page looks the same until an admin
+  // edits it. `q` is the name search the storefront used to hard-code.
+  private static readonly HOME_SECTION_SEEDS = [
+    { eyebrow: 'ZIPPER', title: 'HOODIE', q: 'zipper hoodie' },
+    { eyebrow: null, title: 'SWEATSHIRT', q: 'sweatshirt' },
+    { eyebrow: 'KANGAROO POCKET', title: 'HOODIE', q: 'kangaroo' },
+  ];
+
+  private static readonly HOME_SECTION_LIMITS = {
+    sections: 20,
+    productsPerSection: 60,
+    text: 80,
+  };
+
+  async onModuleInit() {
+    try {
+      if ((await this.homeSectionRepo.count()) > 0) return;
+
+      const sections = [];
+      for (const [position, seed] of AdminService.HOME_SECTION_SEEDS.entries()) {
+        const products = await this.productRepo
+          .createQueryBuilder('product')
+          .select('product.id')
+          .where('product.name ILIKE :q', { q: `%${seed.q}%` })
+          .andWhere('product.publishable = true')
+          .orderBy('product.id', 'ASC')
+          .getMany();
+        sections.push(
+          this.homeSectionRepo.create({
+            eyebrow: seed.eyebrow,
+            title: seed.title,
+            position,
+            isActive: true,
+            productIds: products.map((p) => p.id),
+          }),
+        );
+      }
+      await this.homeSectionRepo.save(sections);
+    } catch (error) {
+      // Never block startup over seed data; the admin can create sections.
+      console.error('Could not seed home sections:', error);
+    }
+  }
+
+  // Resolves each section's product ids to products, keeping the admin's
+  // order and dropping products that were deleted (or, for the storefront,
+  // unpublished).
+  private async attachSectionProducts(
+    sections: HomeSectionEntity[],
+    onlyPublished: boolean,
+  ) {
+    const ids = [...new Set(sections.flatMap((s) => s.productIds))];
+    const byId = new Map<number, ProductEntity>();
+
+    if (ids.length > 0) {
+      const query = this.productRepo
+        .createQueryBuilder('product')
+        .leftJoinAndSelect('product.color', 'color')
+        .leftJoinAndSelect('product.fabric', 'fabric')
+        .leftJoinAndSelect('product.productPictures', 'productPicture')
+        .leftJoinAndSelect('product.pscs', 'psc')
+        .leftJoinAndSelect('psc.category', 'subSubCategory')
+        .leftJoinAndSelect('psc.size', 'size')
+        .where('product.id IN (:...ids)', { ids });
+      if (onlyPublished) query.andWhere('product.publishable = true');
+      (await query.getMany()).forEach((p) => byId.set(p.id, p));
+    }
+
+    return sections.map((section) => ({
+      ...section,
+      products: section.productIds
+        .map((id) => byId.get(id))
+        .filter((p): p is ProductEntity => Boolean(p)),
+    }));
+  }
+
+  // Storefront feed: active sections in order, without empty ones.
+  async viewHomeSections() {
+    const sections = await this.homeSectionRepo.find({
+      where: { isActive: true },
+      order: { position: 'ASC', id: 'ASC' },
+    });
+    const resolved = await this.attachSectionProducts(sections, true);
+    return resolved.filter((section) => section.products.length > 0);
+  }
+
+  // Admin editor feed: every section, including hidden and empty ones.
+  async manageHomeSections() {
+    const sections = await this.homeSectionRepo.find({
+      order: { position: 'ASC', id: 'ASC' },
+    });
+    return this.attachSectionProducts(sections, false);
+  }
+
+  // Replaces the whole layout atomically; array order becomes display order.
+  async saveHomeSections(input: any) {
+    const limits = AdminService.HOME_SECTION_LIMITS;
+
+    if (!Array.isArray(input) || input.length < 1) {
+      throw new BadRequestException(
+        'Keep at least one section - hide it instead of removing it.',
+      );
+    }
+    if (input.length > limits.sections) {
+      throw new BadRequestException(
+        `You can have at most ${limits.sections} sections.`,
+      );
+    }
+
+    const cleaned = input.map((raw, index) => {
+      const label = `Section ${index + 1}`;
+      const title = typeof raw?.title === 'string' ? raw.title.trim() : '';
+      const eyebrow = typeof raw?.eyebrow === 'string' ? raw.eyebrow.trim() : '';
+
+      if (!title) throw new BadRequestException(`${label} needs a title.`);
+      if (title.length > limits.text || eyebrow.length > limits.text) {
+        throw new BadRequestException(
+          `${label}: titles can be at most ${limits.text} characters.`,
+        );
+      }
+      if (!Array.isArray(raw.productIds)) {
+        throw new BadRequestException(`${label}: products are missing.`);
+      }
+
+      const productIds = [...new Set(raw.productIds.map(Number))] as number[];
+      if (productIds.some((id) => !Number.isInteger(id) || id < 1)) {
+        throw new BadRequestException(`${label}: invalid product.`);
+      }
+      if (productIds.length > limits.productsPerSection) {
+        throw new BadRequestException(
+          `${label}: at most ${limits.productsPerSection} products.`,
+        );
+      }
+
+      return {
+        eyebrow: eyebrow || null,
+        title,
+        position: index,
+        isActive: raw.isActive !== false,
+        productIds,
+      };
+    });
+
+    const allIds = [...new Set(cleaned.flatMap((s) => s.productIds))];
+    if (allIds.length > 0) {
+      const found = await this.productRepo.find({
+        select: { id: true },
+        where: { id: In(allIds) },
+      });
+      if (found.length !== allIds.length) {
+        throw new BadRequestException(
+          'Some selected products no longer exist. Reload the page and try again.',
+        );
+      }
+    }
+
+    await this.homeSectionRepo.manager.transaction(async (manager) => {
+      await manager
+        .createQueryBuilder()
+        .delete()
+        .from(HomeSectionEntity)
+        .execute();
+      await manager.save(
+        HomeSectionEntity,
+        cleaned.map((section) => manager.create(HomeSectionEntity, section)),
+      );
+    });
+
+    return this.manageHomeSections();
   }
 
   // view active pop up
