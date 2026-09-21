@@ -33,6 +33,7 @@ import { GenderEntity } from "src/Global/Entities/gender.entity";
 import { UnreadMessageEntity } from "src/Global/Entities/unreadMessage.entity";
 import { MessageEntity } from "src/Global/Entities/messages.entity";
 import { NewArrivalEntity } from "src/Global/Entities/new-arrival.entity";
+import { HomeSectionEntity } from "src/Global/Entities/home-section.entity";
 import { PopUpEntity } from "src/Global/Entities/pop-up.entity";
 import { ActivePopUpEntity } from "src/Global/Entities/active-pop-up.entity";
 import { JwtModule } from "@nestjs/jwt";
@@ -88,6 +89,7 @@ import { CustomerActivityEntity } from "src/Global/Entities/customer-activity.en
             GenderEntity,
             MessageEntity,
             NewArrivalEntity,
+            HomeSectionEntity,
             OtpEntity,
             PaymentInfo,
             PaymentMethodEntity,
