@@ -8,6 +8,7 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  OnModuleInit,
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -46,6 +47,7 @@ import { GenderEntity } from 'src/Global/Entities/gender.entity';
 import { MessageEntity } from 'src/Global/Entities/messages.entity';
 import { UnreadMessageEntity } from 'src/Global/Entities/unreadMessage.entity';
 import { NewArrivalEntity } from 'src/Global/Entities/new-arrival.entity';
+import { HomeSectionEntity } from 'src/Global/Entities/home-section.entity';
 import { PopUpEntity } from 'src/Global/Entities/pop-up.entity';
 import { ActivePopUpEntity } from 'src/Global/Entities/active-pop-up.entity';
 import { JwtService } from '@nestjs/jwt';
@@ -62,11 +64,12 @@ import axios from 'axios';
 import { CourierInfo } from 'src/Global/Entities/courier-info.entity';
 import { ActivityEntity } from 'src/Global/Entities/activity.entity';
 import { CustomerActivityEntity } from 'src/Global/Entities/customer-activity.entity';
+import { expectedDeliveryFee } from '../delivery-fees';
 
 const unlinkAsync = promisify(fs.unlink);
 
 @Injectable()
-export class AdminService {
+export class AdminService implements OnModuleInit {
   private baseUrl = process.env.PATHAO_BASE_URL;
   private clientId = process.env.PATHAO_CLIENT_ID;
   private clientSecret = process.env.PATHAO_CLIENT_SECRET;
@@ -179,6 +182,8 @@ export class AdminService {
 
     @InjectRepository(NewArrivalEntity)
     private newArrivalRepo: Repository<NewArrivalEntity>,
+    @InjectRepository(HomeSectionEntity)
+    private homeSectionRepo: Repository<HomeSectionEntity>,
 
     @InjectRepository(PopUpEntity)
     private popUpRepo: Repository<PopUpEntity>,
@@ -226,6 +231,9 @@ export class AdminService {
       myDto.history,
       myDto.customer,
     );
+    if (!cart?.length) {
+      throw new NotFoundException('Order not found.');
+    }
     const history = cart[0].history;
 
     const paymentMethod = await this.getPaymentMethodById(myDto.paymentMethod);
@@ -574,14 +582,41 @@ export class AdminService {
   // Method to send email
   async sendEmail(myDto) {
     try {
+      // Resend (HTTPS) is preferred: hosts like DigitalOcean block outbound
+      // SMTP ports (25/465/587), so Gmail SMTP times out in production.
+      if (process.env.RESEND_API_KEY) {
+        await axios.post(
+          'https://api.resend.com/emails',
+          {
+            from: process.env.EMAIL_FROM,
+            to: [myDto.email],
+            subject: myDto.subject,
+            text: myDto.text,
+          },
+          {
+            headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+            timeout: 15000,
+          },
+        );
+        return;
+      }
+
       await this.mailerService.sendMail({
         to: myDto.email,
         subject: myDto.subject,
         text: myDto.text,
       });
     } catch (error) {
-      console.log(error.message);
-      throw new BadRequestException('Failed to send email');
+      // Technical detail stays in the server log; customers get plain language
+      console.log(error.response?.data ?? error.message);
+      if (error.response?.status === 422) {
+        throw new BadRequestException(
+          'We could not send an email to that address. Please check it and try again.',
+        );
+      }
+      throw new BadRequestException(
+        'We could not send the verification email right now. Please try again in a few minutes.',
+      );
     }
   }
 
@@ -593,7 +628,7 @@ export class AdminService {
     } else {
       return {
         status: HttpStatus.BAD_REQUEST,
-        message: 'Email already exists',
+        message: 'This email is already registered. Please log in instead.',
         data: null,
       };
     }
@@ -610,21 +645,39 @@ export class AdminService {
     await this.otpRepository.save(otpEntity);
 
     // Send OTP email
-    await this.sendEmail({
-      email,
-      subject: 'Your OTP Code',
-      text: `Your OTP code is ${otp}. It is valid for 10 minutes.`,
-    });
+    try {
+      await this.sendEmail({
+        email,
+        subject: 'Your OTP Code',
+        text: `Your OTP code is ${otp}. It is valid for 10 minutes.`,
+      });
+    } catch (error) {
+      // Don't leave an unusable OTP behind when the email never went out
+      await this.otpRepository.delete({ id: otpEntity.id });
+      throw error;
+    }
+
+    // Only the newest code should work, so a resend invalidates earlier ones
+    await this.otpRepository
+      .createQueryBuilder()
+      .delete()
+      .where('email = :email AND id != :id', { email, id: otpEntity.id })
+      .execute();
 
     return { success: true, message: 'OTP sent' };
   }
 
   // verify otp
   async verifyOtp(email: string, otp: string) {
-    const otpData = await this.otpRepository.findOne({ where: { email, otp } });
+    const otpData = await this.otpRepository.findOne({
+      where: { email },
+      order: { createdAt: 'DESC' },
+    });
 
     if (!otpData) {
-      throw new BadRequestException('Invalid or expired OTP');
+      throw new BadRequestException(
+        'No verification code was found for this email. Please request a new code.',
+      );
     }
 
     const currentTime = new Date();
@@ -632,8 +685,16 @@ export class AdminService {
     const timeDifference =
       (currentTime.getTime() - otpCreationTime.getTime()) / (1000 * 60); // Time difference in minutes
 
-    if (otpData.otp !== otp || timeDifference > 10) {
-      throw new BadRequestException('Invalid or expired OTP');
+    if (timeDifference > 10) {
+      throw new BadRequestException(
+        'This code has expired. Please request a new one.',
+      );
+    }
+
+    if (otpData.otp !== String(otp ?? '').trim()) {
+      throw new BadRequestException(
+        'The code you entered is incorrect. Please check it and try again.',
+      );
     }
 
     await this.otpRepository.delete({ email });
@@ -910,11 +971,15 @@ export class AdminService {
 
   // delete a cart item
   async deleteCartItem(id: string) {
-    const myData = await this.cartRepo.findOneBy({ uniqueId: id });
+    // Only items still in the cart: one that belongs to an order is history.
+    const myData = await this.cartRepo.findOneBy({
+      uniqueId: id,
+      isBought: false,
+    });
     if (myData) {
       return this.cartRepo.delete(myData.id);
     }
-    throw new NotFoundException(`Banner with ID ${id} not found.`);
+    throw new NotFoundException(`Cart item with ID ${id} not found.`);
   }
 
   // delete customization request
@@ -959,7 +1024,10 @@ export class AdminService {
     try {
       // Find all carts with unique IDs in the provided array
       // const cartsToDelete = await this.cartRepo.find({ where: { uniqueId: In(cartArray) }});
-      const deletionResult = await this.cartRepo.delete({ id: In(cartArray) });
+      const deletionResult = await this.cartRepo.delete({
+        id: In(cartArray),
+        isBought: false,
+      });
       return deletionResult;
 
       // if (cartsToDelete.length > 0) {
@@ -1330,6 +1398,112 @@ export class AdminService {
     };
   }
 
+  // Lightweight aggregates for the admin dashboard: no product/category/courier
+  // joins (unlike getGroupedBuyingHistories), and cancelled/returned orders are
+  // always excluded since they shouldn't count toward sales performance.
+  async getDashboardStats(startDate?: string, endDate?: string) {
+    const applyFilters = (qb: SelectQueryBuilder<CartsEntity>) => {
+      qb.leftJoin('cart.history', 'history')
+        .leftJoin('history.deliveryStatus', 'deliveryStatus')
+        .leftJoin('cart.customer', 'customer')
+        .where('cart.isBought = :isBought', { isBought: true })
+        .andWhere('history.isDraft = :isDraft', { isDraft: false })
+        .andWhere('LOWER(deliveryStatus.name) NOT IN (:...excludedStatuses)', {
+          excludedStatuses: ['cancelled', 'returned'],
+        });
+
+      if (startDate) {
+        qb.andWhere('history.BuyingDate >= :startDate', { startDate });
+      }
+      if (endDate) {
+        qb.andWhere('history.BuyingDate <= :endDate', { endDate });
+      }
+
+      return qb;
+    };
+
+    // One row per order (history) in range - cheap, no product/category/courier joins.
+    const historyRows: {
+      id: number;
+      buyingDate: Date;
+      deliveryFee: string;
+      email: string | null;
+    }[] = await applyFilters(this.cartRepo.createQueryBuilder('cart'))
+      .select('history.id', 'id')
+      .addSelect('history.BuyingDate', 'buyingDate')
+      .addSelect('history.deliveryFee', 'deliveryFee')
+      .addSelect('customer.email', 'email')
+      .distinct(true)
+      .getRawMany();
+
+    // Item totals summed separately (and grouped by month) so joined cart
+    // rows don't multiply deliveryFee the way summing per-cart-row would.
+    const itemsTotalRows: { month: string; itemsTotal: string }[] =
+      await applyFilters(this.cartRepo.createQueryBuilder('cart'))
+        .select("TO_CHAR(history.BuyingDate, 'YYYY-MM')", 'month')
+        .addSelect('COALESCE(SUM(cart.totalPrice), 0)', 'itemsTotal')
+        .groupBy("TO_CHAR(history.BuyingDate, 'YYYY-MM')")
+        .getRawMany();
+
+    const itemsTotalByMonth = new Map(
+      itemsTotalRows.map((row) => [row.month, Number(row.itemsTotal) || 0]),
+    );
+
+    const totalOrders = historyRows.length;
+    const totalDeliveryFee = historyRows.reduce(
+      (sum, row) => sum + (Number(row.deliveryFee) || 0),
+      0,
+    );
+    const totalItems = itemsTotalRows.reduce(
+      (sum, row) => sum + (Number(row.itemsTotal) || 0),
+      0,
+    );
+    const totalSales = totalItems + totalDeliveryFee;
+    const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
+
+    const ordersByEmail = new Map<string, number>();
+    for (const row of historyRows) {
+      if (!row.email) continue;
+      ordersByEmail.set(row.email, (ordersByEmail.get(row.email) || 0) + 1);
+    }
+    const uniqueCustomers = ordersByEmail.size;
+    const repeatCustomers = [...ordersByEmail.values()].filter(
+      (count) => count > 1,
+    ).length;
+
+    const monthlyOrders = new Map<string, { orders: number; fee: number }>();
+    for (const row of historyRows) {
+      const month = new Date(row.buyingDate).toISOString().slice(0, 7);
+      const entry = monthlyOrders.get(month) || { orders: 0, fee: 0 };
+      entry.orders += 1;
+      entry.fee += Number(row.deliveryFee) || 0;
+      monthlyOrders.set(month, entry);
+    }
+
+    const months = new Set([
+      ...monthlyOrders.keys(),
+      ...itemsTotalByMonth.keys(),
+    ]);
+    const monthlyTrend = [...months].sort().map((month) => {
+      const entry = monthlyOrders.get(month) || { orders: 0, fee: 0 };
+      const items = itemsTotalByMonth.get(month) || 0;
+      return {
+        month,
+        orders: entry.orders,
+        sales: items + entry.fee,
+      };
+    });
+
+    return {
+      totalSales,
+      totalOrders,
+      uniqueCustomers,
+      repeatCustomers,
+      avgOrderValue,
+      monthlyTrend,
+    };
+  }
+
   async getOrderGroupByHistoryId(historyId: string) {
     const qb = this.cartRepo
       .createQueryBuilder('cart')
@@ -1458,17 +1632,24 @@ export class AdminService {
     for (const cart of cartsWithHistory) {
       const trackingToken = cart.history?.trackingToken;
       if (trackingToken) {
-        const courierInfo = await this.getCachedCourierInfo(trackingToken);
+        // Courier info is a nice-to-have. A Pathao outage (or a brand-new
+        // order the courier has never heard of) must not make the whole
+        // order lookup fail.
+        try {
+          const courierInfo = await this.getCachedCourierInfo(trackingToken);
 
-        if (courierInfo?.data) {
-          // Attach courier data to the history
-          cart.history.courierInfo = courierInfo.data;
+          if (courierInfo?.data) {
+            // Attach courier data to the history
+            cart.history.courierInfo = courierInfo.data;
 
-          // Update the delivery status dynamically (not saved to DB)
-          if (courierInfo.data.order_status) {
-            cart.history.deliveryStatus.name =
-              courierInfo.data.order_status.toUpperCase();
+            // Update the delivery status dynamically (not saved to DB)
+            if (courierInfo.data.order_status) {
+              cart.history.deliveryStatus.name =
+                courierInfo.data.order_status.toUpperCase();
+            }
           }
+        } catch (err) {
+          console.error('Courier info unavailable:', err?.message);
         }
       }
     }
@@ -1663,6 +1844,179 @@ export class AdminService {
 
     const arrivals = await this.newArrivalRepo.find(options);
     return arrivals;
+  }
+
+  // ---- home page sections (admin-curated product rows) ----
+
+  // Rows seeded on first run so the home page looks the same until an admin
+  // edits it. `q` is the name search the storefront used to hard-code.
+  private static readonly HOME_SECTION_SEEDS = [
+    { eyebrow: 'ZIPPER', title: 'HOODIE', q: 'zipper hoodie' },
+    { eyebrow: null, title: 'SWEATSHIRT', q: 'sweatshirt' },
+    { eyebrow: 'KANGAROO POCKET', title: 'HOODIE', q: 'kangaroo' },
+  ];
+
+  private static readonly HOME_SECTION_LIMITS = {
+    sections: 20,
+    productsPerSection: 60,
+    text: 80,
+  };
+
+  async onModuleInit() {
+    try {
+      if ((await this.homeSectionRepo.count()) > 0) return;
+
+      const sections = [];
+      for (const [position, seed] of AdminService.HOME_SECTION_SEEDS.entries()) {
+        const products = await this.productRepo
+          .createQueryBuilder('product')
+          .select('product.id')
+          .where('product.name ILIKE :q', { q: `%${seed.q}%` })
+          .andWhere('product.publishable = true')
+          .orderBy('product.id', 'ASC')
+          .getMany();
+        sections.push(
+          this.homeSectionRepo.create({
+            eyebrow: seed.eyebrow,
+            title: seed.title,
+            position,
+            isActive: true,
+            productIds: products.map((p) => p.id),
+          }),
+        );
+      }
+      await this.homeSectionRepo.save(sections);
+    } catch (error) {
+      // Never block startup over seed data; the admin can create sections.
+      console.error('Could not seed home sections:', error);
+    }
+  }
+
+  // Resolves each section's product ids to products, keeping the admin's
+  // order and dropping products that were deleted (or, for the storefront,
+  // unpublished).
+  private async attachSectionProducts(
+    sections: HomeSectionEntity[],
+    onlyPublished: boolean,
+  ) {
+    const ids = [...new Set(sections.flatMap((s) => s.productIds))];
+    const byId = new Map<number, ProductEntity>();
+
+    if (ids.length > 0) {
+      const query = this.productRepo
+        .createQueryBuilder('product')
+        .leftJoinAndSelect('product.color', 'color')
+        .leftJoinAndSelect('product.fabric', 'fabric')
+        .leftJoinAndSelect('product.productPictures', 'productPicture')
+        .leftJoinAndSelect('product.pscs', 'psc')
+        .leftJoinAndSelect('psc.category', 'subSubCategory')
+        .leftJoinAndSelect('psc.size', 'size')
+        .where('product.id IN (:...ids)', { ids });
+      if (onlyPublished) query.andWhere('product.publishable = true');
+      (await query.getMany()).forEach((p) => byId.set(p.id, p));
+    }
+
+    return sections.map((section) => ({
+      ...section,
+      products: section.productIds
+        .map((id) => byId.get(id))
+        .filter((p): p is ProductEntity => Boolean(p)),
+    }));
+  }
+
+  // Storefront feed: active sections in order, without empty ones.
+  async viewHomeSections() {
+    const sections = await this.homeSectionRepo.find({
+      where: { isActive: true },
+      order: { position: 'ASC', id: 'ASC' },
+    });
+    const resolved = await this.attachSectionProducts(sections, true);
+    return resolved.filter((section) => section.products.length > 0);
+  }
+
+  // Admin editor feed: every section, including hidden and empty ones.
+  async manageHomeSections() {
+    const sections = await this.homeSectionRepo.find({
+      order: { position: 'ASC', id: 'ASC' },
+    });
+    return this.attachSectionProducts(sections, false);
+  }
+
+  // Replaces the whole layout atomically; array order becomes display order.
+  async saveHomeSections(input: any) {
+    const limits = AdminService.HOME_SECTION_LIMITS;
+
+    if (!Array.isArray(input) || input.length < 1) {
+      throw new BadRequestException(
+        'Keep at least one section - hide it instead of removing it.',
+      );
+    }
+    if (input.length > limits.sections) {
+      throw new BadRequestException(
+        `You can have at most ${limits.sections} sections.`,
+      );
+    }
+
+    const cleaned = input.map((raw, index) => {
+      const label = `Section ${index + 1}`;
+      const title = typeof raw?.title === 'string' ? raw.title.trim() : '';
+      const eyebrow = typeof raw?.eyebrow === 'string' ? raw.eyebrow.trim() : '';
+
+      if (!title) throw new BadRequestException(`${label} needs a title.`);
+      if (title.length > limits.text || eyebrow.length > limits.text) {
+        throw new BadRequestException(
+          `${label}: titles can be at most ${limits.text} characters.`,
+        );
+      }
+      if (!Array.isArray(raw.productIds)) {
+        throw new BadRequestException(`${label}: products are missing.`);
+      }
+
+      const productIds = [...new Set(raw.productIds.map(Number))] as number[];
+      if (productIds.some((id) => !Number.isInteger(id) || id < 1)) {
+        throw new BadRequestException(`${label}: invalid product.`);
+      }
+      if (productIds.length > limits.productsPerSection) {
+        throw new BadRequestException(
+          `${label}: at most ${limits.productsPerSection} products.`,
+        );
+      }
+
+      return {
+        eyebrow: eyebrow || null,
+        title,
+        position: index,
+        isActive: raw.isActive !== false,
+        productIds,
+      };
+    });
+
+    const allIds = [...new Set(cleaned.flatMap((s) => s.productIds))];
+    if (allIds.length > 0) {
+      const found = await this.productRepo.find({
+        select: { id: true },
+        where: { id: In(allIds) },
+      });
+      if (found.length !== allIds.length) {
+        throw new BadRequestException(
+          'Some selected products no longer exist. Reload the page and try again.',
+        );
+      }
+    }
+
+    await this.homeSectionRepo.manager.transaction(async (manager) => {
+      await manager
+        .createQueryBuilder()
+        .delete()
+        .from(HomeSectionEntity)
+        .execute();
+      await manager.save(
+        HomeSectionEntity,
+        cleaned.map((section) => manager.create(HomeSectionEntity, section)),
+      );
+    });
+
+    return this.manageHomeSections();
   }
 
   // view active pop up
@@ -2964,21 +3318,67 @@ export class AdminService {
   }
 
   // create new buy
+  // The order row and its items are written in one transaction, so a failure
+  // part-way leaves nothing behind and the customer can safely retry.
   async createNewBuy(myDto) {
+    const cartIds: number[] = Array.isArray(myDto?.carts) ? myDto.carts : [];
+    if (cartIds.length === 0) {
+      throw new HttpException('No items to order', HttpStatus.BAD_REQUEST);
+    }
 
-    myDto.deliveryStatus = await this.getDeliveryStatusById(
-      myDto?.deliveryStatusId || 1,
-    );
-    myDto.paymentMethod = await this.getPaymentMethodById(
-      myDto?.paymentMethodId || 1,
-    );
-    myDto.trackingToken = uuidv4();
-    myDto.adminNote = 'Order created.';
-    const newBuy = this.buyingHistoryRepo.create({ ...myDto });
+    // Don't trust the browser: the storefront only ever sends a Bangladeshi
+    // mobile number and one of the published delivery fees (free for pickup).
+    if (!/^01[3-9]\d{8}$/.test(String(myDto.phone_no || ''))) {
+      throw new HttpException(
+        'Please enter a valid mobile number like 01XXXXXXXXX.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const fee = Number(myDto.deliveryFee);
+    const expectedFee = myDto.isPickup
+      ? 0
+      : expectedDeliveryFee(String(myDto.region || ''), String(myDto.city || ''));
+    if (fee !== expectedFee) {
+      throw new HttpException('Invalid delivery fee.', HttpStatus.BAD_REQUEST);
+    }
 
-    const savedBuy = await this.buyingHistoryRepo.save(newBuy);
-    this.createNewCartObject(savedBuy, myDto.carts);
-    return savedBuy;
+    // Keep the customer's own note visible to the admin alongside the status.
+    const customerNote =
+      typeof myDto.notes === 'string' ? myDto.notes.trim() : '';
+
+    // Only take the customer-facing fields from the request. Anything else
+    // (PaymentDone, isChecked, dates...) is set by the server or the admin.
+    const orderData = {
+      fullName: myDto.fullName,
+      region: myDto.region,
+      city: myDto.city,
+      address: myDto.address,
+      phone_no: myDto.phone_no,
+      BuyingDate: new Date(),
+      deliveryFee: fee,
+      facebookProfile: myDto.facebookProfile,
+      isPickup: !!myDto.isPickup,
+      pickupCenter: myDto.pickupCenter,
+      deliveryStatus: await this.getDeliveryStatusById(1),
+      // Checkout only ever records cash on delivery (1) or pay at pickup (8)
+      // up front; online payment is recorded later through add-payment.
+      paymentMethod: await this.getPaymentMethodById(
+        Number(myDto?.paymentMethodId) === 8 ? 8 : 1,
+      ),
+      trackingToken: uuidv4(),
+      adminNote: customerNote
+        ? `Order created. Customer note: ${customerNote}`.slice(0, 250)
+        : 'Order created.',
+    };
+
+    return this.buyingHistoryRepo.manager.transaction(async (manager) => {
+      const newBuy = manager
+        .getRepository(this.buyingHistoryRepo.target)
+        .create(orderData);
+      const savedBuy: any = await manager.save(newBuy);
+      await this.createNewCartObject(savedBuy, cartIds, manager);
+      return savedBuy;
+    });
   }
 
   // send message to customer
@@ -3130,52 +3530,75 @@ export class AdminService {
   }
 
   // create new cart object
-  async createNewCartObject(buy, cartsData) {
+  // Runs inside createNewBuy's transaction. Each cart is claimed with a
+  // conditional update (isBought false -> true), so a cart that is already part
+  // of an order - or claimed by a concurrent request - is rejected and the
+  // whole order rolls back.
+  async createNewCartObject(buy, cartsData, manager) {
+    const cartRepo = manager.getRepository(this.cartRepo.target);
+    const productRepo = manager.getRepository(this.productRepo.target);
+    const pscRepo = manager.getRepository(this.productSizeCategoryRepo.target);
+    let attached = 0;
+
     for (const cartDataId of cartsData) {
-      const cart = await this.cartRepo.findOne({
+      const claimed = await cartRepo.update(
+        { id: cartDataId, isBought: false },
+        { isBought: true },
+      );
+      if (!claimed.affected) {
+        throw new HttpException(
+          'Some items in your cart were already ordered or no longer exist. Please refresh your cart.',
+          HttpStatus.CONFLICT,
+        );
+      }
+
+      const cart = await cartRepo.findOne({
         where: { id: cartDataId },
         relations: ['product', 'category'],
       });
 
-      if (!cart) {
-        console.error(`Cart not found for ID: ${cartDataId}`);
-        continue;
-      }
-
-      const productInfo = await this.productRepo.findOne({
+      const productInfo = await productRepo.findOne({
         where: {
           id: cart.product.id,
         },
       });
 
-      await this.productRepo.update(productInfo.id, {
+      await productRepo.update(productInfo.id, {
         salesCount: productInfo.salesCount + 1,
       });
 
       const size = await this.getSizeByName(cart.size);
+      // The item is already claimed, so it is attached to the order either
+      // way; only the stock deduction is skipped when the size is unknown.
       if (!size) {
         console.error(`Size not found for size name: ${cart.size}`);
-        continue;
-      }
-
-      const pscObj = await this.productSizeCategoryRepo.findOne({
-        where: {
-          category: cart.category,
-          size: size,
-          product: { id: cart.product.id },
-        },
-        relations: ['product'],
-      });
-
-      if (pscObj) {
-        if (pscObj.quantity) {
-          pscObj.quantity -= cart.Quantity;
-        }
-        await this.productSizeCategoryRepo.save(pscObj);
       } else {
-        console.error(
-          `Product-Size-Category object not found for Cart ID: ${cartDataId}`,
-        );
+        const pscObj = await pscRepo.findOne({
+          where: {
+            category: cart.category,
+            size: size,
+            product: { id: cart.product.id },
+          },
+          relations: ['product'],
+        });
+
+        if (pscObj) {
+          if (pscObj.quantity) {
+            // Stock is tracked for this size: never sell more than is left.
+            if (pscObj.quantity < cart.Quantity) {
+              throw new HttpException(
+                `Sorry, only ${pscObj.quantity} of "${cart.ProductName}" (size ${cart.size}) left in stock. Please lower the quantity in your cart.`,
+                HttpStatus.CONFLICT,
+              );
+            }
+            pscObj.quantity -= cart.Quantity;
+          }
+          await pscRepo.save(pscObj);
+        } else {
+          console.error(
+            `Product-Size-Category object not found for Cart ID: ${cartDataId}`,
+          );
+        }
       }
 
       cart.isBought = true;
@@ -3186,9 +3609,63 @@ export class AdminService {
           cart.Quantity,
       );
       cart.history = buy;
-      await this.cartRepo.save(cart);
+      await cartRepo.save(cart);
+      attached += 1;
+    }
+
+    // An order with no items attached is useless - roll it back.
+    if (attached === 0) {
+      throw new HttpException(
+        'None of the items could be ordered.',
+        HttpStatus.BAD_REQUEST,
+      );
     }
     return true;
+  }
+
+  // change the quantity of a cart item that hasn't been ordered yet.
+  // Same proof of ownership as the cart listing: the item must belong to the
+  // caller's email.
+  async updateCartQuantity(uniqueId: string, email?: string, quantity?: number) {
+    const qty = Number(quantity);
+    if (!email || !uniqueId) {
+      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+    }
+    if (!Number.isInteger(qty) || qty < 1 || qty > 10) {
+      throw new HttpException(
+        'Quantity must be between 1 and 10.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const cart = await this.cartRepo.findOne({
+      where: { uniqueId, isBought: false, customer: { email } },
+      relations: ['product', 'category'],
+    });
+    if (!cart) {
+      throw new NotFoundException('Cart item not found.');
+    }
+
+    // Don't let the cart hold more than is in stock (when stock is tracked).
+    const size = cart.size ? await this.getSizeByName(cart.size) : null;
+    if (size) {
+      const stock = await this.productSizeCategoryRepo.findOne({
+        where: {
+          category: cart.category,
+          size,
+          product: { id: cart.product.id },
+        },
+      });
+      if (stock?.quantity && qty > stock.quantity) {
+        throw new HttpException(
+          `Only ${stock.quantity} left in stock.`,
+          HttpStatus.CONFLICT,
+        );
+      }
+    }
+
+    await this.cartRepo.update(cart.id, { Quantity: qty });
+    return { id: cart.id, uniqueId, Quantity: qty };
   }
 
   // create new cart

@@ -466,6 +466,17 @@ export class AdminController {
     );
   }
 
+  // aggregate stats for the admin dashboard (sales, orders, customers, monthly trend)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Get('dashboard-stats')
+  getDashboardStats(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.adminService.getDashboardStats(startDate, endDate);
+  }
+
   // get specific order
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
@@ -523,6 +534,19 @@ export class AdminController {
     return this.adminService.removeWish(wishId);
   }
 
+  // change the quantity of an item still in the cart
+  @Put('update-cart-quantity/:uniqueId')
+  updateCartQuantity(
+    @Param('uniqueId') uniqueId: string,
+    @Body() body: { email?: string; quantity?: number },
+  ) {
+    return this.adminService.updateCartQuantity(
+      uniqueId,
+      body?.email,
+      body?.quantity,
+    );
+  }
+
   // delete a cart
   @Delete('delete-cart/:uniqueId')
   deleteCartItem(@Param('uniqueId') id) {
@@ -568,6 +592,27 @@ export class AdminController {
   async viewNewArrivals() {
     const result = await this.adminService.viewNewArrivals();
     return result;
+  }
+
+  // home page sections (storefront feed)
+  @Get('view-home-sections')
+  viewHomeSections() {
+    return this.adminService.viewHomeSections();
+  }
+
+  // home page sections (admin editor: includes hidden/empty sections)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Get('manage-home-sections')
+  manageHomeSections() {
+    return this.adminService.manageHomeSections();
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Put('home-sections')
+  saveHomeSections(@Body() body: { sections: any }) {
+    return this.adminService.saveHomeSections(body?.sections);
   }
 
   // view active pop up
