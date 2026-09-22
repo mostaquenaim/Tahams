@@ -869,6 +869,13 @@ export class AdminService {
   // update admin profile
   async updateAdmin(myDto: AdminForm, email: string) {
     try {
+      if (myDto.password) {
+        myDto = {
+          ...myDto,
+          password: await bcrypt.hash(myDto.password, await bcrypt.genSalt()),
+        };
+      }
+
       const result = await this.adminRepo.update({ email: email }, myDto);
       if (result.affected === 0) {
         return 'Admin not found';
