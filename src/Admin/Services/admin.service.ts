@@ -14,7 +14,12 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, In, Like } from 'typeorm';
 import { AdminForm } from '../DTOs/adminform.dto';
-import { Repository, FindManyOptions, SelectQueryBuilder } from 'typeorm';
+import {
+  Brackets,
+  Repository,
+  FindManyOptions,
+  SelectQueryBuilder,
+} from 'typeorm';
 import { AdminEntity } from '../Entities/admin.entity';
 import { UserEntity } from 'src/Global/Entities/user.entity';
 import { ProductEntity } from 'src/Global/Entities/product.entity';
@@ -1087,9 +1092,64 @@ export class AdminService implements OnModuleInit {
     }
   }
 
-  // get product by query
+  // Split a search string into words and escape LIKE wildcards so a customer
+  // typing "50%" or "_" matches literally instead of matching everything.
+  private searchTokens(searchQuery: unknown): string[] {
+    if (typeof searchQuery !== 'string') return [];
+    return searchQuery
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 6)
+      .map((token) => token.replace(/[\\%_]/g, '\\$&'));
+  }
+
+  // Published products where every word matches at least one of `columns`
+  // (case-insensitive), so "hoodie zipper" finds "Zipper Hoodie".
+  private publishedSearchQuery(tokens: string[], columns: string[]) {
+    const query = this.productRepo
+      .createQueryBuilder('product')
+      .where('product.publishable = true');
+
+    tokens.forEach((token, index) => {
+      query.andWhere(
+        new Brackets((qb) => {
+          columns.forEach((column) =>
+            qb.orWhere(`${column} ILIKE :token${index}`, {
+              [`token${index}`]: `%${token}%`,
+            }),
+          );
+        }),
+      );
+    });
+
+    return query;
+  }
+
+  // get product by query (storefront search results)
   async getProductByQuery(searchQuery: string) {
+    const tokens = this.searchTokens(searchQuery);
+    if (tokens.length === 0) return [];
+
     try {
+      // Match on a lean join first: filtering the eager joins below directly
+      // would trim each product's sizes/pictures down to the matching rows.
+      const matches = await this.publishedSearchQuery(tokens, [
+        'product.name',
+        'product.tags',
+        'matchCategory.name',
+        'matchColor.name',
+      ])
+        .leftJoin('product.color', 'matchColor')
+        .leftJoin('product.pscs', 'matchPsc')
+        .leftJoin('matchPsc.category', 'matchCategory')
+        .select('product.id', 'id')
+        .distinct(true)
+        .getRawMany<{ id: number }>();
+
+      const ids = matches.map((match) => match.id);
+      if (ids.length === 0) return [];
+
       const products = await this.productRepo
         .createQueryBuilder('product')
         .leftJoinAndSelect('product.color', 'color')
@@ -1098,9 +1158,9 @@ export class AdminService implements OnModuleInit {
         .leftJoinAndSelect('product.pscs', 'psc')
         .leftJoinAndSelect('psc.category', 'subSubCategory')
         .leftJoinAndSelect('psc.size', 'size')
-        .where('product.name ILIKE :searchQuery', {
-          searchQuery: `%${searchQuery}%`,
-        }) // Case-insensitive search
+        .where('product.id IN (:...ids)', { ids })
+        .orderBy('product.createdAt', 'DESC')
+        .addOrderBy('product.id', 'DESC')
         .getMany();
 
       return products;
@@ -1110,15 +1170,19 @@ export class AdminService implements OnModuleInit {
     }
   }
 
-  // get product by query
+  // get product by query (search-bar dropdown suggestions)
   async getLessProductByQuery(searchQuery: string) {
+    const tokens = this.searchTokens(searchQuery);
+    if (tokens.length === 0) return [];
+
     try {
-      const products = await this.productRepo
-        .createQueryBuilder('product')
-        .where('product.name ILIKE :searchQuery', {
-          searchQuery: `%${searchQuery}%`,
-        }) // Case-insensitive search
-        .limit(3)
+      const products = await this.publishedSearchQuery(tokens, [
+        'product.name',
+        'product.tags',
+      ])
+        .orderBy('product.createdAt', 'DESC')
+        .addOrderBy('product.id', 'DESC')
+        .limit(5)
         .getMany();
 
       return products;
@@ -1843,7 +1907,9 @@ export class AdminService implements OnModuleInit {
     };
 
     const arrivals = await this.newArrivalRepo.find(options);
-    return arrivals;
+    // Older replacements were only marked with a 'discontinued' serial and
+    // stayed active; keep hiding those.
+    return arrivals.filter((arrival) => arrival.serial !== 'discontinued');
   }
 
   // ---- home page sections (admin-curated product rows) ----
@@ -3913,8 +3979,11 @@ export class AdminService implements OnModuleInit {
 
   // create new arrivals
   async addNewArrivals(myDto) {
-    // if category exists
     try {
+      const serial = parseInt(myDto.serial, 10);
+      this.validateArrivalSerial(serial);
+      const { name, description } = this.cleanArrivalText(myDto);
+
       const category = await this.subSubCategoryRepo.findOne({
         where: { id: parseInt(myDto.category) },
       });
@@ -3925,29 +3994,70 @@ export class AdminService implements OnModuleInit {
         );
       }
 
-      myDto.subsub = category;
-      myDto.filename = await this.compressImage(myDto.filename, 'thumb');
-      
-      // Check if a product with the same serial already exists
-      // const existingProduct = await this.newArrivalRepo.findOne({
-      //   where: { serial: myDto.serial },
-      // });
+      const filename = await this.compressImage(myDto.filename, 'thumb');
 
-      await this.validateAndHandleSerial(myDto.serial);
+      // Retire the current arrival and create its replacement together, so a
+      // failed save can't leave the slot empty.
+      return await this.newArrivalRepo.manager.transaction(async (manager) => {
+        const repo = manager.getRepository(NewArrivalEntity);
+        const current = await repo.find({
+          where: { serial: serial.toString(), isActive: true },
+        });
+        for (const arrival of current) {
+          arrival.serial = 'discontinued';
+          arrival.isActive = false;
+        }
+        if (current.length > 0) await repo.save(current);
 
-      // Create a new product
-      const newArrival = this.newArrivalRepo.create({
-        ...myDto,
-        subsub: category,
+        const newArrival = repo.create({
+          name,
+          description,
+          category: myDto.category,
+          serial: serial.toString(),
+          filename,
+          subsub: category,
+        });
+        return repo.save(newArrival);
       });
-      const savedProduct = await this.newArrivalRepo.save(newArrival);
-      return savedProduct;
     } catch (error) {
-      if (error instanceof BadRequestException) {
+      if (error instanceof HttpException) {
         throw error;
       }
       throw new ConflictException('Failed to create new arrival');
     }
+  }
+
+  // edit an active arrival in place; the image is only replaced when a new
+  // one is uploaded
+  async updateNewArrival(id: number, myDto, uploadedFilename?: string) {
+    const arrival = await this.newArrivalRepo.findOne({
+      where: { id },
+      relations: ['subsub'],
+    });
+    if (!arrival || !arrival.isActive || arrival.serial === 'discontinued') {
+      throw new NotFoundException('New arrival not found');
+    }
+
+    const { name, description } = this.cleanArrivalText(myDto);
+
+    const category = await this.subSubCategoryRepo.findOne({
+      where: { id: parseInt(myDto.category) },
+    });
+    if (!category) {
+      throw new NotFoundException(
+        `Category with ID ${myDto.category} not found`,
+      );
+    }
+
+    arrival.name = name;
+    arrival.description = description;
+    arrival.category = String(category.id);
+    arrival.subsub = category;
+    if (uploadedFilename) {
+      arrival.filename = await this.compressImage(uploadedFilename, 'thumb');
+    }
+
+    return this.newArrivalRepo.save(arrival);
   }
 
   async discontinueNewArrival(id: number) {
@@ -3976,21 +4086,25 @@ export class AdminService implements OnModuleInit {
     };
   }
 
-  async validateAndHandleSerial(serial: number): Promise<void> {
-    // Check if serial is within valid range
-    if (serial < 1 || serial > 8) {
-      throw new BadRequestException(`Serial must be between 1 and ${8}`);
+  // Same limits as the admin form (name 100, description 500).
+  private cleanArrivalText(myDto): { name: string; description: string } {
+    const name = typeof myDto.name === 'string' ? myDto.name.trim() : '';
+    const description =
+      typeof myDto.description === 'string' ? myDto.description.trim() : '';
+    if (!name || !description) {
+      throw new BadRequestException('Name and description are required');
     }
+    if (name.length > 100 || description.length > 500) {
+      throw new BadRequestException(
+        'Name must be at most 100 characters and description at most 500',
+      );
+    }
+    return { name, description };
+  }
 
-    // Check for existing product at this serial
-    const existingProduct = await this.newArrivalRepo.findOne({
-      where: { serial: serial.toString() },
-    });
-
-    if (existingProduct) {
-      // Mark existing as discontinued
-      existingProduct.serial = 'discontinued';
-      await this.newArrivalRepo.save(existingProduct);
+  private validateArrivalSerial(serial: number): void {
+    if (!Number.isInteger(serial) || serial < 1 || serial > 8) {
+      throw new BadRequestException(`Serial must be between 1 and ${8}`);
     }
   }
 

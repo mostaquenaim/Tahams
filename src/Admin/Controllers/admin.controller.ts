@@ -51,6 +51,30 @@ import { FirebaseAuthGuard } from '../Guards/firebase-auth.guard';
 import { randomBytes } from 'crypto';
 import cloudinary from '../Services/cloudinary.config';
 
+// Upload settings for the new-arrival endpoints. Stored names are unique and
+// URL-safe: the thumbnail is named after the stored file, so a reused original
+// name (e.g. "image.webp") must not overwrite an earlier thumbnail or be served
+// from a stale browser cache.
+const arrivalImageUpload = {
+  fileFilter: (req: any, file: Express.Multer.File, cb: any) => {
+    if (/\.(jpg|jpeg|png|webp|gif)$/i.test(file.originalname)) cb(null, true);
+    else cb(new MulterError('LIMIT_UNEXPECTED_FILE', 'filename'), false);
+  },
+  limits: { fileSize: 30000000 },
+  storage: diskStorage({
+    destination: './uploads',
+    filename: (req: any, file: Express.Multer.File, cb: any) => {
+      const ext = extname(file.originalname).toLowerCase();
+      const base =
+        path
+          .basename(file.originalname, extname(file.originalname))
+          .replace(/[^a-zA-Z0-9_-]/g, '-')
+          .slice(0, 40) || 'arrival';
+      cb(null, `${Date.now()}-${Math.round(Math.random() * 1e6)}-${base}${ext}`);
+    },
+  }),
+};
+
 @Controller('admin')
 export class AdminController {
   constructor(private readonly adminService: AdminService) { }
@@ -1341,41 +1365,35 @@ export class AdminController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Post('/add-new-arrivals')
-  @UseInterceptors(
-    FileInterceptor('filename', {
-      fileFilter: (req, file, cb) => {
-        if (file.originalname.match(/^.*\.(jpg|webp|png|jpeg|gif)$/))
-          cb(null, true);
-        else {
-          cb(new MulterError('LIMIT_UNEXPECTED_FILE', 'filename'), false);
-        }
-      },
-      limits: { fileSize: 30000000 },
-      storage: diskStorage({
-        destination: './uploads',
-        filename: function (req, file, cb) {
-          cb(null, file.originalname + '-' + Date.now());
-        },
-      }),
-    }),
-  )
-  @UsePipes(new ValidationPipe())
+  @UseInterceptors(FileInterceptor('filename', arrivalImageUpload))
   addNewArrivals(
     @Body() mydata,
-    @UploadedFile() imageobj: Express.Multer.File,
+    @UploadedFile() imageobj?: Express.Multer.File,
   ) {
+    if (!imageobj) {
+      throw new HttpException('An image is required', HttpStatus.BAD_REQUEST);
+    }
     mydata.filename = imageobj.filename;
     return this.adminService.addNewArrivals(mydata);
+  }
+
+  // edit an active arrival; the image is optional
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Patch('update-new-arrival/:id')
+  @UseInterceptors(FileInterceptor('filename', arrivalImageUpload))
+  updateNewArrival(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() mydata,
+    @UploadedFile() imageobj?: Express.Multer.File,
+  ) {
+    return this.adminService.updateNewArrival(id, mydata, imageobj?.filename);
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Patch('discontinue-new-arrival/:id')
-  async discontinueNewArrival(@Param('id') id: number) {
-    if (!id) {
-      throw new HttpException('Arrival ID is required', HttpStatus.BAD_REQUEST);
-    }
-
+  async discontinueNewArrival(@Param('id', ParseIntPipe) id: number) {
     return this.adminService.discontinueNewArrival(id);
   }
 
