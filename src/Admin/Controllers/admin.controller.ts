@@ -501,6 +501,15 @@ export class AdminController {
     return this.adminService.getDashboardStats(startDate, endDate);
   }
 
+  // new orders / customization requests / pending cancel-return requests,
+  // for the admin sidebar badges (polled by the admin client - keep it cheap)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Get('badge-counts')
+  getAdminBadgeCounts() {
+    return this.adminService.getAdminBadgeCounts();
+  }
+
   // get specific order
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')

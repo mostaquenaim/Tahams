@@ -1462,6 +1462,40 @@ export class AdminService implements OnModuleInit {
     };
   }
 
+  // Counts of work waiting on an admin, for the sidebar badges. The admin
+  // client polls this, so it is three COUNT queries and nothing else - no
+  // rows loaded. Each count mirrors what its admin list shows as "new":
+  // - newOrders: non-draft orders with at least one bought cart (the orders
+  //   list's filter) that are not yet ticked as checked
+  // - newCustomizations: unchecked customization requests, counted per
+  //   groupId since the list shows one row per group and checks a whole
+  //   group at once
+  // - pendingRequests: cancel/return requests not yet approved
+  async getAdminBadgeCounts() {
+    const [orderRow, customRow, pendingRequests] = await Promise.all([
+      this.cartRepo
+        .createQueryBuilder('cart')
+        .innerJoin('cart.history', 'history')
+        .select('COUNT(DISTINCT history.id)', 'count')
+        .where('cart.isBought = :isBought', { isBought: true })
+        .andWhere('history.isDraft = :isDraft', { isDraft: false })
+        .andWhere('history.isChecked = :isChecked', { isChecked: false })
+        .getRawOne(),
+      this.customReqRepo
+        .createQueryBuilder('req')
+        .select('COUNT(DISTINCT req.groupId)', 'count')
+        .where('req.isChecked = :isChecked', { isChecked: false })
+        .getRawOne(),
+      this.returnRepo.count({ where: { isApproved: false } }),
+    ]);
+
+    return {
+      newOrders: Number(orderRow?.count) || 0,
+      newCustomizations: Number(customRow?.count) || 0,
+      pendingRequests,
+    };
+  }
+
   // Lightweight aggregates for the admin dashboard: no product/category/courier
   // joins (unlike getGroupedBuyingHistories), and cancelled/returned orders are
   // always excluded since they shouldn't count toward sales performance.
