@@ -70,6 +70,7 @@ import { CourierInfo } from 'src/Global/Entities/courier-info.entity';
 import { ActivityEntity } from 'src/Global/Entities/activity.entity';
 import { CustomerActivityEntity } from 'src/Global/Entities/customer-activity.entity';
 import { expectedDeliveryFee } from '../delivery-fees';
+import { BUILT_IN_ROLES } from 'src/Rbac/permissions';
 
 const unlinkAsync = promisify(fs.unlink);
 
@@ -495,6 +496,15 @@ export class AdminService implements OnModuleInit {
         myDto.password = hashedPass;
       }
 
+      // Staff access is only ever granted through the staff-management API
+      // (with its escalation checks) - never as a side effect of this
+      // generic create, whatever the body contains.
+      delete myDto.id;
+      delete myDto.staffRoleId;
+      delete myDto.staffRole;
+      delete myDto.staffActive;
+      delete myDto.tokenVersion;
+
       // Save the new user
       const savedUser = await this.userRepo.save(myDto);
 
@@ -503,6 +513,7 @@ export class AdminService implements OnModuleInit {
         email: savedUser.email,
         sub: savedUser.id,
         role: savedUser.role,
+        tv: savedUser.tokenVersion ?? 0, // see UserEntity.tokenVersion
         jti,
       };
 
@@ -525,8 +536,26 @@ export class AdminService implements OnModuleInit {
   }
 
   // create new role
+  // reserved: the built-in staff roles' names and keys (any case)
+  private isBuiltInRoleName(name: string): boolean {
+    const n = String(name).trim().toLowerCase();
+    return BUILT_IN_ROLES.some(
+      (r) =>
+        r.key === n ||
+        r.name.toLowerCase() === n ||
+        r.legacyNames.includes(n),
+    );
+  }
+
   async createNewRole(myDto: { name: string }) {
     try {
+      if (!myDto?.name?.trim() || this.isBuiltInRoleName(myDto.name)) {
+        return {
+          status: HttpStatus.CONFLICT,
+          message: 'That role name is reserved or empty',
+        };
+      }
+
       const existing = await this.roleRepo.findOne({
         where: { name: myDto.name.toLowerCase() },
       });
@@ -733,6 +762,7 @@ export class AdminService implements OnModuleInit {
         email: myData.email,
         sub: myData.id,
         role: myData.role,
+        tv: myData.tokenVersion ?? 0, // see UserEntity.tokenVersion
         jti,
       };
 
@@ -862,6 +892,7 @@ export class AdminService implements OnModuleInit {
         email: myData.email,
         sub: myData.id,
         role: myData.role,
+        tv: myData.tokenVersion ?? 0, // see UserEntity.tokenVersion
         jti,
       };
 
@@ -932,6 +963,7 @@ export class AdminService implements OnModuleInit {
         email: myData.email,
         sub: myData.id,
         role: myData.role,
+        tv: myData.tokenVersion ?? 0, // see UserEntity.tokenVersion
         jti,
       };
 
@@ -2651,6 +2683,21 @@ export class AdminService implements OnModuleInit {
         throw new HttpException('Role not found', HttpStatus.NOT_FOUND);
       }
 
+      // Built-in roles (Owner, Manager, ...) are referenced by key and must
+      // keep their names.
+      if (role.isSystem) {
+        throw new HttpException(
+          'Built-in roles cannot be renamed',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+      if (!dto?.name || this.isBuiltInRoleName(dto.name)) {
+        throw new HttpException(
+          'That role name is reserved or empty',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       // Check for duplicate role name
       const existing = await this.roleRepo.findOne({
         where: { name: dto.name.toLowerCase() },
@@ -2951,11 +2998,22 @@ export class AdminService implements OnModuleInit {
         throw new HttpException('Role not found', HttpStatus.NOT_FOUND);
       }
 
-      // Optional: check if any users are assigned this role
-      // const usersWithRole = await this.userRepo.count({ where: { role: role.name } });
-      // if (usersWithRole > 0) {
-      //   throw new HttpException('Cannot delete role assigned to users', HttpStatus.CONFLICT);
-      // }
+      if (role.isSystem) {
+        throw new HttpException(
+          'Built-in roles cannot be deleted',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
+      const assigned = await this.userRepo.count({
+        where: { staffRoleId: role.id },
+      });
+      if (assigned > 0) {
+        throw new HttpException(
+          `Role is assigned to ${assigned} staff member(s) - reassign them first`,
+          HttpStatus.CONFLICT,
+        );
+      }
 
       await this.roleRepo.remove(role);
 

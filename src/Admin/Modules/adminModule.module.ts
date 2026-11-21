@@ -51,6 +51,10 @@ import { CustomTextElement } from "src/Global/Entities/custom-text-element";
 import { CourierInfo } from "src/Global/Entities/courier-info.entity";
 import { ActivityEntity } from "src/Global/Entities/activity.entity";
 import { CustomerActivityEntity } from "src/Global/Entities/customer-activity.entity";
+import { RolePermissionEntity } from "src/Global/Entities/role-permission.entity";
+import { APP_GUARD } from "@nestjs/core";
+import { RbacService } from "src/Rbac/rbac.service";
+import { AccessPolicyGuard } from "src/Rbac/access-policy.guard";
 // dotenv.config();
 
 @Module({
@@ -100,6 +104,7 @@ import { CustomerActivityEntity } from "src/Global/Entities/customer-activity.en
             PartnerEntity,
             ReturnEntity,
             RoleEntity,
+            RolePermissionEntity,
             SizeEntity,
             SubCategoryEntity,
             SubSubCategoryEntity,
@@ -117,7 +122,10 @@ import { CustomerActivityEntity } from "src/Global/Entities/customer-activity.en
         RolesGuard,
         OrderAccessGuard,
         FirebaseAuthGuard,
-        ConfigService
+        ConfigService,
+        RbacService,
+        // Global, deny-by-default route access check - see src/Rbac.
+        { provide: APP_GUARD, useClass: AccessPolicyGuard },
     ],
 })
 

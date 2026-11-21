@@ -1,7 +1,15 @@
 /* eslint-disable prettier/prettier */
 import { CartsEntity } from 'src/Global/Entities/cart.entity';
 import { WishEntity } from 'src/Global/Entities/wish.entity';
-import { Entity, Column, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
+import { RoleEntity } from './roles.entity';
 import { ViewProductEntity } from './viewProduct.entity';
 import { MessageEntity } from './messages.entity';
 import { UnreadMessageEntity } from './unreadMessage.entity';
@@ -24,8 +32,29 @@ export class UserEntity {
   @Column({ unique: true })
   email: string;
 
+  // Legacy coarse role ('admin' / 'customer'). Still read by the legacy
+  // admin guard until RBAC phase 2; staff access is staffRoleId below.
   @Column({ default: 'customer' })
   role: string;
+
+  // ---- staff access (RBAC) - NEVER settable from a request body ----
+  // Null for customers. Only the staff-management API may change these.
+  @Column({ nullable: true })
+  staffRoleId: number;
+
+  @ManyToOne(() => RoleEntity, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'staffRoleId' })
+  staffRole: RoleEntity;
+
+  // Lets an Owner suspend a staff member without removing their role.
+  @Column({ default: true })
+  staffActive: boolean;
+
+  // Bumped on role change / deactivation / password reset. Every JWT carries
+  // the version it was issued with (`tv`); a mismatch is rejected, so access
+  // changes take effect on the very next request instead of in 7 days.
+  @Column({ default: 0 })
+  tokenVersion: number;
 
   @Column({ nullable: true })
   mbl_no: string;

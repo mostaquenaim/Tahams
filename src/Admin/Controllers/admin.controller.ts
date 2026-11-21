@@ -50,6 +50,18 @@ import { OrderAccessGuard } from '../Guards/order-access.guard';
 import { FirebaseAuthGuard } from '../Guards/firebase-auth.guard';
 import { randomBytes } from 'crypto';
 import cloudinary from '../Services/cloudinary.config';
+import {
+  Authenticated,
+  Public,
+  RequirePermissions,
+  SelfGuarded,
+} from 'src/Rbac/access.decorators';
+import { RbacService } from 'src/Rbac/rbac.service';
+import {
+  OWNER_ONLY_PERMISSIONS,
+  P,
+  PERMISSION_GROUPS,
+} from 'src/Rbac/permissions';
 
 // Upload settings for the new-arrival endpoints. Stored names are unique and
 // URL-safe: the thumbnail is named after the stored file, so a reused original
@@ -77,9 +89,51 @@ const arrivalImageUpload = {
 
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) { }
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly rbac: RbacService,
+  ) { }
+
+  // Who am I, as far as the admin panel is concerned? Any logged-in user may
+  // ask; customers just get isStaff: false. The frontend uses this to decide
+  // what to show - the backend still checks every request on its own.
+  @Authenticated()
+  @Get('me')
+  async getMyAccess(@Req() req) {
+    const access = await this.rbac.getStaffAccess(Number(req.user.sub));
+    if (!access) {
+      return {
+        id: Number(req.user.sub),
+        email: req.user.email,
+        isStaff: false,
+        isOwner: false,
+        role: null,
+        permissions: [],
+      };
+    }
+    return {
+      id: access.userId,
+      email: access.email,
+      name: access.name,
+      isStaff: true,
+      isOwner: access.isOwner,
+      role: access.role,
+      permissions: access.permissions,
+    };
+  }
+
+  // The permission catalog, grouped for the role editor.
+  @RequirePermissions(P.ROLES_MANAGE)
+  @Get('permissions')
+  getPermissionCatalog() {
+    return {
+      groups: PERMISSION_GROUPS,
+      ownerOnly: OWNER_ONLY_PERMISSIONS,
+    };
+  }
 
   //Login to account
+  @Public()
   @Post('/signin')
   async signIn(@Body() myDto) {
     const res = await this.adminService.signIn(myDto);
@@ -88,6 +142,7 @@ export class AdminController {
 
   // Google login - verifies the caller's Firebase ID token server-side
   // (never trusts a client-supplied email/password) before issuing our JWT.
+  @Public()
   @Post('google-signin')
   async googleSignIn(@Headers('authorization') authHeader: string) {
     return await this.adminService.googleSignIn(authHeader);
@@ -96,6 +151,7 @@ export class AdminController {
   // Email/password login for an existing account, via a verified Firebase
   // ID token rather than a second, separately-stored password - see
   // AdminService.firebaseSignIn for why.
+  @Public()
   @Post('firebase-signin')
   async firebaseSignIn(@Headers('authorization') authHeader: string) {
     return await this.adminService.firebaseSignIn(authHeader);
@@ -103,6 +159,7 @@ export class AdminController {
 
   // Merge a guest's cart/order history into the real account they just
   // logged into or registered as - see AdminService.mergeGuestCart.
+  @Public()
   @Post('merge-guest-cart')
   async mergeGuestCart(
     @Body('guestEmail') guestEmail: string,
@@ -112,6 +169,7 @@ export class AdminController {
   }
 
   // customerlogin
+  @Public()
   @Post('customer-login')
   @UsePipes(ValidationPipe)
   async customerLogin(@Body() myDto) {
@@ -120,12 +178,14 @@ export class AdminController {
   }
 
   // send mail
+  @Public()
   @Post('sendemail')
   sendEmail(@Body() mydata) {
     return this.adminService.sendEmail(mydata);
   }
 
   // otp
+  @Public()
   @Post('send-otp')
   @UsePipes(ValidationPipe)
   async sendOtp(@Body() sendOtpDto) {
@@ -136,6 +196,7 @@ export class AdminController {
   }
 
   // verify otp
+  @Public()
   @Post('verify-otp')
   @UsePipes(ValidationPipe)
   async verifyOtp(@Body() verifyOtpDto) {
@@ -176,12 +237,14 @@ export class AdminController {
   }
 
   // get all banners
+  @Public()
   @Get('all-banners')
   viewAllBanners() {
     return this.adminService.viewAllBanners();
   }
 
   // get banner by id
+  @Public()
   @Get('banner-by-id/:id')
   viewBannerById(@Param('id', ParseIntPipe) id: number) {
     return this.adminService.getBannerById(id);
@@ -238,6 +301,7 @@ export class AdminController {
   }
 
   // add new buying
+  @Public()
   @Post('add-to-buy')
   @UsePipes(ValidationPipe)
   createNewBuy(@Body() myDto: any) {
@@ -355,6 +419,7 @@ export class AdminController {
   }
 
   // get buying histoy by id
+  @Public()
   @Get('get-buying-history-by-token/:token')
   async getBuyingHistoryByToken(
     @Param('token') token,
@@ -370,6 +435,7 @@ export class AdminController {
   }
 
   // get buying history by id
+  @Public()
   @Get('get-buying-history-status-by-token/:token')
   async getBuyingHistoryStatusByToken(
     @Param('token') token,
@@ -380,6 +446,7 @@ export class AdminController {
   }
 
   // add payment info
+  @Public()
   @Post('/add-payment')
   @UseInterceptors(
     FileInterceptor('screenshot', {
@@ -411,6 +478,7 @@ export class AdminController {
   // Pathao delivery-status webhook. Handles both the one-off
   // "webhook_integration" verification handshake sent from the merchant
   // dashboard and the ongoing signed order-status-update events.
+  @Public()
   @Post('pathao-webhook')
   async pathaoWebhook(
     @Body() body: any,
@@ -438,6 +506,7 @@ export class AdminController {
   // OrderAccessGuard. A caller with neither is rejected; guests without a
   // Firebase session use the per-order tracking-token flow instead.
   @UseGuards(OrderAccessGuard)
+  @SelfGuarded()
   @Get('get-all-buying-history')
   getAllBuyingHistories(
     @Req() req,
@@ -542,6 +611,7 @@ export class AdminController {
   }
 
   // add new cart
+  @Public()
   @Post('add-to-cart')
   @UsePipes(ValidationPipe)
   async createNewCart(@Body() myDto) {
@@ -550,6 +620,7 @@ export class AdminController {
   }
 
   // add new wish
+  @Public()
   @Post('add-Wish')
   @UsePipes(ValidationPipe)
   createNewWish(@Body() myDto) {
@@ -557,6 +628,7 @@ export class AdminController {
   }
 
   // remove wish list item
+  @Public()
   @Delete('remove-wish/:wishId')
   // @UsePipes(ValidationPipe)
   removeWish(@Param('wishId') wishId: number) {
@@ -564,6 +636,7 @@ export class AdminController {
   }
 
   // change the quantity of an item still in the cart
+  @Public()
   @Put('update-cart-quantity/:uniqueId')
   updateCartQuantity(
     @Param('uniqueId') uniqueId: string,
@@ -577,6 +650,7 @@ export class AdminController {
   }
 
   // delete a cart
+  @Public()
   @Delete('delete-cart/:uniqueId')
   deleteCartItem(@Param('uniqueId') id) {
     return this.adminService.deleteCartItem(id);
@@ -591,12 +665,14 @@ export class AdminController {
   }
 
   // delete several of the caller's own cart items
+  @Public()
   @Delete('delete-carts')
   deleteCarts(@Body() myDto) {
     return this.adminService.deleteCarts(myDto?.checkedItems, myDto?.email);
   }
 
   // a customer's (or guest's) own cart - never anyone else's
+  @Public()
   @Get('get-all-carts')
   getAllCarts(@Query('email') email: string) {
     return this.adminService.getAllCarts(email);
@@ -611,6 +687,7 @@ export class AdminController {
   }
 
   // view category
+  @Public()
   @Get('view-product-categories')
   async viewProductCategories() {
     const result = await this.adminService.viewProductCategories();
@@ -618,6 +695,7 @@ export class AdminController {
   }
 
   // view popular items
+  @Public()
   @Get('view-popular-items')
   async viewPopularItems() {
     const result = await this.adminService.viewPopularItems();
@@ -625,6 +703,7 @@ export class AdminController {
   }
 
   // view new arrivals
+  @Public()
   @Get('view-new-arrivals')
   async viewNewArrivals() {
     const result = await this.adminService.viewNewArrivals();
@@ -632,6 +711,7 @@ export class AdminController {
   }
 
   // home page sections (storefront feed)
+  @Public()
   @Get('view-home-sections')
   viewHomeSections() {
     return this.adminService.viewHomeSections();
@@ -653,6 +733,7 @@ export class AdminController {
   }
 
   // view active pop up
+  @Public()
   @Get('view-active-pop-up')
   async viewActivePopUp() {
     const result = await this.adminService.viewActivePopUp();
@@ -660,6 +741,7 @@ export class AdminController {
   }
 
   // view all pop up
+  @Public()
   @Get('view-all-pop-up')
   async viewAllPopUp() {
     const result = await this.adminService.viewAllPopUp();
@@ -667,6 +749,7 @@ export class AdminController {
   }
 
   // view genders
+  @Public()
   @Get('view-genders')
   async viewGenders() {
     const result = await this.adminService.viewGenders();
@@ -682,6 +765,7 @@ export class AdminController {
   }
 
   // view all sub sub category
+  @Public()
   @Get('view-product-sub-sub-categories')
   async viewAllProductSubSubCategories() {
     const result = await this.adminService.viewAllProductSubSubCategories();
@@ -689,6 +773,7 @@ export class AdminController {
   }
 
   // view all colors
+  @Public()
   @Get('view-colors')
   async viewColors() {
     const result = await this.adminService.viewColors();
@@ -696,6 +781,7 @@ export class AdminController {
   }
 
   // view all fabrics
+  @Public()
   @Get('view-fabrics')
   async viewFabrics() {
     const result = await this.adminService.viewFabrics();
@@ -703,6 +789,7 @@ export class AdminController {
   }
 
   // view category
+  @Public()
   @Get('view-product-sub-categories')
   async viewAllProductSubCategories() {
     const result = await this.adminService.viewAllProductSubCategories();
@@ -710,18 +797,21 @@ export class AdminController {
   }
 
   // view sub category by category
+  @Public()
   @Get('view-product-sub-category/:id')
   viewProductSubCategories(@Param('id') id: number) {
     return this.adminService.viewProductSubCategories(id);
   }
 
   // view sub sub-category by category
+  @Public()
   @Get('view-product-sub-sub-category/:catId')
   viewProductSubSubCategories(@Param('catId') catId: number) {
     return this.adminService.viewProductSubSubCategories(catId);
   }
 
   // check if wished
+  @Public()
   @Get('check-wish-by-user-and-product')
   checkIfWished(
     @Query('customerEmail') customerEmail: string,
@@ -731,18 +821,21 @@ export class AdminController {
   }
 
   // get sub category by id
+  @Public()
   @Get('get-sub-sub-cat-by-id/:id')
   getSubCatById(@Param('id') id: number) {
     return this.adminService.getSubSubCategoryById(id);
   }
 
   // get sub category by id
+  @Public()
   @Get('get-ft-photo-by-product-id/:id')
   getProductFtImage(@Param('id') id: number) {
     return this.adminService.getProductFtImage(id);
   }
 
   // get category by id
+  @Public()
   @Get('getCategoryById/:id')
   @UsePipes(ValidationPipe)
   getCategoryById(@Param('id') id) {
@@ -750,6 +843,7 @@ export class AdminController {
   }
 
   // get products by category id
+  @Public()
   @Get('get-product-by-cat/:name')
   @UsePipes(ValidationPipe)
   getProductByCat(@Param('name') name) {
@@ -757,6 +851,7 @@ export class AdminController {
   }
 
   // get products by sub sub category id
+  @Public()
   @Get('get-product-by-sub-sub-cat/:id')
   @UsePipes(ValidationPipe)
   getProductBySubSubCatId(@Param('id') id) {
@@ -769,6 +864,7 @@ export class AdminController {
   // verified Firebase token's own email, or anyone could read anyone
   // else's name/address/phone by guessing their email.
   @UseGuards(FirebaseAuthGuard)
+  @SelfGuarded()
   @Get('get-user-by-email/:email')
   @UsePipes(ValidationPipe)
   getUserByEmail(@Req() req) {
@@ -864,6 +960,7 @@ export class AdminController {
   // Firebase token, never any id the caller happens to name in the URL -
   // see updateUserAddress in the service for the ownership check.
   @UseGuards(FirebaseAuthGuard)
+  @SelfGuarded()
   @Put('update-user-address/:id')
   async updateUserAddress(
     @Req() req,
@@ -896,6 +993,7 @@ export class AdminController {
   }
 
   // increase product view
+  @Public()
   @Post('increase-product-view/:id')
   @UsePipes(ValidationPipe)
   increaseProductView(@Param('id') id: number, @Query('email') email: string) {
@@ -948,6 +1046,7 @@ export class AdminController {
   }
 
   // confirm of cancellation
+  @Public()
   @Post('confirm-return-or-cancellation')
   async confirmReturnOrCancellation(
     @Body('selectedProducts') selectedProducts: string[],
@@ -1054,6 +1153,7 @@ export class AdminController {
   }
 
   //logout
+  @Authenticated()
   @Post('logout')
   @UseGuards(AuthGuard('jwt'))
   async logout(@Req() req: any) {
@@ -1093,12 +1193,14 @@ export class AdminController {
   }
 
   // view all product
+  @Public()
   @Get('view-all-products')
   viewAllProducts(@Query('filter') query: any) {
     return this.adminService.viewAllProducts(query && query);
   }
 
   // view related products
+  @Public()
   @Get('related-products')
   viewRelatedProducts(
     @Query('category') category: number,
@@ -1108,6 +1210,7 @@ export class AdminController {
   }
 
   // get product by search query
+  @Public()
   @Get('search-products')
   async getProductByQuery(@Query('q') searchQuery: string) {
     const products = await this.adminService.getProductByQuery(searchQuery);
@@ -1115,6 +1218,7 @@ export class AdminController {
   }
 
   // get product by search query for search bar
+  @Public()
   @Get('search-bar-products')
   async getLessProductByQuery(@Query('q') searchQuery: string) {
     const products = await this.adminService.getLessProductByQuery(searchQuery);
@@ -1122,18 +1226,21 @@ export class AdminController {
   }
 
   // view size
+  @Public()
   @Get('view-product-sizes')
   viewProductSizes() {
     return this.adminService.viewProductSizes();
   }
 
   // view all views
+  @Public()
   @Get('view-all-products-views')
   viewAllProductsViews() {
     return this.adminService.viewAllProductsViews();
   }
 
   // get product by id
+  @Public()
   @Get('get-product-by-id/:id')
   @UsePipes(ValidationPipe)
   async getProductById(@Param('id') id) {
@@ -1248,6 +1355,7 @@ export class AdminController {
   }
 
   // send customization request
+  @Public()
   @Post('send-customize-tee-request')
   @UseInterceptors(
     FileInterceptor('previewImage', {
@@ -1292,6 +1400,7 @@ export class AdminController {
   }
 
   // send text customization element
+  @Public()
   @Post('customized-text-element/:id')
   async getCustomTextElement(@Param('id') id: number, @Body() textData) {
     try {
@@ -1304,6 +1413,7 @@ export class AdminController {
   }
 
   // send image customization element
+  @Public()
   @Post('customized-image-element/:id')
   @UseInterceptors(
     FileInterceptor('image', {
@@ -1345,6 +1455,7 @@ export class AdminController {
   // everyone's requests, a verified Firebase ID token sees only its own
   // email's requests - never derived from the query string.
   @UseGuards(OrderAccessGuard)
+  @SelfGuarded()
   @Get('get-all-customization-requests')
   async getAllCustomizationRequests(
     @Req() req,
@@ -1554,6 +1665,7 @@ export class AdminController {
   }
 
   // get wishlist
+  @Public()
   @Get('get-wish-by-user/:email')
   async getWishByUser(@Param('email') email: string) {
     const res = await this.adminService.getWishByUser(email);
@@ -1561,6 +1673,7 @@ export class AdminController {
   }
 
   // get all images compressed
+  @Public()
   @Get('/get-all-images-compressed')
   async getImagesCompressed() {
     const res = await this.adminService.getImagesCompressed();
@@ -1568,6 +1681,7 @@ export class AdminController {
   }
 
   // get image by name
+  @Public()
   @Get('/getimage/*')
   getImages(@Req() req, @Res() res) {
     const filePath = req.params[0]; // gets the path after /getimage/
@@ -1575,6 +1689,7 @@ export class AdminController {
   }
 
   // fraud check
+  @Public()
   @Post('fraud-check')
   async fraudCheck(@Body('phone') phone: string) {
     return this.adminService.fraudCheck(phone);

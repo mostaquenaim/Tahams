@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { AdminService } from '../Services/admin.service';
+import { RbacService } from 'src/Rbac/rbac.service';
 import { verifyFirebaseIdToken } from '../Services/firebase-admin.config';
 
 // Order-history endpoints are reachable by two different identities that
@@ -28,7 +28,7 @@ import { verifyFirebaseIdToken } from '../Services/firebase-admin.config';
 export class OrderAccessGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
-    private readonly adminService: AdminService,
+    private readonly rbac: RbacService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -44,12 +44,8 @@ export class OrderAccessGuard implements CanActivate {
 
     try {
       const payload = await this.jwtService.verifyAsync(token);
-      const blacklisted = await this.adminService.isTokenBlacklisted(
-        payload.jti,
-      );
-      if (blacklisted) {
-        throw new UnauthorizedException('Token revoked');
-      }
+      // logged out / user gone / issued before an access change
+      await this.rbac.validateTokenPayload(payload);
       req.isVerifiedAdmin = payload.role === 'admin';
       req.user = payload;
       return true;

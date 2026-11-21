@@ -3,15 +3,13 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { AdminService } from '../Services/admin.service';
-// import { jwtConstants } from './constants';
+import { RbacService, TokenRejectedError } from 'src/Rbac/rbac.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-
   constructor(
-    private configService: ConfigService,
-    private readonly adminService: AdminService
+    configService: ConfigService,
+    private readonly rbac: RbacService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -21,14 +19,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-
-    // Check if the token is blacklisted
-    const isBlacklisted = await this.adminService.isTokenBlacklisted(payload.jti);
-    if (isBlacklisted) {
-      throw new UnauthorizedException('Token revoked');
+    // Logged out, user gone, or issued before an access change
+    // (tokenVersion) - same rules as the global AccessPolicyGuard.
+    try {
+      await this.rbac.validateTokenPayload(payload);
+    } catch (err) {
+      if (err instanceof TokenRejectedError) {
+        throw new UnauthorizedException(err.message);
+      }
+      throw err;
     }
-
-    // Return standardized user object
-    return payload
+    return payload;
   }
 }
