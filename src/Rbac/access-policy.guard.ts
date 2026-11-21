@@ -8,7 +8,6 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
-import { ROLES_KEY } from 'src/Admin/decorators/roles.decorator';
 import {
   ACCESS_POLICY_KEY,
   AccessPolicy,
@@ -18,11 +17,13 @@ import { Permission } from './permissions';
 import { RbacService, TokenRejectedError } from './rbac.service';
 
 // Registered globally (APP_GUARD), so it runs before every route's own
-// guards. Deny by default: a route with no declared policy is refused.
+// guards and interceptors. Deny by default: a route with no declared
+// policy is refused (and route-policy.spec.ts fails CI for it).
 //
-// Legacy routes still using @UseGuards(AuthGuard('jwt'), RolesGuard) +
-// @Roles('admin') are passed through to those guards until RBAC phase 2
-// moves them onto @RequirePermissions.
+// On success for staff policies it sets:
+//   req.user  - the verified JWT payload
+//   req.staff - the caller's StaffAccess (role + permissions), fresh from
+//               the DB on this request
 @Injectable()
 export class AccessPolicyGuard implements CanActivate {
   private readonly logger = new Logger(AccessPolicyGuard.name);
@@ -38,51 +39,62 @@ export class AccessPolicyGuard implements CanActivate {
 
     const handler = context.getHandler();
     const cls = context.getClass();
+    const req = context.switchToHttp().getRequest();
     const policy = this.reflector.getAllAndOverride<AccessPolicy>(
       ACCESS_POLICY_KEY,
       [handler, cls],
     );
 
-    if (policy === 'public' || policy === 'self-guarded') return true;
+    switch (policy) {
+      case 'public':
+      case 'self-guarded':
+        return true;
 
-    if (!policy) {
-      const legacyRoles = this.reflector.get<string[]>(ROLES_KEY, handler);
-      if (legacyRoles?.length) return true; // enforced by RolesGuard
+      case 'authenticated':
+        req.user = await this.authenticate(req);
+        return true;
 
-      const req = context.switchToHttp().getRequest();
-      this.logger.error(
-        `Denied ${req?.method} ${req?.originalUrl}: ${cls?.name}.${handler?.name} declares no access policy`,
-      );
-      throw new ForbiddenException('Access denied');
+      case 'staff':
+      case 'permissions':
+      case 'any-permission': {
+        req.user = await this.authenticate(req);
+
+        const access = await this.rbac.getStaffAccess(Number(req.user.sub));
+        if (!access) throw new ForbiddenException('Staff access required');
+
+        if (policy !== 'staff') {
+          const listed =
+            this.reflector.get<Permission[]>(PERMISSIONS_KEY, handler) || [];
+          if (listed.length === 0) {
+            // Can't happen via the decorators (they throw on an empty
+            // list), but never let a malformed route fall open.
+            throw new ForbiddenException('Access denied');
+          }
+          const ok =
+            policy === 'permissions'
+              ? this.rbac.hasAllPermissions(access, listed)
+              : this.rbac.hasAnyPermission(access, listed);
+          if (!ok) {
+            const held = new Set(access.permissions);
+            const missing = listed.filter((p) => !held.has(p));
+            throw new ForbiddenException(
+              policy === 'permissions'
+                ? `Missing permission: ${missing.join(', ')}`
+                : `Requires one of: ${listed.join(', ')}`,
+            );
+          }
+        }
+
+        req.staff = access;
+        return true;
+      }
+
+      default:
+        this.logger.error(
+          `Denied ${req?.method} ${req?.originalUrl}: ${cls?.name}.${handler?.name} declares no access policy`,
+        );
+        throw new ForbiddenException('Access denied');
     }
-
-    const req = context.switchToHttp().getRequest();
-    req.user = await this.authenticate(req);
-
-    if (policy === 'authenticated') return true;
-
-    // policy === 'permissions'
-    const required =
-      this.reflector.get<Permission[]>(PERMISSIONS_KEY, handler) || [];
-    if (required.length === 0) {
-      // Can't happen via the decorator (it throws on an empty list), but
-      // never let a malformed route fall open.
-      throw new ForbiddenException('Access denied');
-    }
-
-    const access = await this.rbac.getStaffAccess(Number(req.user.sub));
-    if (!access) throw new ForbiddenException('Staff access required');
-
-    if (!this.rbac.hasAllPermissions(access, required)) {
-      const held = new Set(access.permissions);
-      const missing = required.filter((p) => !held.has(p));
-      throw new ForbiddenException(
-        `Missing permission: ${missing.join(', ')}`,
-      );
-    }
-
-    req.staff = access;
-    return true;
   }
 
   private async authenticate(req: any) {

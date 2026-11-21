@@ -39,7 +39,6 @@ import { ActivePopUpEntity } from "src/Global/Entities/active-pop-up.entity";
 import { JwtModule } from "@nestjs/jwt";
 import { BlacklistToken } from "src/Global/Entities/blacklist-token.entity";
 import { PassportModule } from "@nestjs/passport";
-import { RolesGuard } from "../Guards/roles.guard";
 import { OrderAccessGuard } from "../Guards/order-access.guard";
 import { FirebaseAuthGuard } from "../Guards/firebase-auth.guard";
 import { ConfigModule, ConfigService } from "@nestjs/config";
@@ -119,7 +118,6 @@ import { AccessPolicyGuard } from "src/Rbac/access-policy.guard";
     providers: [
         AdminService,
         JwtStrategy,
-        RolesGuard,
         OrderAccessGuard,
         FirebaseAuthGuard,
         ConfigService,

@@ -8,9 +8,8 @@ import { RequestMethod } from '@nestjs/common';
 import { AdminController } from 'src/Admin/Controllers/admin.controller';
 import { CustomerController } from 'src/Customer/Controllers/customer.controller';
 import { EmployeeController } from 'src/Employee/Controllers/employee.controller';
-import { ROLES_KEY } from 'src/Admin/decorators/roles.decorator';
 import { ACCESS_POLICY_KEY, PERMISSIONS_KEY } from './access.decorators';
-import { isPermission, OWNER_ONLY_PERMISSIONS } from './permissions';
+import { isPermission, OWNER_ONLY_PERMISSIONS, P } from './permissions';
 
 // Every HTTP route of every controller must declare an access policy
 // (deny-by-default is enforced at runtime by AccessPolicyGuard; this makes a
@@ -19,12 +18,22 @@ import { isPermission, OWNER_ONLY_PERMISSIONS } from './permissions';
 // ADD NEW CONTROLLERS HERE.
 const CONTROLLERS = [AdminController, CustomerController, EmployeeController];
 
+const POLICIES = [
+  'public',
+  'authenticated',
+  'staff',
+  'permissions',
+  'any-permission',
+  'self-guarded',
+];
+
 type Route = {
   id: string;
+  key: string; // "GET /admin/path"
   policy: string | undefined;
   permissions: string[] | undefined;
-  legacyRoles: string[] | undefined;
   guards: unknown[];
+  legacyRoles: unknown;
 };
 
 const routesOf = (controller: any): Route[] => {
@@ -41,50 +50,47 @@ const routesOf = (controller: any): Route[] => {
     .map(({ name, handler }) => {
       const method = RequestMethod[Reflect.getMetadata(METHOD_METADATA, handler)];
       const path = Reflect.getMetadata(PATH_METADATA, handler);
+      const key = `${method} /${base}/${path}`.replace(/\/+/g, '/');
       return {
-        id: `${method} /${base}/${path} (${controller.name}.${name})`.replace(
-          /\/+/g,
-          '/',
-        ),
+        id: `${key} (${controller.name}.${name})`,
+        key,
         policy:
           Reflect.getMetadata(ACCESS_POLICY_KEY, handler) ??
           Reflect.getMetadata(ACCESS_POLICY_KEY, controller),
         permissions: Reflect.getMetadata(PERMISSIONS_KEY, handler),
-        legacyRoles: Reflect.getMetadata(ROLES_KEY, handler),
         guards: [
           ...(Reflect.getMetadata(GUARDS_METADATA, handler) ?? []),
           ...(Reflect.getMetadata(GUARDS_METADATA, controller) ?? []),
         ],
+        // the removed legacy @Roles('admin') decorator stored this key
+        legacyRoles: Reflect.getMetadata('roles', handler),
       };
     });
 };
 
 const ALL_ROUTES = CONTROLLERS.flatMap(routesOf);
+const byKey = (key: string) => {
+  const r = ALL_ROUTES.find((x) => x.key === key);
+  if (!r) throw new Error(`route not found: ${key}`);
+  return r;
+};
 
 describe('route access policies', () => {
   it('finds the routes (sanity check)', () => {
     expect(ALL_ROUTES.length).toBeGreaterThan(100);
   });
 
-  it('every route declares an access policy', () => {
+  it('every route declares a known access policy', () => {
     const missing = ALL_ROUTES.filter(
-      (r) => !r.policy && !(r.legacyRoles && r.legacyRoles.length),
-    ).map((r) => r.id);
+      (r) => !POLICIES.includes(r.policy as string),
+    ).map((r) => `${r.id} -> ${r.policy}`);
     expect(missing).toEqual([]);
   });
 
-  it('no route mixes a policy with legacy @Roles', () => {
-    const mixed = ALL_ROUTES.filter(
-      (r) => r.policy && r.legacyRoles && r.legacyRoles.length,
-    ).map((r) => r.id);
-    expect(mixed).toEqual([]);
-  });
-
-  it('legacy @Roles routes really have their guards', () => {
-    const unguarded = ALL_ROUTES.filter(
-      (r) => r.legacyRoles?.length && r.guards.length < 2,
-    ).map((r) => r.id);
-    expect(unguarded).toEqual([]);
+  it('no route still uses the removed legacy @Roles decorator', () => {
+    expect(ALL_ROUTES.filter((r) => r.legacyRoles).map((r) => r.id)).toEqual(
+      [],
+    );
   });
 
   it('@SelfGuarded routes really have a guard', () => {
@@ -94,17 +100,19 @@ describe('route access policies', () => {
     expect(unguarded).toEqual([]);
   });
 
-  it('@Public routes carry no guards (a guard there means the policy is wrong)', () => {
+  it('only @SelfGuarded routes carry their own guards', () => {
+    // anything else is authenticated by the global AccessPolicyGuard; an
+    // extra route guard there means the policy is mislabelled
     const odd = ALL_ROUTES.filter(
-      (r) => r.policy === 'public' && r.guards.length > 0,
+      (r) => r.policy !== 'self-guarded' && r.guards.length > 0,
     ).map((r) => r.id);
     expect(odd).toEqual([]);
   });
 
-  it('@RequirePermissions only uses real permission keys', () => {
+  it('permission policies only use real permission keys', () => {
     const bad = ALL_ROUTES.filter(
       (r) =>
-        r.policy === 'permissions' &&
+        (r.policy === 'permissions' || r.policy === 'any-permission') &&
         (!r.permissions?.length || !r.permissions.every(isPermission)),
     ).map((r) => r.id);
     expect(bad).toEqual([]);
@@ -112,5 +120,42 @@ describe('route access policies', () => {
 
   it('owner-only permissions are a subset of the catalog', () => {
     expect(OWNER_ONLY_PERMISSIONS.every(isPermission)).toBe(true);
+  });
+
+  // Spot checks on the riskiest routes, so a wrong edit to the mapping is
+  // caught here rather than in production.
+  it.each([
+    ['POST /admin/create', P.STAFF_MANAGE],
+    ['POST /admin/create-role', P.ROLES_MANAGE],
+    ['PATCH /admin/update-role/:id', P.ROLES_MANAGE],
+    ['DELETE /admin/delete-role/:id', P.ROLES_MANAGE],
+    ['DELETE /admin/delete-product/:id', P.PRODUCTS_DELETE],
+    ['DELETE /admin/delete-category/:id', P.CATALOG_DELETE],
+    ['PUT /admin/delete-history/:id', P.ORDERS_DELETE],
+    ['PATCH /admin/update-buying-history-status-by-token/:token', P.ORDERS_UPDATE_STATUS],
+    ['GET /admin/get-all-users', P.CUSTOMERS_VIEW],
+    ['GET /admin/admin-all-carts', P.CUSTOMERS_VIEW],
+    ['PUT /admin/sync-sales-count', P.SYSTEM_SYNC],
+    ['PUT /admin/update-discount', P.PRICING_DISCOUNT],
+  ])('%s requires %s', (key, perm) => {
+    const r = byKey(key);
+    expect(r.policy).toBe('permissions');
+    expect(r.permissions).toEqual([perm]);
+  });
+
+  it.each([
+    'GET /admin/view-all-products',
+    'POST /admin/add-to-cart',
+    'POST /admin/add-to-buy',
+    'POST /admin/add-payment',
+    'POST /admin/pathao-webhook',
+    'GET /admin/get-buying-history-by-token/:token',
+    'POST /admin/confirm-return-or-cancellation',
+    'POST /admin/send-customize-tee-request',
+    'POST /admin/signin',
+    'POST /admin/firebase-signin',
+    'POST /customer/create',
+  ])('storefront / guest route %s stays public', (key) => {
+    expect(byKey(key).policy).toBe('public');
   });
 });

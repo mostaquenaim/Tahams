@@ -1724,8 +1724,11 @@ export class AdminService implements OnModuleInit {
   }
 
   // view all users / customers info
+  // Customer list for staff with customers:view. Never send password
+  // hashes (or the internal token version) to the browser.
   async getAllUsers() {
-    return this.userRepo.find();
+    const users = await this.userRepo.find();
+    return users.map(({ password, tokenVersion, ...rest }) => rest);
   }
 
   // view all roles
@@ -2961,29 +2964,24 @@ export class AdminService implements OnModuleInit {
   }
 
   // delete product by id
-  async deleteProductById(id: number, email: string) {
+  // Authorisation is the route's products:delete permission - this used to
+  // re-check users.role == 'admin', which would refuse any non-Owner staff
+  // member who has been granted products:delete.
+  async deleteProductById(id: number) {
     try {
-      const user = await this.getUserByEmail(email);
+      await this.viewRepo.delete({ product: { id } });
 
-      if (user && user.role == 'admin') {
-        await this.viewRepo.delete({ product: { id } });
+      await this.wishRepo.delete({ product: { id } });
 
-        await this.wishRepo.delete({ product: { id } });
+      await this.cartRepo.delete({ product: { id } });
 
-        await this.cartRepo.delete({ product: { id } });
+      await this.productPicRepo.delete({ product: { id } });
 
-        await this.productPicRepo.delete({ product: { id } });
+      await this.productSizeCategoryRepo.delete({ product: { id } });
 
-        await this.productSizeCategoryRepo.delete({ product: { id } });
+      const deleted = await this.productRepo.delete(id);
 
-        const deleted = await this.productRepo.delete(id);
-
-        return deleted;
-      } else {
-        throw new UnauthorizedException(
-          'You are not authorized to delete product',
-        );
-      }
+      return deleted;
     } catch (error) {
       console.error('Error deleting product:', error);
     }

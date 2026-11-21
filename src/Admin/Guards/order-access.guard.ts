@@ -16,8 +16,9 @@ import { verifyFirebaseIdToken } from '../Services/firebase-admin.config';
 // guard requires ONE of those two to verify, and stamps the request with
 // only what was actually proven, never what the caller merely claims.
 //
-// req.isVerifiedAdmin - true only for a valid, non-blacklisted backend
-//   admin JWT.
+// req.staff - the caller's StaffAccess (role + permissions) for a valid,
+//   non-revoked backend JWT, or null if that user isn't active staff. The
+//   route checks the specific permission it needs.
 // req.verifiedEmail - the email from a valid Firebase ID token; only set
 //   on the customer path, never trusted from any other source.
 //
@@ -46,8 +47,10 @@ export class OrderAccessGuard implements CanActivate {
       const payload = await this.jwtService.verifyAsync(token);
       // logged out / user gone / issued before an access change
       await this.rbac.validateTokenPayload(payload);
-      req.isVerifiedAdmin = payload.role === 'admin';
       req.user = payload;
+      // null for a non-staff backend JWT; routes decide which permission
+      // unlocks the "see everyone" view (orders:view, customizations:view)
+      req.staff = await this.rbac.getStaffAccess(Number(payload.sub));
       return true;
     } catch {
       // Not a valid backend JWT - fall through and try it as a Firebase

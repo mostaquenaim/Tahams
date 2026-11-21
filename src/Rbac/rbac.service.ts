@@ -52,7 +52,7 @@ export class RbacService implements OnModuleInit {
       await this.syncBuiltInRoles();
       await this.prunePermissions();
       await this.backfillLegacyAdmins();
-    } catch (err) {
+    } catch (err: any) {
       this.logger.error(
         `RBAC boot sync failed - built-in roles may be missing: ${err?.message}`,
         err?.stack,
@@ -251,9 +251,23 @@ export class RbacService implements OnModuleInit {
     };
   }
 
-  hasAllPermissions(access: StaffAccess, required: Permission[]): boolean {
+  hasAllPermissions(
+    access: StaffAccess | null | undefined,
+    required: Permission[],
+  ): boolean {
+    if (!access) return false;
     if (access.isOwner) return true;
     const held = new Set(access.permissions);
     return required.every((p) => held.has(p));
+  }
+
+  hasAnyPermission(
+    access: StaffAccess | null | undefined,
+    candidates: Permission[],
+  ): boolean {
+    if (!access) return false;
+    if (access.isOwner) return true;
+    const held = new Set(access.permissions);
+    return candidates.some((p) => held.has(p));
   }
 }

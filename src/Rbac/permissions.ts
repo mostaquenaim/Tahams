@@ -25,6 +25,7 @@ export const P = {
   RETURNS_PROCESS: 'returns:process',
   CUSTOMIZATIONS_VIEW: 'customizations:view',
   CUSTOMIZATIONS_MANAGE: 'customizations:manage',
+  CUSTOMIZATIONS_DELETE: 'customizations:delete',
 
   // Customers
   CUSTOMERS_VIEW: 'customers:view',
@@ -106,6 +107,7 @@ export const PERMISSION_GROUPS: { label: string; permissions: Permission[] }[] =
         P.RETURNS_PROCESS,
         P.CUSTOMIZATIONS_VIEW,
         P.CUSTOMIZATIONS_MANAGE,
+        P.CUSTOMIZATIONS_DELETE,
       ],
     },
     { label: 'Customers', permissions: [P.CUSTOMERS_VIEW, P.CUSTOMERS_CONTACT] },
