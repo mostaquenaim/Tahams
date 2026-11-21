@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, Not, Repository } from 'typeorm';
+import { EntityManager, In, IsNull, Not, Repository } from 'typeorm';
 import { UserEntity } from 'src/Global/Entities/user.entity';
 import { RoleEntity } from 'src/Global/Entities/roles.entity';
 import { RolePermissionEntity } from 'src/Global/Entities/role-permission.entity';
@@ -203,10 +203,14 @@ export class RbacService implements OnModuleInit {
 
   // Fresh from the DB on every call (no cache): a demotion or suspension
   // must take effect on the very next request, on every process.
-  async getStaffAccess(userId: number): Promise<StaffAccess | null> {
+  async getStaffAccess(
+    userId: number,
+    manager?: EntityManager, // pass a transaction's manager to read inside it
+  ): Promise<StaffAccess | null> {
     if (!Number.isInteger(userId) || userId <= 0) return null;
 
-    const user = await this.userRepo.findOne({
+    const repo = manager ? manager.getRepository(UserEntity) : this.userRepo;
+    const user = await repo.findOne({
       where: { id: userId },
       relations: { staffRole: { permissions: true } },
       select: {

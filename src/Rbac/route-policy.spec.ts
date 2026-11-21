@@ -8,6 +8,7 @@ import { RequestMethod } from '@nestjs/common';
 import { AdminController } from 'src/Admin/Controllers/admin.controller';
 import { CustomerController } from 'src/Customer/Controllers/customer.controller';
 import { EmployeeController } from 'src/Employee/Controllers/employee.controller';
+import { RbacController } from './rbac.controller';
 import { ACCESS_POLICY_KEY, PERMISSIONS_KEY } from './access.decorators';
 import { isPermission, OWNER_ONLY_PERMISSIONS, P } from './permissions';
 
@@ -16,7 +17,12 @@ import { isPermission, OWNER_ONLY_PERMISSIONS, P } from './permissions';
 // missing one fail CI instead of 403-ing in production).
 //
 // ADD NEW CONTROLLERS HERE.
-const CONTROLLERS = [AdminController, CustomerController, EmployeeController];
+const CONTROLLERS = [
+  AdminController,
+  CustomerController,
+  EmployeeController,
+  RbacController,
+];
 
 const POLICIES = [
   'public',
@@ -137,6 +143,16 @@ describe('route access policies', () => {
     ['GET /admin/admin-all-carts', P.CUSTOMERS_VIEW],
     ['PUT /admin/sync-sales-count', P.SYSTEM_SYNC],
     ['PUT /admin/update-discount', P.PRICING_DISCOUNT],
+    ['POST /admin/staff', P.STAFF_MANAGE],
+    ['POST /admin/staff/promote', P.STAFF_MANAGE],
+    ['PATCH /admin/staff/:id', P.STAFF_MANAGE],
+    ['DELETE /admin/staff/:id', P.STAFF_MANAGE],
+    ['POST /admin/staff/:id/password', P.STAFF_MANAGE],
+    ['GET /admin/staff', P.STAFF_VIEW],
+    ['POST /admin/roles', P.ROLES_MANAGE],
+    ['PATCH /admin/roles/:id', P.ROLES_MANAGE],
+    ['DELETE /admin/roles/:id', P.ROLES_MANAGE],
+    ['GET /admin/audit-logs', P.AUDIT_VIEW],
   ])('%s requires %s', (key, perm) => {
     const r = byKey(key);
     expect(r.policy).toBe('permissions');

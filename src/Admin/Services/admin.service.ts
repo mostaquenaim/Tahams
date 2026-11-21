@@ -71,6 +71,7 @@ import { ActivityEntity } from 'src/Global/Entities/activity.entity';
 import { CustomerActivityEntity } from 'src/Global/Entities/customer-activity.entity';
 import { expectedDeliveryFee } from '../delivery-fees';
 import { BUILT_IN_ROLES } from 'src/Rbac/permissions';
+import { RbacService } from 'src/Rbac/rbac.service';
 
 const unlinkAsync = promisify(fs.unlink);
 
@@ -234,7 +235,19 @@ export class AdminService implements OnModuleInit {
 
     @InjectRepository(BlacklistToken)
     private blackListRepo: Repository<BlacklistToken>,
+    private readonly rbac: RbacService,
   ) {}
+
+  // The user object returned by every login endpoint (and stored by the
+  // frontend as localStorage.userInfo). Never includes the password hash or
+  // internal token version. `isStaff` tells the login page to open the admin
+  // panel for ANY active staff member, not only legacy role === 'admin'
+  // (Owner) accounts - `role` itself is unchanged for existing callers.
+  private async toSessionUser(user: UserEntity) {
+    const { password, tokenVersion, ...rest } = user as any;
+    const access = await this.rbac.getStaffAccess(user.id);
+    return { ...rest, isStaff: !!access };
+  }
 
   async addBanner(myDto) {
     return this.bannerRepo.save(myDto);
@@ -787,7 +800,7 @@ export class AdminService implements OnModuleInit {
           message: 'Login successful',
           access_token: this.jwtService.sign(payload),
           jti,
-          data: myData,
+          data: await this.toSessionUser(myData),
         };
       }
 
@@ -901,7 +914,7 @@ export class AdminService implements OnModuleInit {
         message: 'Login with google successful',
         access_token: this.jwtService.sign(payload),
         jti,
-        data: myData,
+        data: await this.toSessionUser(myData),
       };
     } catch (error) {
       console.error('Google sign-in failed:', error.message);
@@ -972,7 +985,7 @@ export class AdminService implements OnModuleInit {
         message: 'Login successful',
         access_token: this.jwtService.sign(payload),
         jti,
-        data: myData,
+        data: await this.toSessionUser(myData),
       };
     } catch (error) {
       console.error('Firebase sign-in failed:', error.message);

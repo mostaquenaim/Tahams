@@ -51,9 +51,14 @@ import { CourierInfo } from "src/Global/Entities/courier-info.entity";
 import { ActivityEntity } from "src/Global/Entities/activity.entity";
 import { CustomerActivityEntity } from "src/Global/Entities/customer-activity.entity";
 import { RolePermissionEntity } from "src/Global/Entities/role-permission.entity";
-import { APP_GUARD } from "@nestjs/core";
+import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { RbacService } from "src/Rbac/rbac.service";
 import { AccessPolicyGuard } from "src/Rbac/access-policy.guard";
+import { AuditLogEntity } from "src/Global/Entities/audit-log.entity";
+import { AuditService } from "src/Rbac/audit.service";
+import { AuditInterceptor } from "src/Rbac/audit.interceptor";
+import { StaffService } from "src/Rbac/staff.service";
+import { RbacController } from "src/Rbac/rbac.controller";
 // dotenv.config();
 
 @Module({
@@ -104,6 +109,7 @@ import { AccessPolicyGuard } from "src/Rbac/access-policy.guard";
             ReturnEntity,
             RoleEntity,
             RolePermissionEntity,
+            AuditLogEntity,
             SizeEntity,
             SubCategoryEntity,
             SubSubCategoryEntity,
@@ -113,7 +119,8 @@ import { AccessPolicyGuard } from "src/Rbac/access-policy.guard";
             WishEntity,
         ])],
     controllers: [
-        AdminController
+        AdminController,
+        RbacController,
     ],
     providers: [
         AdminService,
@@ -124,6 +131,10 @@ import { AccessPolicyGuard } from "src/Rbac/access-policy.guard";
         RbacService,
         // Global, deny-by-default route access check - see src/Rbac.
         { provide: APP_GUARD, useClass: AccessPolicyGuard },
+        StaffService,
+        AuditService,
+        // Global: records every staff write (see src/Rbac/audit.interceptor).
+        { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
     ],
 })
 
