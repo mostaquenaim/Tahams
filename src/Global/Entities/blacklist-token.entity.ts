@@ -10,5 +10,5 @@ export class BlacklistToken {
   jti: string;  // JWT ID
   
   @Column()
-  expiry: number; // Expiry timestamp
+  expiry: number; // the token's own `exp` claim, in SECONDS since epoch (integer column - ms would overflow)
 }

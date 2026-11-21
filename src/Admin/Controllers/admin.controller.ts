@@ -343,19 +343,15 @@ export class AdminController {
     }
   }
 
-  // update buying history by id
+  // update an order's delivery status (admin order timeline)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Patch('update-buying-history-status-by-token/:token')
   async updateBuyingHistoryStatusByToken(
     @Param('token') token: string,
-    @Query('email') email: string,
     @Body() updates: any,
   ) {
-    const result = await this.adminService.updateBuyingHistoryStatusByToken(
-      token,
-      updates,
-      email,
-    );
-    return result;
+    return this.adminService.updateBuyingHistoryStatusByToken(token, updates);
   }
 
   // get buying histoy by id
@@ -404,9 +400,9 @@ export class AdminController {
     return this.adminService.addPaymentInfo(PaymentDetails);
   }
 
-  // add courier info
-  // @UseGuards(AuthGuard('jwt'), RolesGuard)
-  // @Roles('admin')
+  // add courier info (saved after an admin places a Pathao order)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Post('/add-courier/:token')
   addCourierInfo(@Param('token') token: string, @Body() courierDetails) {
     return this.adminService.addCourierInfo(token, courierDetails);
@@ -594,16 +590,24 @@ export class AdminController {
     return this.adminService.deleteHistory(id);
   }
 
-  // delete carts
+  // delete several of the caller's own cart items
   @Delete('delete-carts')
   deleteCarts(@Body() myDto) {
-    return this.adminService.deleteCarts(myDto.checkedItems);
+    return this.adminService.deleteCarts(myDto?.checkedItems, myDto?.email);
   }
 
-  // get particular customer cart history
+  // a customer's (or guest's) own cart - never anyone else's
   @Get('get-all-carts')
   getAllCarts(@Query('email') email: string) {
     return this.adminService.getAllCarts(email);
+  }
+
+  // every customer's cart, for the admin "All Carts" page
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Get('admin-all-carts')
+  getAllCartsForAdmin() {
+    return this.adminService.getAllCartsForAdmin();
   }
 
   // view category
@@ -669,11 +673,12 @@ export class AdminController {
     return result;
   }
 
-  // view cancellation or return requests
+  // view cancellation or return requests (admin)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Get('view-cancellation-or-return-requests')
-  async viewRequests(@Query('email') email: string) {
-    const result = await this.adminService.viewRequests(email);
-    return result;
+  async viewRequests() {
+    return this.adminService.viewRequests();
   }
 
   // view all sub sub category
@@ -1052,11 +1057,13 @@ export class AdminController {
   @Post('logout')
   @UseGuards(AuthGuard('jwt'))
   async logout(@Req() req: any) {
-    const tokenJti = req.user.jti; // Get the JWT ID from user payload
-    const exp = 3600; // Token expiry time (same as in sign)
-
-    // Save blacklisted token in DB (replace with your DB service logic)
-    await this.adminService.addToBlacklist(tokenJti, exp);
+    // Blacklist until the token's OWN expiry (its `exp` claim), not a fixed
+    // window - see AdminService.addToBlacklist.
+    // Every token is signed with expiresIn: '7d', so `exp` is always set; the
+    // fallback only guards against a malformed payload turning logout into a 500.
+    const exp =
+      Number(req.user?.exp) || Math.floor(Date.now() / 1000) + 7 * 24 * 3600;
+    await this.adminService.addToBlacklist(req.user.jti, exp);
 
     return { message: 'Logged out successfully' };
   }
@@ -1138,11 +1145,9 @@ export class AdminController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Delete('delete-product/:id')
-  async deleteProductById(
-    @Param('id') id: number,
-    @Query('email') email: string,
-  ) {
-    return this.adminService.deleteProductById(id, email);
+  async deleteProductById(@Param('id') id: number, @Req() req) {
+    // identity from the verified JWT, never a client-supplied ?email=
+    return this.adminService.deleteProductById(id, req.user?.email);
   }
 
   // delete customization request
