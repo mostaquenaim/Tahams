@@ -233,6 +233,7 @@ The API is available at `http://localhost:3000/api` (global prefix `api`, port `
 | `npm run test:watch` | Run unit tests in watch mode |
 | `npm run test:cov` | Run unit tests with coverage |
 | `npm run test:e2e` | Run end-to-end tests |
+| `npm run test:rbac` | Staff permissions role matrix against a throwaway local database (`<DB_NAME>_rbac_e2e`, wiped each run) - see [docs/RBAC_ROLLOUT.md](docs/RBAC_ROLLOUT.md) |
 
 ## File Storage
 

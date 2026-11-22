@@ -1,28 +1,10 @@
-import 'reflect-metadata';
-import {
-  GUARDS_METADATA,
-  METHOD_METADATA,
-  PATH_METADATA,
-} from '@nestjs/common/constants';
-import { RequestMethod } from '@nestjs/common';
-import { AdminController } from 'src/Admin/Controllers/admin.controller';
-import { CustomerController } from 'src/Customer/Controllers/customer.controller';
-import { EmployeeController } from 'src/Employee/Controllers/employee.controller';
-import { RbacController } from './rbac.controller';
-import { ACCESS_POLICY_KEY, PERMISSIONS_KEY } from './access.decorators';
+import { allRoutes } from './route-inventory';
 import { isPermission, OWNER_ONLY_PERMISSIONS, P } from './permissions';
 
 // Every HTTP route of every controller must declare an access policy
 // (deny-by-default is enforced at runtime by AccessPolicyGuard; this makes a
-// missing one fail CI instead of 403-ing in production).
-//
-// ADD NEW CONTROLLERS HERE.
-const CONTROLLERS = [
-  AdminController,
-  CustomerController,
-  EmployeeController,
-  RbacController,
-];
+// missing one fail CI instead of 403-ing in production). The controller list
+// lives in route-inventory.ts.
 
 const POLICIES = [
   'public',
@@ -33,48 +15,7 @@ const POLICIES = [
   'self-guarded',
 ];
 
-type Route = {
-  id: string;
-  key: string; // "GET /admin/path"
-  policy: string | undefined;
-  permissions: string[] | undefined;
-  guards: unknown[];
-  legacyRoles: unknown;
-};
-
-const routesOf = (controller: any): Route[] => {
-  const base = Reflect.getMetadata(PATH_METADATA, controller) ?? '';
-  const proto = controller.prototype;
-  return Object.getOwnPropertyNames(proto)
-    .filter((name) => name !== 'constructor')
-    .map((name) => ({ name, handler: proto[name] }))
-    .filter(
-      ({ handler }) =>
-        typeof handler === 'function' &&
-        Reflect.getMetadata(PATH_METADATA, handler) !== undefined,
-    )
-    .map(({ name, handler }) => {
-      const method = RequestMethod[Reflect.getMetadata(METHOD_METADATA, handler)];
-      const path = Reflect.getMetadata(PATH_METADATA, handler);
-      const key = `${method} /${base}/${path}`.replace(/\/+/g, '/');
-      return {
-        id: `${key} (${controller.name}.${name})`,
-        key,
-        policy:
-          Reflect.getMetadata(ACCESS_POLICY_KEY, handler) ??
-          Reflect.getMetadata(ACCESS_POLICY_KEY, controller),
-        permissions: Reflect.getMetadata(PERMISSIONS_KEY, handler),
-        guards: [
-          ...(Reflect.getMetadata(GUARDS_METADATA, handler) ?? []),
-          ...(Reflect.getMetadata(GUARDS_METADATA, controller) ?? []),
-        ],
-        // the removed legacy @Roles('admin') decorator stored this key
-        legacyRoles: Reflect.getMetadata('roles', handler),
-      };
-    });
-};
-
-const ALL_ROUTES = CONTROLLERS.flatMap(routesOf);
+const ALL_ROUTES = allRoutes();
 const byKey = (key: string) => {
   const r = ALL_ROUTES.find((x) => x.key === key);
   if (!r) throw new Error(`route not found: ${key}`);
