@@ -14,7 +14,12 @@ import {
   PERMISSIONS_KEY,
 } from './access.decorators';
 import { Permission } from './permissions';
-import { RbacService, TokenRejectedError } from './rbac.service';
+import { RbacService, StaffAccess, TokenRejectedError } from './rbac.service';
+import { AuditService } from './audit.service';
+
+const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+// the staff member a permission check refused, for the audit row
+const DENIED_ACTOR = Symbol('rbacDeniedActor');
 
 // Registered globally (APP_GUARD), so it runs before every route's own
 // guards and interceptors. Deny by default: a route with no declared
@@ -24,6 +29,10 @@ import { RbacService, TokenRejectedError } from './rbac.service';
 //   req.user  - the verified JWT payload
 //   req.staff - the caller's StaffAccess (role + permissions), fresh from
 //               the DB on this request
+//
+// A refused write (403) by a verified user is recorded in the audit log
+// here, since the AuditInterceptor only runs for requests the guard lets
+// through.
 @Injectable()
 export class AccessPolicyGuard implements CanActivate {
   private readonly logger = new Logger(AccessPolicyGuard.name);
@@ -32,6 +41,7 @@ export class AccessPolicyGuard implements CanActivate {
     private readonly reflector: Reflector,
     private readonly jwtService: JwtService,
     private readonly rbac: RbacService,
+    private readonly audit: AuditService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -59,34 +69,17 @@ export class AccessPolicyGuard implements CanActivate {
       case 'any-permission': {
         req.user = await this.authenticate(req);
 
-        const access = await this.rbac.getStaffAccess(Number(req.user.sub));
-        if (!access) throw new ForbiddenException('Staff access required');
-
-        if (policy !== 'staff') {
-          const listed =
-            this.reflector.get<Permission[]>(PERMISSIONS_KEY, handler) || [];
-          if (listed.length === 0) {
-            // Can't happen via the decorators (they throw on an empty
-            // list), but never let a malformed route fall open.
-            throw new ForbiddenException('Access denied');
+        // Refusals happen here, before the AuditInterceptor ever runs, so
+        // record refused WRITES from a verified identity ourselves. (401s -
+        // no verified identity - are not recorded.)
+        try {
+          return await this.authorizeStaff(req, policy, handler);
+        } catch (err) {
+          if (err instanceof ForbiddenException) {
+            await this.recordDenied(req, err.message);
           }
-          const ok =
-            policy === 'permissions'
-              ? this.rbac.hasAllPermissions(access, listed)
-              : this.rbac.hasAnyPermission(access, listed);
-          if (!ok) {
-            const held = new Set(access.permissions);
-            const missing = listed.filter((p) => !held.has(p));
-            throw new ForbiddenException(
-              policy === 'permissions'
-                ? `Missing permission: ${missing.join(', ')}`
-                : `Requires one of: ${listed.join(', ')}`,
-            );
-          }
+          throw err;
         }
-
-        req.staff = access;
-        return true;
       }
 
       default:
@@ -95,6 +88,71 @@ export class AccessPolicyGuard implements CanActivate {
         );
         throw new ForbiddenException('Access denied');
     }
+  }
+
+  // Sets req.staff only when access is granted.
+  private async authorizeStaff(
+    req: any,
+    policy: AccessPolicy,
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    handler: Function,
+  ): Promise<boolean> {
+    const access = await this.rbac.getStaffAccess(Number(req.user.sub));
+    if (!access) throw new ForbiddenException('Staff access required');
+
+    if (policy !== 'staff') {
+      const listed =
+        this.reflector.get<Permission[]>(PERMISSIONS_KEY, handler) || [];
+      if (listed.length === 0) {
+        // Can't happen via the decorators (they throw on an empty
+        // list), but never let a malformed route fall open.
+        req[DENIED_ACTOR] = access;
+        throw new ForbiddenException('Access denied');
+      }
+      const ok =
+        policy === 'permissions'
+          ? this.rbac.hasAllPermissions(access, listed)
+          : this.rbac.hasAnyPermission(access, listed);
+      if (!ok) {
+        req[DENIED_ACTOR] = access;
+        const held = new Set(access.permissions);
+        const missing = listed.filter((p) => !held.has(p));
+        throw new ForbiddenException(
+          policy === 'permissions'
+            ? `Missing permission: ${missing.join(', ')}`
+            : `Requires one of: ${listed.join(', ')}`,
+        );
+      }
+    }
+
+    req.staff = access;
+    return true;
+  }
+
+  // Never throws (AuditService.write swallows its own failures), so the
+  // client still gets the 403 it was going to get.
+  private async recordDenied(req: any, message: string) {
+    if (READ_METHODS.has(req.method)) return;
+    const actor: StaffAccess | undefined = req[DENIED_ACTOR];
+    const route = req.route?.path || req.originalUrl?.split('?')[0] || '';
+    const forwarded = String(req.headers?.['x-forwarded-for'] || '')
+      .split(',')[0]
+      .trim();
+    await this.audit.write({
+      actorId: actor?.userId ?? (Number(req.user?.sub) || null),
+      actorEmail: actor?.email ?? req.user?.email ?? null,
+      actorRole: actor?.role?.name ?? null,
+      action: `${req.method} ${route}`,
+      method: req.method,
+      route,
+      params: req.params && Object.keys(req.params).length ? req.params : null,
+      body: req.body && Object.keys(req.body).length ? req.body : null,
+      success: false,
+      statusCode: 403,
+      error: message,
+      ip: forwarded || req.ip || null,
+      userAgent: req.headers?.['user-agent'] || null,
+    });
   }
 
   private async authenticate(req: any) {
