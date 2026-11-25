@@ -73,6 +73,17 @@ import { expectedDeliveryFee } from '../delivery-fees';
 
 const unlinkAsync = promisify(fs.unlink);
 
+// relations loaded for cart listings (customer's own cart and the admin
+// all-carts page share the same shape)
+const CART_LIST_RELATIONS = [
+  'product',
+  'coupon',
+  'customer',
+  'category',
+  'category.category',
+  'category.category.category',
+];
+
 @Injectable()
 export class AdminService implements OnModuleInit {
   private baseUrl = process.env.PATHAO_BASE_URL;
@@ -761,18 +772,27 @@ export class AdminService implements OnModuleInit {
   }
 
   // Store blacklisted token in the database
+  // `exp` is the JWT's own `exp` claim (seconds since epoch), stored as-is.
+  // Two bugs used to live here: the entry expired a flat 1h after logout
+  // while tokens are signed for 7d (so a logged-out token started working
+  // again an hour later), and it was stored in milliseconds, which overflows
+  // the column's Postgres `integer` type (~1.8e12 > 2^31) and made the
+  // insert fail. Seconds fit until 2038.
   async addToBlacklist(jti: string, exp: number) {
     const token = new BlacklistToken();
     token.jti = jti;
-    token.expiry = Date.now() + exp * 1000; // Expiry in ms
+    token.expiry = exp;
 
     await this.blackListRepo.save(token);
   }
 
-  // Check if token is blacklisted
+  // Check if token is blacklisted. A row exists only for a logged-out
+  // token; it stops mattering once the token itself has expired (the JWT
+  // strategy rejects expired tokens anyway).
   async isTokenBlacklisted(jti: string): Promise<boolean> {
+    if (!jti) return false;
     const token = await this.blackListRepo.findOne({ where: { jti } });
-    return token && token.expiry > Date.now(); // Token expired check
+    return !!token && token.expiry > Math.floor(Date.now() / 1000);
   }
 
   // Google login - the only legitimate way to authenticate a Google
@@ -1025,26 +1045,28 @@ export class AdminService implements OnModuleInit {
   }
 
   // delete carts
-  async deleteCarts(cartArray: string[]) {
-    try {
-      // Find all carts with unique IDs in the provided array
-      // const cartsToDelete = await this.cartRepo.find({ where: { uniqueId: In(cartArray) }});
-      const deletionResult = await this.cartRepo.delete({
+  // Same proof of ownership as updateCartQuantity: the items must belong to
+  // the caller's email. Cart ids are sequential integers, so without the
+  // email check anyone could empty every customer's cart by counting up.
+  async deleteCarts(cartArray: string[], email?: string) {
+    if (!email || !Array.isArray(cartArray) || cartArray.length === 0) {
+      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+    }
+
+    // delete() can't filter on a relation, so resolve the owned ids first.
+    const owned = await this.cartRepo.find({
+      select: { id: true },
+      where: {
         id: In(cartArray),
         isBought: false,
-      });
-      return deletionResult;
-
-      // if (cartsToDelete.length > 0) {
-      //   // Delete the found carts
-      //   const deletionResult = await this.cartRepo.remove(cartsToDelete);
-      //   return deletionResult;
-      // }
-
-      // throw new NotFoundException(`No carts found with the provided unique IDs.`);
-    } catch (error) {
-      throw new NotFoundException(`Error deleting carts: ${error.message}`);
+        customer: { email },
+      },
+    });
+    if (owned.length === 0) {
+      return { affected: 0 };
     }
+
+    return this.cartRepo.delete({ id: In(owned.map((c) => c.id)) });
   }
 
   // view all product
@@ -1817,29 +1839,26 @@ export class AdminService implements OnModuleInit {
   }
 
   // view all carts
+  // Only ever the given email's own cart. This used to return EVERY
+  // customer's cart when the email belonged to an admin - and the email is a
+  // bare query param on a public route, so anyone who knew an admin's email
+  // got everyone's carts. The admin-wide listing is getAllCartsForAdmin,
+  // behind a real JWT guard.
   async getAllCarts(email: string) {
     if (!email) {
       throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
     }
 
-    const user = await this.userRepo.findOneBy({ email });
-    const isAdmin = user?.role == 'admin';
-
-
-    const cartsWithHistory = await this.cartRepo.find({
-      where: { ...(isAdmin ? {} : { customer: { email } }) },
-      relations: [
-        'product',
-        'coupon',
-        'customer',
-        'category',
-        'category.category',
-        'category.category.category',
-      ],
+    return this.cartRepo.find({
+      where: { customer: { email } },
+      relations: CART_LIST_RELATIONS,
     });
+  }
 
-
-    return cartsWithHistory;
+  // every customer's cart, for the admin "All Carts" page (route is
+  // JWT + admin guarded)
+  async getAllCartsForAdmin() {
+    return this.cartRepo.find({ relations: CART_LIST_RELATIONS });
   }
 
   // view all product
@@ -2145,16 +2164,10 @@ export class AdminService implements OnModuleInit {
   }
 
   // view cancellation or return requests
-  async viewRequests(email: string) {
-    // Fetch the user by email
-    const user = await this.userRepo.findOne({ where: { email } });
-
-    // Check if the user exists and if the role is admin
-    if (!user || user.role !== 'admin') {
-      throw new UnauthorizedException('Unauthorized: User is not an admin');
-    }
-
-    // If the user is an admin, fetch the requests
+  // Admin-only. Access is enforced by the route's JWT + admin guard - this
+  // used to decide "is admin?" from a bare ?email= query param on a public
+  // route, so anyone who knew an admin's email could read every request.
+  async viewRequests() {
     const options: FindManyOptions<ReturnEntity> = {
       relations: ['cart', 'cart.customer', 'cart.history'],
     };
@@ -2847,21 +2860,10 @@ export class AdminService implements OnModuleInit {
   }
 
   // update buying history / order status
-  async updateBuyingHistoryStatusByToken(
-    token: string,
-    updates: any,
-    email: string,
-  ) {
-    const user = await this.userRepo.findOneBy({ email });
-
-    if (!user) {
-      throw new NotFoundException(`User not found.`);
-    }
-
-    if (user.role != 'admin') {
-      throw new ForbiddenException(`Only admins can update buying history.`);
-    }
-
+  // Admin-only. Access is enforced by the route's JWT + admin guard - this
+  // used to trust a bare ?email= query param on an unguarded route, so
+  // anyone who knew an admin's email could change any order's status.
+  async updateBuyingHistoryStatusByToken(token: string, updates: any) {
     const history = await this.buyingHistoryRepo.findOne({
       where: { trackingToken: token },
       relations: ['deliveryStatus'],
