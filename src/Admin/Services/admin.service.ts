@@ -269,8 +269,12 @@ export class AdminService implements OnModuleInit {
     const paymentMethod = await this.getPaymentMethodById(myDto.paymentMethod);
     history.paymentMethod = paymentMethod;
 
+    if (!paymentMethod) {
+      throw new BadRequestException('Unknown payment method.');
+    }
+
     // Mark the payment as done unless it's 'Cash on Delivery' or 'Pick-Up Point'
-    if (myDto.paymentMethod == '1' || myDto.paymentMethod == '8') {
+    if (this.isPayLaterMethod(paymentMethod)) {
       history.PaymentDetails = paymentMethod.name;
     } else {
       history.PaymentDone = true;
@@ -2431,6 +2435,32 @@ export class AdminService implements OnModuleInit {
     return await this.paymentMethodRepo.findOneBy({ id });
   }
 
+  // Cash on delivery and pay-at-pickup are ids 1 and 8 in production, but
+  // ids depend on insert order (the dev seed puts Cash on Delivery at 4), and
+  // a missing row silently saved orders with no payment method, which
+  // crashed the order page. Use the id when that row exists, else match by
+  // name.
+  private static readonly PAY_LATER_METHODS = {
+    cod: { id: 1, name: /cash\s*on\s*delivery|^cod$/i },
+    pickup: { id: 8, name: /pick\s*-?\s*up/i },
+  };
+
+  async getPayLaterMethod(kind: 'cod' | 'pickup') {
+    const { id, name } = AdminService.PAY_LATER_METHODS[kind];
+    const byId = await this.getPaymentMethodById(id);
+    if (byId) return byId;
+    const all = await this.paymentMethodRepo.find();
+    return all.find((method) => name.test(method.name || '')) || null;
+  }
+
+  // True for cash on delivery / pay at pickup: the money hasn't been taken yet.
+  isPayLaterMethod(method) {
+    if (!method) return false;
+    const { cod, pickup } = AdminService.PAY_LATER_METHODS;
+    if (method.id === cod.id || method.id === pickup.id) return true;
+    return cod.name.test(method.name || '') || pickup.name.test(method.name || '');
+  }
+
   // get color by id
   async getColorById(id) {
     return await this.colorRepo.findOneBy({ id });
@@ -3533,8 +3563,8 @@ export class AdminService implements OnModuleInit {
       deliveryStatus: await this.getDeliveryStatusById(1),
       // Checkout only ever records cash on delivery (1) or pay at pickup (8)
       // up front; online payment is recorded later through add-payment.
-      paymentMethod: await this.getPaymentMethodById(
-        Number(myDto?.paymentMethodId) === 8 ? 8 : 1,
+      paymentMethod: await this.getPayLaterMethod(
+        Number(myDto?.paymentMethodId) === 8 ? 'pickup' : 'cod',
       ),
       trackingToken: uuidv4(),
       adminNote: customerNote
@@ -3557,9 +3587,9 @@ export class AdminService implements OnModuleInit {
     myDto.deliveryStatus = await this.getDeliveryStatusById(
       myDto?.deliveryStatusId || 1,
     );
-    myDto.paymentMethod = await this.getPaymentMethodById(
-      myDto?.paymentMethodId || 1,
-    );
+    myDto.paymentMethod = myDto?.paymentMethodId
+      ? await this.getPaymentMethodById(myDto.paymentMethodId)
+      : await this.getPayLaterMethod('cod');
     myDto.trackingToken = uuidv4();
     const newBuy = this.buyingHistoryRepo.create({ ...myDto });
 
