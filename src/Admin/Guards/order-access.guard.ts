@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { AdminService } from '../Services/admin.service';
+import { RbacService } from 'src/Rbac/rbac.service';
 import { verifyFirebaseIdToken } from '../Services/firebase-admin.config';
 
 // Order-history endpoints are reachable by two different identities that
@@ -16,8 +16,9 @@ import { verifyFirebaseIdToken } from '../Services/firebase-admin.config';
 // guard requires ONE of those two to verify, and stamps the request with
 // only what was actually proven, never what the caller merely claims.
 //
-// req.isVerifiedAdmin - true only for a valid, non-blacklisted backend
-//   admin JWT.
+// req.staff - the caller's StaffAccess (role + permissions) for a valid,
+//   non-revoked backend JWT, or null if that user isn't active staff. The
+//   route checks the specific permission it needs.
 // req.verifiedEmail - the email from a valid Firebase ID token; only set
 //   on the customer path, never trusted from any other source.
 //
@@ -28,7 +29,7 @@ import { verifyFirebaseIdToken } from '../Services/firebase-admin.config';
 export class OrderAccessGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
-    private readonly adminService: AdminService,
+    private readonly rbac: RbacService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -44,14 +45,12 @@ export class OrderAccessGuard implements CanActivate {
 
     try {
       const payload = await this.jwtService.verifyAsync(token);
-      const blacklisted = await this.adminService.isTokenBlacklisted(
-        payload.jti,
-      );
-      if (blacklisted) {
-        throw new UnauthorizedException('Token revoked');
-      }
-      req.isVerifiedAdmin = payload.role === 'admin';
+      // logged out / user gone / issued before an access change
+      await this.rbac.validateTokenPayload(payload);
       req.user = payload;
+      // null for a non-staff backend JWT; routes decide which permission
+      // unlocks the "see everyone" view (orders:view, customizations:view)
+      req.staff = await this.rbac.getStaffAccess(Number(payload.sub));
       return true;
     } catch {
       // Not a valid backend JWT - fall through and try it as a Firebase

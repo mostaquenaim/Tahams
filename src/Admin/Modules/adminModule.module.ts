@@ -39,7 +39,6 @@ import { ActivePopUpEntity } from "src/Global/Entities/active-pop-up.entity";
 import { JwtModule } from "@nestjs/jwt";
 import { BlacklistToken } from "src/Global/Entities/blacklist-token.entity";
 import { PassportModule } from "@nestjs/passport";
-import { RolesGuard } from "../Guards/roles.guard";
 import { OrderAccessGuard } from "../Guards/order-access.guard";
 import { FirebaseAuthGuard } from "../Guards/firebase-auth.guard";
 import { ConfigModule, ConfigService } from "@nestjs/config";
@@ -51,6 +50,15 @@ import { CustomTextElement } from "src/Global/Entities/custom-text-element";
 import { CourierInfo } from "src/Global/Entities/courier-info.entity";
 import { ActivityEntity } from "src/Global/Entities/activity.entity";
 import { CustomerActivityEntity } from "src/Global/Entities/customer-activity.entity";
+import { RolePermissionEntity } from "src/Global/Entities/role-permission.entity";
+import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
+import { RbacService } from "src/Rbac/rbac.service";
+import { AccessPolicyGuard } from "src/Rbac/access-policy.guard";
+import { AuditLogEntity } from "src/Global/Entities/audit-log.entity";
+import { AuditService } from "src/Rbac/audit.service";
+import { AuditInterceptor } from "src/Rbac/audit.interceptor";
+import { StaffService } from "src/Rbac/staff.service";
+import { RbacController } from "src/Rbac/rbac.controller";
 // dotenv.config();
 
 @Module({
@@ -100,6 +108,8 @@ import { CustomerActivityEntity } from "src/Global/Entities/customer-activity.en
             PartnerEntity,
             ReturnEntity,
             RoleEntity,
+            RolePermissionEntity,
+            AuditLogEntity,
             SizeEntity,
             SubCategoryEntity,
             SubSubCategoryEntity,
@@ -109,15 +119,22 @@ import { CustomerActivityEntity } from "src/Global/Entities/customer-activity.en
             WishEntity,
         ])],
     controllers: [
-        AdminController
+        AdminController,
+        RbacController,
     ],
     providers: [
         AdminService,
         JwtStrategy,
-        RolesGuard,
         OrderAccessGuard,
         FirebaseAuthGuard,
-        ConfigService
+        ConfigService,
+        RbacService,
+        // Global, deny-by-default route access check - see src/Rbac.
+        { provide: APP_GUARD, useClass: AccessPolicyGuard },
+        StaffService,
+        AuditService,
+        // Global: records every staff write (see src/Rbac/audit.interceptor).
+        { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
     ],
 })
 

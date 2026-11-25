@@ -12,6 +12,7 @@ import { EmployeeService } from '../Services/employee.service';
 import { MulterError, diskStorage } from "multer";
 import { FileInterceptor } from '@nestjs/platform-express';
 import { EmployeeForm } from '../DTOs/employeeform.dto';
+import { Public } from 'src/Rbac/access.decorators';
 
 
 
@@ -19,27 +20,32 @@ import { EmployeeForm } from '../DTOs/employeeform.dto';
 export class EmployeeController {
   constructor(private readonly appService: EmployeeService) { }
 
+  @Public()
   @Get()
   getHello(): string {
     return this.appService.getHello();
   }
 
+  @Public()
   @Post('create')
   createUser(@Body() createUser: EmployeeForm) {
     return this.appService.createUser(createUser);
   }
 
 
+  @Public()
   @Get('name')
   getName(): string {
     return this.appService.getName();
   }
 
+  @Public()
   @Get(':id')
   findOne(@Param('id') xd: string): string {
     return `This action returns a #${xd} cat`;
   }
 
+  @Public()
   @Post('upload')
   @UseInterceptors(FileInterceptor('file',
     {
@@ -62,6 +68,7 @@ export class EmployeeController {
     return file.filename;
   }
 
+  @Public()
   @Get('/getimage/:name')
   getImages(@Param('name') name, @Res() res) {
     res.sendFile(name, { root: './uploads' })

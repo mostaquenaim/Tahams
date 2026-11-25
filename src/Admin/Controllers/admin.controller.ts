@@ -43,13 +43,24 @@ import ProductForm from 'src/Global/DTOs/productForm.dto';
 import * as path from 'path';
 import { extname } from 'path';
 import * as fs from 'fs';
-import { AuthGuard } from '@nestjs/passport';
-import { Roles } from '../decorators/roles.decorator';
-import { RolesGuard } from '../Guards/roles.guard';
 import { OrderAccessGuard } from '../Guards/order-access.guard';
 import { FirebaseAuthGuard } from '../Guards/firebase-auth.guard';
 import { randomBytes } from 'crypto';
 import cloudinary from '../Services/cloudinary.config';
+import {
+  Authenticated,
+  Public,
+  RequireAnyPermission,
+  RequirePermissions,
+  SelfGuarded,
+  StaffOnly,
+} from 'src/Rbac/access.decorators';
+import { RbacService } from 'src/Rbac/rbac.service';
+import {
+  OWNER_ONLY_PERMISSIONS,
+  P,
+  PERMISSION_GROUPS,
+} from 'src/Rbac/permissions';
 
 // Upload settings for the new-arrival endpoints. Stored names are unique and
 // URL-safe: the thumbnail is named after the stored file, so a reused original
@@ -77,9 +88,51 @@ const arrivalImageUpload = {
 
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) { }
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly rbac: RbacService,
+  ) { }
+
+  // Who am I, as far as the admin panel is concerned? Any logged-in user may
+  // ask; customers just get isStaff: false. The frontend uses this to decide
+  // what to show - the backend still checks every request on its own.
+  @Authenticated()
+  @Get('me')
+  async getMyAccess(@Req() req) {
+    const access = await this.rbac.getStaffAccess(Number(req.user.sub));
+    if (!access) {
+      return {
+        id: Number(req.user.sub),
+        email: req.user.email,
+        isStaff: false,
+        isOwner: false,
+        role: null,
+        permissions: [],
+      };
+    }
+    return {
+      id: access.userId,
+      email: access.email,
+      name: access.name,
+      isStaff: true,
+      isOwner: access.isOwner,
+      role: access.role,
+      permissions: access.permissions,
+    };
+  }
+
+  // The permission catalog, grouped for the role editor.
+  @RequirePermissions(P.ROLES_MANAGE)
+  @Get('permissions')
+  getPermissionCatalog() {
+    return {
+      groups: PERMISSION_GROUPS,
+      ownerOnly: OWNER_ONLY_PERMISSIONS,
+    };
+  }
 
   //Login to account
+  @Public()
   @Post('/signin')
   async signIn(@Body() myDto) {
     const res = await this.adminService.signIn(myDto);
@@ -88,6 +141,7 @@ export class AdminController {
 
   // Google login - verifies the caller's Firebase ID token server-side
   // (never trusts a client-supplied email/password) before issuing our JWT.
+  @Public()
   @Post('google-signin')
   async googleSignIn(@Headers('authorization') authHeader: string) {
     return await this.adminService.googleSignIn(authHeader);
@@ -96,6 +150,7 @@ export class AdminController {
   // Email/password login for an existing account, via a verified Firebase
   // ID token rather than a second, separately-stored password - see
   // AdminService.firebaseSignIn for why.
+  @Public()
   @Post('firebase-signin')
   async firebaseSignIn(@Headers('authorization') authHeader: string) {
     return await this.adminService.firebaseSignIn(authHeader);
@@ -103,6 +158,7 @@ export class AdminController {
 
   // Merge a guest's cart/order history into the real account they just
   // logged into or registered as - see AdminService.mergeGuestCart.
+  @Public()
   @Post('merge-guest-cart')
   async mergeGuestCart(
     @Body('guestEmail') guestEmail: string,
@@ -112,6 +168,7 @@ export class AdminController {
   }
 
   // customerlogin
+  @Public()
   @Post('customer-login')
   @UsePipes(ValidationPipe)
   async customerLogin(@Body() myDto) {
@@ -120,12 +177,14 @@ export class AdminController {
   }
 
   // send mail
+  @Public()
   @Post('sendemail')
   sendEmail(@Body() mydata) {
     return this.adminService.sendEmail(mydata);
   }
 
   // otp
+  @Public()
   @Post('send-otp')
   @UsePipes(ValidationPipe)
   async sendOtp(@Body() sendOtpDto) {
@@ -136,6 +195,7 @@ export class AdminController {
   }
 
   // verify otp
+  @Public()
   @Post('verify-otp')
   @UsePipes(ValidationPipe)
   async verifyOtp(@Body() verifyOtpDto) {
@@ -146,8 +206,7 @@ export class AdminController {
   }
 
   // add banner
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CONTENT_MANAGE)
   @Post('add-banner')
   @UseInterceptors(
     FileInterceptor('filename', {
@@ -176,28 +235,28 @@ export class AdminController {
   }
 
   // get all banners
+  @Public()
   @Get('all-banners')
   viewAllBanners() {
     return this.adminService.viewAllBanners();
   }
 
   // get banner by id
+  @Public()
   @Get('banner-by-id/:id')
   viewBannerById(@Param('id', ParseIntPipe) id: number) {
     return this.adminService.getBannerById(id);
   }
 
   // delete banner
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CONTENT_MANAGE)
   @Delete('deleteBanner/:id')
   async deleteBanner(@Param('id', ParseIntPipe) id: number) {
     return this.adminService.deleteBanner(id);
   }
 
   //update banner by id
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CONTENT_MANAGE)
   @Put('updateBanner/:id')
   @UsePipes(ValidationPipe)
   async updateBanner(@Param('id', ParseIntPipe) id: number, @Body() myDto) {
@@ -205,8 +264,7 @@ export class AdminController {
   }
 
   // publish product
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.PRODUCTS_PUBLISH)
   @Put('publish-product/:id')
   async publishProduct(
     @Param('id') id: number,
@@ -216,8 +274,7 @@ export class AdminController {
   }
 
   // change banner image
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CONTENT_MANAGE)
   @Post('changeBannerImage/:id')
   @UseInterceptors(
     FileInterceptor('filename', {
@@ -238,6 +295,7 @@ export class AdminController {
   }
 
   // add new buying
+  @Public()
   @Post('add-to-buy')
   @UsePipes(ValidationPipe)
   createNewBuy(@Body() myDto: any) {
@@ -245,16 +303,14 @@ export class AdminController {
   }
 
   // create pathao order
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.ORDERS_COURIER)
   @Post('create-pathao-order')
   createOrder(@Body() orderData: any) {
     return this.adminService.createPathaoOrder(orderData);
   }
 
   // send message to customer
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CUSTOMERS_CONTACT)
   @Post('send-message-to-customer')
   @UsePipes(ValidationPipe)
   sendMessageToCustomer(@Body() myDto: any) {
@@ -262,8 +318,7 @@ export class AdminController {
   }
 
   // update buying history
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.ORDERS_EDIT)
   @Patch('update-history/:token')
   updateBuyingHistory(
     @Param('token') tt: string,
@@ -273,24 +328,21 @@ export class AdminController {
   }
 
   // update role by id
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.ROLES_MANAGE)
   @Patch('update-role/:id')
   async updateRole(@Param('id', ParseIntPipe) id: number, @Body() dto) {
     return this.adminService.updateRoleById(id, dto);
   }
 
   // approve req
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.RETURNS_PROCESS)
   @Patch('approve-request')
   updateApproveReq(@Body() updateObj) {
     return this.adminService.updateApproveReq(updateObj.id);
   }
 
   // update product
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.PRODUCTS_EDIT)
   @Put('update-product/:id')
   @UseInterceptors(
     FileInterceptor('filename', {
@@ -329,8 +381,7 @@ export class AdminController {
   }
 
   // Shuffle category serial
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CATALOG_MANAGE)
   @Post('shuffle-category')
   async shuffleCategorySerial(@Body() categoryDto) {
     try {
@@ -344,8 +395,7 @@ export class AdminController {
   }
 
   // update an order's delivery status (admin order timeline)
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.ORDERS_UPDATE_STATUS)
   @Patch('update-buying-history-status-by-token/:token')
   async updateBuyingHistoryStatusByToken(
     @Param('token') token: string,
@@ -355,6 +405,7 @@ export class AdminController {
   }
 
   // get buying histoy by id
+  @Public()
   @Get('get-buying-history-by-token/:token')
   async getBuyingHistoryByToken(
     @Param('token') token,
@@ -370,6 +421,7 @@ export class AdminController {
   }
 
   // get buying history by id
+  @Public()
   @Get('get-buying-history-status-by-token/:token')
   async getBuyingHistoryStatusByToken(
     @Param('token') token,
@@ -380,6 +432,7 @@ export class AdminController {
   }
 
   // add payment info
+  @Public()
   @Post('/add-payment')
   @UseInterceptors(
     FileInterceptor('screenshot', {
@@ -401,8 +454,7 @@ export class AdminController {
   }
 
   // add courier info (saved after an admin places a Pathao order)
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.ORDERS_COURIER)
   @Post('/add-courier/:token')
   addCourierInfo(@Param('token') token: string, @Body() courierDetails) {
     return this.adminService.addCourierInfo(token, courierDetails);
@@ -411,6 +463,7 @@ export class AdminController {
   // Pathao delivery-status webhook. Handles both the one-off
   // "webhook_integration" verification handshake sent from the merchant
   // dashboard and the ongoing signed order-status-update events.
+  @Public()
   @Post('pathao-webhook')
   async pathaoWebhook(
     @Body() body: any,
@@ -438,6 +491,7 @@ export class AdminController {
   // OrderAccessGuard. A caller with neither is rejected; guests without a
   // Firebase session use the per-order tracking-token flow instead.
   @UseGuards(OrderAccessGuard)
+  @SelfGuarded()
   @Get('get-all-buying-history')
   getAllBuyingHistories(
     @Req() req,
@@ -446,7 +500,11 @@ export class AdminController {
     @Query('limit') limit = 10,
     @Query('allItems') allItems = false,
   ) {
-    const isVerifiedAdmin = !!req.isVerifiedAdmin;
+    // staff who may see every order (req.staff is set by OrderAccessGuard
+    // only for a verified backend JWT)
+    const isVerifiedAdmin = this.rbac.hasAllPermissions(req.staff, [
+      P.ORDERS_VIEW,
+    ]);
     return this.adminService.getAllBuyingHistories(
       isVerifiedAdmin ? email : req.verifiedEmail,
       Number(page),
@@ -459,8 +517,7 @@ export class AdminController {
   // grouped/paginated order list for the admin order-management page
   // (returns { data, total, page, limit, totalPages } instead of a bare
   // array, so pagination and per-page counts are accurate)
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.ORDERS_VIEW)
   @Get('get-grouped-buying-history')
   getGroupedBuyingHistories(
     @Req() req,
@@ -482,41 +539,57 @@ export class AdminController {
       status,
       region,
       hideCancelled === 'true' || hideCancelled === true,
-      req.user?.role === 'admin',
+      true, // the route itself requires orders:view
     );
   }
 
   // aggregate stats for the admin dashboard (sales, orders, customers, monthly trend)
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.DASHBOARD_VIEW)
   @Get('dashboard-stats')
-  getDashboardStats(
+  async getDashboardStats(
+    @Req() req,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    return this.adminService.getDashboardStats(startDate, endDate);
+    const stats = await this.adminService.getDashboardStats(startDate, endDate);
+    if (this.rbac.hasAllPermissions(req.staff, [P.FINANCE_VIEW])) return stats;
+
+    // Without finance:view, money figures are withheld (null, not 0, so the
+    // UI can tell "hidden" from "no sales"); counts stay visible.
+    return {
+      ...stats,
+      totalSales: null,
+      avgOrderValue: null,
+      monthlyTrend: stats.monthlyTrend.map((m) => ({ ...m, sales: null })),
+    };
   }
 
   // new orders / customization requests / pending cancel-return requests,
-  // for the admin sidebar badges (polled by the admin client - keep it cheap)
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  // for the admin sidebar badges (polled by the admin client - keep it cheap).
+  // Any staff member may poll it, but only sees counts for areas they can open.
+  @StaffOnly()
   @Get('badge-counts')
-  getAdminBadgeCounts() {
-    return this.adminService.getAdminBadgeCounts();
+  async getAdminBadgeCounts(@Req() req) {
+    const counts = await this.adminService.getAdminBadgeCounts();
+    const can = (p) => this.rbac.hasAllPermissions(req.staff, [p]);
+    return {
+      newOrders: can(P.ORDERS_VIEW) ? counts.newOrders : 0,
+      newCustomizations: can(P.CUSTOMIZATIONS_VIEW)
+        ? counts.newCustomizations
+        : 0,
+      pendingRequests: can(P.RETURNS_VIEW) ? counts.pendingRequests : 0,
+    };
   }
 
   // get specific order
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.ORDERS_VIEW)
   @Get('order-group/:historyId')
   async getOrderGroup(@Param('historyId') historyId: string) {
     return this.adminService.getOrderGroupByHistoryId(historyId);
   }
 
   // update the single admin note for an order
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.ORDERS_EDIT)
   @Patch('order-note/:historyId')
   async updateOrderNote(
     @Param('historyId', ParseIntPipe) historyId: number,
@@ -526,22 +599,21 @@ export class AdminController {
   }
 
   // get all customers / users
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CUSTOMERS_VIEW)
   @Get('get-all-users')
   getAllUsers() {
     return this.adminService.getAllUsers();
   }
 
   // get all roles
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequireAnyPermission(P.ROLES_MANAGE, P.STAFF_VIEW)
   @Get('get-all-roles')
   getAllRoles() {
     return this.adminService.getAllRoles();
   }
 
   // add new cart
+  @Public()
   @Post('add-to-cart')
   @UsePipes(ValidationPipe)
   async createNewCart(@Body() myDto) {
@@ -550,6 +622,7 @@ export class AdminController {
   }
 
   // add new wish
+  @Public()
   @Post('add-Wish')
   @UsePipes(ValidationPipe)
   createNewWish(@Body() myDto) {
@@ -557,6 +630,7 @@ export class AdminController {
   }
 
   // remove wish list item
+  @Public()
   @Delete('remove-wish/:wishId')
   // @UsePipes(ValidationPipe)
   removeWish(@Param('wishId') wishId: number) {
@@ -564,6 +638,7 @@ export class AdminController {
   }
 
   // change the quantity of an item still in the cart
+  @Public()
   @Put('update-cart-quantity/:uniqueId')
   updateCartQuantity(
     @Param('uniqueId') uniqueId: string,
@@ -577,40 +652,42 @@ export class AdminController {
   }
 
   // delete a cart
+  @Public()
   @Delete('delete-cart/:uniqueId')
   deleteCartItem(@Param('uniqueId') id) {
     return this.adminService.deleteCartItem(id);
   }
 
   // delete history
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.ORDERS_DELETE)
   @Put('delete-history/:id')
   deleteHistory(@Param('id') id) {
     return this.adminService.deleteHistory(id);
   }
 
   // delete several of the caller's own cart items
+  @Public()
   @Delete('delete-carts')
   deleteCarts(@Body() myDto) {
     return this.adminService.deleteCarts(myDto?.checkedItems, myDto?.email);
   }
 
   // a customer's (or guest's) own cart - never anyone else's
+  @Public()
   @Get('get-all-carts')
   getAllCarts(@Query('email') email: string) {
     return this.adminService.getAllCarts(email);
   }
 
   // every customer's cart, for the admin "All Carts" page
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CUSTOMERS_VIEW)
   @Get('admin-all-carts')
   getAllCartsForAdmin() {
     return this.adminService.getAllCartsForAdmin();
   }
 
   // view category
+  @Public()
   @Get('view-product-categories')
   async viewProductCategories() {
     const result = await this.adminService.viewProductCategories();
@@ -618,6 +695,7 @@ export class AdminController {
   }
 
   // view popular items
+  @Public()
   @Get('view-popular-items')
   async viewPopularItems() {
     const result = await this.adminService.viewPopularItems();
@@ -625,6 +703,7 @@ export class AdminController {
   }
 
   // view new arrivals
+  @Public()
   @Get('view-new-arrivals')
   async viewNewArrivals() {
     const result = await this.adminService.viewNewArrivals();
@@ -632,27 +711,27 @@ export class AdminController {
   }
 
   // home page sections (storefront feed)
+  @Public()
   @Get('view-home-sections')
   viewHomeSections() {
     return this.adminService.viewHomeSections();
   }
 
   // home page sections (admin editor: includes hidden/empty sections)
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CONTENT_MANAGE)
   @Get('manage-home-sections')
   manageHomeSections() {
     return this.adminService.manageHomeSections();
   }
 
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CONTENT_MANAGE)
   @Put('home-sections')
   saveHomeSections(@Body() body: { sections: any }) {
     return this.adminService.saveHomeSections(body?.sections);
   }
 
   // view active pop up
+  @Public()
   @Get('view-active-pop-up')
   async viewActivePopUp() {
     const result = await this.adminService.viewActivePopUp();
@@ -660,6 +739,7 @@ export class AdminController {
   }
 
   // view all pop up
+  @Public()
   @Get('view-all-pop-up')
   async viewAllPopUp() {
     const result = await this.adminService.viewAllPopUp();
@@ -667,6 +747,7 @@ export class AdminController {
   }
 
   // view genders
+  @Public()
   @Get('view-genders')
   async viewGenders() {
     const result = await this.adminService.viewGenders();
@@ -674,14 +755,14 @@ export class AdminController {
   }
 
   // view cancellation or return requests (admin)
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.RETURNS_VIEW)
   @Get('view-cancellation-or-return-requests')
   async viewRequests() {
     return this.adminService.viewRequests();
   }
 
   // view all sub sub category
+  @Public()
   @Get('view-product-sub-sub-categories')
   async viewAllProductSubSubCategories() {
     const result = await this.adminService.viewAllProductSubSubCategories();
@@ -689,6 +770,7 @@ export class AdminController {
   }
 
   // view all colors
+  @Public()
   @Get('view-colors')
   async viewColors() {
     const result = await this.adminService.viewColors();
@@ -696,6 +778,7 @@ export class AdminController {
   }
 
   // view all fabrics
+  @Public()
   @Get('view-fabrics')
   async viewFabrics() {
     const result = await this.adminService.viewFabrics();
@@ -703,6 +786,7 @@ export class AdminController {
   }
 
   // view category
+  @Public()
   @Get('view-product-sub-categories')
   async viewAllProductSubCategories() {
     const result = await this.adminService.viewAllProductSubCategories();
@@ -710,18 +794,21 @@ export class AdminController {
   }
 
   // view sub category by category
+  @Public()
   @Get('view-product-sub-category/:id')
   viewProductSubCategories(@Param('id') id: number) {
     return this.adminService.viewProductSubCategories(id);
   }
 
   // view sub sub-category by category
+  @Public()
   @Get('view-product-sub-sub-category/:catId')
   viewProductSubSubCategories(@Param('catId') catId: number) {
     return this.adminService.viewProductSubSubCategories(catId);
   }
 
   // check if wished
+  @Public()
   @Get('check-wish-by-user-and-product')
   checkIfWished(
     @Query('customerEmail') customerEmail: string,
@@ -731,18 +818,21 @@ export class AdminController {
   }
 
   // get sub category by id
+  @Public()
   @Get('get-sub-sub-cat-by-id/:id')
   getSubCatById(@Param('id') id: number) {
     return this.adminService.getSubSubCategoryById(id);
   }
 
   // get sub category by id
+  @Public()
   @Get('get-ft-photo-by-product-id/:id')
   getProductFtImage(@Param('id') id: number) {
     return this.adminService.getProductFtImage(id);
   }
 
   // get category by id
+  @Public()
   @Get('getCategoryById/:id')
   @UsePipes(ValidationPipe)
   getCategoryById(@Param('id') id) {
@@ -750,6 +840,7 @@ export class AdminController {
   }
 
   // get products by category id
+  @Public()
   @Get('get-product-by-cat/:name')
   @UsePipes(ValidationPipe)
   getProductByCat(@Param('name') name) {
@@ -757,6 +848,7 @@ export class AdminController {
   }
 
   // get products by sub sub category id
+  @Public()
   @Get('get-product-by-sub-sub-cat/:id')
   @UsePipes(ValidationPipe)
   getProductBySubSubCatId(@Param('id') id) {
@@ -769,6 +861,7 @@ export class AdminController {
   // verified Firebase token's own email, or anyone could read anyone
   // else's name/address/phone by guessing their email.
   @UseGuards(FirebaseAuthGuard)
+  @SelfGuarded()
   @Get('get-user-by-email/:email')
   @UsePipes(ValidationPipe)
   getUserByEmail(@Req() req) {
@@ -776,8 +869,7 @@ export class AdminController {
   }
 
   //update category by id
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CATALOG_MANAGE)
   @Put('updateCategory/:id')
   @UsePipes(ValidationPipe)
   async updateCategory(@Param('id', ParseIntPipe) id: number, @Body() myDto) {
@@ -785,8 +877,7 @@ export class AdminController {
   }
 
   //update category by id
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CATALOG_MANAGE)
   @Put('updateSubCategory/:id')
   @UsePipes(ValidationPipe)
   async updateSubCategory(
@@ -797,8 +888,7 @@ export class AdminController {
   }
 
   //update product type name
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CATALOG_MANAGE)
   @Put('update-product-type-name/:id')
   @UsePipes(ValidationPipe)
   async updateProductTypeName(
@@ -809,16 +899,14 @@ export class AdminController {
   }
 
   // update customization request
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CUSTOMIZATIONS_MANAGE)
   @Put('update-customization-request/:id')
   updateCustomReq(@Param('id') id: string, @Body() mydata) {
     return this.adminService.updateCustomReq(id, mydata);
   }
 
   //update active pop up
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CONTENT_MANAGE)
   @Put('update-active-pop-up/:id')
   // @UsePipes(ValidationPipe)
   async updateActivePop(
@@ -829,8 +917,7 @@ export class AdminController {
   }
 
   //update sub sub category by id
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CATALOG_MANAGE)
   @Put('update-sub-sub-category/:id')
   @UseInterceptors(
     FileInterceptor('myFile', {
@@ -864,6 +951,7 @@ export class AdminController {
   // Firebase token, never any id the caller happens to name in the URL -
   // see updateUserAddress in the service for the ownership check.
   @UseGuards(FirebaseAuthGuard)
+  @SelfGuarded()
   @Put('update-user-address/:id')
   async updateUserAddress(
     @Req() req,
@@ -878,8 +966,7 @@ export class AdminController {
   }
 
   // add new category
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CATALOG_MANAGE)
   @Post('add-category')
   @UsePipes(ValidationPipe)
   createNewCategory(@Body() myDto) {
@@ -887,8 +974,7 @@ export class AdminController {
   }
 
   // add new payment method
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.PAYMENT_METHODS_MANAGE)
   @Post('add-payment-method')
   @UsePipes(ValidationPipe)
   createPaymentMethod(@Body() myDto) {
@@ -896,6 +982,7 @@ export class AdminController {
   }
 
   // increase product view
+  @Public()
   @Post('increase-product-view/:id')
   @UsePipes(ValidationPipe)
   increaseProductView(@Param('id') id: number, @Query('email') email: string) {
@@ -903,24 +990,21 @@ export class AdminController {
   }
 
   // sync view count
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.SYSTEM_SYNC)
   @Get('sync-view-count')
   syncViewCount() {
     return this.adminService.syncViewCount();
   }
 
   // sync sales count
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.SYSTEM_SYNC)
   @Put('sync-sales-count')
   syncSalesCount() {
     return this.adminService.syncSalesCount();
   }
 
   // apply +/- stock changes to a product's size/category rows
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.INVENTORY_UPDATE)
   @Put('update-product-stock/:id')
   updateProductStock(
     @Param('id', ParseIntPipe) id: number,
@@ -930,8 +1014,7 @@ export class AdminController {
   }
 
   // add new sub-category
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CATALOG_MANAGE)
   @Post('add-subCategory')
   @UsePipes(ValidationPipe)
   createNewSubCategory(@Body() myDto) {
@@ -939,8 +1022,7 @@ export class AdminController {
   }
 
   // add new sub-sub-category
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CATALOG_MANAGE)
   @Post('add-sub-subCategory')
   @UsePipes(ValidationPipe)
   createNewSubSubCategory(@Body() myDto) {
@@ -948,6 +1030,7 @@ export class AdminController {
   }
 
   // confirm of cancellation
+  @Public()
   @Post('confirm-return-or-cancellation')
   async confirmReturnOrCancellation(
     @Body('selectedProducts') selectedProducts: string[],
@@ -966,8 +1049,7 @@ export class AdminController {
   }
 
   // change category image
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CATALOG_MANAGE)
   @Post('changeCategoryImage/:id')
   @UseInterceptors(
     FileInterceptor('filename', {
@@ -988,8 +1070,7 @@ export class AdminController {
   }
 
   // add new coupon
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.COUPONS_MANAGE)
   @Post('add-coupon')
   @UsePipes(ValidationPipe)
   createNewCoupon(@Body() myDto: CouponForm) {
@@ -997,8 +1078,7 @@ export class AdminController {
   }
 
   // add new color
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CATALOG_MANAGE)
   @Post('add-color')
   @UsePipes(ValidationPipe)
   createNewColor(@Body() myDto) {
@@ -1006,56 +1086,50 @@ export class AdminController {
   }
 
   // get all coupons
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.COUPONS_VIEW)
   @Get('get-coupons')
   getAllCoupons() {
     return this.adminService.getAllCoupons();
   }
 
   // get particular coupon
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.COUPONS_VIEW)
   @Get('get-coupons/:id')
   getParticularCoupon(@Param('id') id: number) {
     return this.adminService.getParticularCoupon(id);
   }
 
   // disable coupon
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.COUPONS_MANAGE)
   @Patch('disable-coupon/:id')
   disableCoupon(@Param('id') id: number) {
     return this.adminService.disableCoupon(id);
   }
 
   // disable sub category
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CATALOG_MANAGE)
   @Put('disable-or-enable-sub-category/:id')
   disableSubSubCategory(@Param('id') id: number) {
     return this.adminService.disableSubSubCategory(id);
   }
 
   // get all delivery status
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.ORDERS_VIEW)
   @Get('get-all-delivery-status')
   getAllDeliveryStatus() {
     return this.adminService.getAllDeliveryStatus();
   }
 
   // get all payment methods
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequireAnyPermission(P.ORDERS_VIEW, P.PAYMENTS_VIEW, P.PAYMENT_METHODS_MANAGE)
   @Get('get-all-payment-methods')
   getAllPaymentMethod() {
     return this.adminService.getAllPaymentMethod();
   }
 
   //logout
+  @Authenticated()
   @Post('logout')
-  @UseGuards(AuthGuard('jwt'))
   async logout(@Req() req: any) {
     // Blacklist until the token's OWN expiry (its `exp` claim), not a fixed
     // window - see AdminService.addToBlacklist.
@@ -1069,36 +1143,35 @@ export class AdminController {
   }
 
   // create new account
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.STAFF_MANAGE)
   @Post('create')
   createUser(@Body() myDto) {
     return this.adminService.createUser(myDto);
   }
 
   // create new role
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.ROLES_MANAGE)
   @Post('create-role')
   createNewRole(@Body() myDto) {
     return this.adminService.createNewRole(myDto);
   }
 
   // generate product ids
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.SYSTEM_SYNC)
   @Put('generate-product-ids')
   generateProductIds() {
     return this.adminService.generateProductIds();
   }
 
   // view all product
+  @Public()
   @Get('view-all-products')
   viewAllProducts(@Query('filter') query: any) {
     return this.adminService.viewAllProducts(query && query);
   }
 
   // view related products
+  @Public()
   @Get('related-products')
   viewRelatedProducts(
     @Query('category') category: number,
@@ -1108,6 +1181,7 @@ export class AdminController {
   }
 
   // get product by search query
+  @Public()
   @Get('search-products')
   async getProductByQuery(@Query('q') searchQuery: string) {
     const products = await this.adminService.getProductByQuery(searchQuery);
@@ -1115,6 +1189,7 @@ export class AdminController {
   }
 
   // get product by search query for search bar
+  @Public()
   @Get('search-bar-products')
   async getLessProductByQuery(@Query('q') searchQuery: string) {
     const products = await this.adminService.getLessProductByQuery(searchQuery);
@@ -1122,18 +1197,21 @@ export class AdminController {
   }
 
   // view size
+  @Public()
   @Get('view-product-sizes')
   viewProductSizes() {
     return this.adminService.viewProductSizes();
   }
 
   // view all views
+  @Public()
   @Get('view-all-products-views')
   viewAllProductsViews() {
     return this.adminService.viewAllProductsViews();
   }
 
   // get product by id
+  @Public()
   @Get('get-product-by-id/:id')
   @UsePipes(ValidationPipe)
   async getProductById(@Param('id') id) {
@@ -1142,65 +1220,56 @@ export class AdminController {
   }
 
   // delete product by id
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.PRODUCTS_DELETE)
   @Delete('delete-product/:id')
-  async deleteProductById(@Param('id') id: number, @Req() req) {
-    // identity from the verified JWT, never a client-supplied ?email=
-    return this.adminService.deleteProductById(id, req.user?.email);
+  async deleteProductById(@Param('id') id: number) {
+    return this.adminService.deleteProductById(id);
   }
 
   // delete customization request
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CUSTOMIZATIONS_DELETE)
   @Delete('delete-customization-request/:id')
   async deleteCustomizationReq(@Param('id') id: number) {
     return await this.adminService.deleteCustomizationReq(id);
   }
 
   // delete role by id
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.ROLES_MANAGE)
   @Delete('delete-role/:id')
   async deleteRoleById(@Param('id') id: number) {
     return this.adminService.deleteRoleById(id);
   }
 
   // delete product type or sub sub category by id
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CATALOG_DELETE)
   @Delete('delete-product-type/:id')
   async deleteProductTypeById(@Param('id') id: number) {
     return this.adminService.deleteProductTypeById(id);
   }
 
   // delete category by id
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CATALOG_DELETE)
   @Delete('delete-category/:id')
   async deleteCategoryById(@Param('id') id: number) {
     return this.adminService.deleteCategoryById(id);
   }
 
   // delete sub category by id
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CATALOG_DELETE)
   @Delete('delete-sub-category/:id')
   async deleteSubCategoryById(@Param('id') id: number) {
     return this.adminService.deleteSubCategoryById(id);
   }
 
   // delete size by id
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CATALOG_DELETE)
   @Delete('deleteSize/:id')
   async deleteSizeById(@Param('id', ParseIntPipe) id: number) {
     return this.adminService.deleteSizeById(id);
   }
 
   // add new size
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CATALOG_MANAGE)
   @Post('add-size')
   @UsePipes(ValidationPipe)
   createNewSize(@Body() myDto) {
@@ -1208,8 +1277,7 @@ export class AdminController {
   }
 
   // add new fabric
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CATALOG_MANAGE)
   @Post('add-fabric')
   @UsePipes(ValidationPipe)
   createNewFabric(@Body() myDto) {
@@ -1217,8 +1285,7 @@ export class AdminController {
   }
 
   //add new product/create new product
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.PRODUCTS_CREATE)
   @Post('/add-product')
   @UseInterceptors(
     FileInterceptor('myfile', {
@@ -1248,6 +1315,7 @@ export class AdminController {
   }
 
   // send customization request
+  @Public()
   @Post('send-customize-tee-request')
   @UseInterceptors(
     FileInterceptor('previewImage', {
@@ -1292,6 +1360,7 @@ export class AdminController {
   }
 
   // send text customization element
+  @Public()
   @Post('customized-text-element/:id')
   async getCustomTextElement(@Param('id') id: number, @Body() textData) {
     try {
@@ -1304,6 +1373,7 @@ export class AdminController {
   }
 
   // send image customization element
+  @Public()
   @Post('customized-image-element/:id')
   @UseInterceptors(
     FileInterceptor('image', {
@@ -1345,13 +1415,18 @@ export class AdminController {
   // everyone's requests, a verified Firebase ID token sees only its own
   // email's requests - never derived from the query string.
   @UseGuards(OrderAccessGuard)
+  @SelfGuarded()
   @Get('get-all-customization-requests')
   async getAllCustomizationRequests(
     @Req() req,
     @Query() mydto: { email: string; id: string },
   ) {
     try {
-      const isVerifiedAdmin = !!req.isVerifiedAdmin;
+      // staff who may see every customization request (req.staff is set by
+      // OrderAccessGuard only for a verified backend JWT)
+      const isVerifiedAdmin = this.rbac.hasAllPermissions(req.staff, [
+        P.CUSTOMIZATIONS_VIEW,
+      ]);
       const result = await this.adminService.getAllCustomizationRequests(
         isVerifiedAdmin ? mydto.email : req.verifiedEmail,
         mydto.id,
@@ -1368,16 +1443,14 @@ export class AdminController {
   }
 
   // update discount
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.PRICING_DISCOUNT)
   @Put('update-discount')
   updateDiscount(@Body() mydata) {
     return this.adminService.updateDiscount(mydata);
   }
 
   //add new arrivals
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CONTENT_MANAGE)
   @Post('/add-new-arrivals')
   @UseInterceptors(FileInterceptor('filename', arrivalImageUpload))
   addNewArrivals(
@@ -1392,8 +1465,7 @@ export class AdminController {
   }
 
   // edit an active arrival; the image is optional
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CONTENT_MANAGE)
   @Patch('update-new-arrival/:id')
   @UseInterceptors(FileInterceptor('filename', arrivalImageUpload))
   updateNewArrival(
@@ -1404,16 +1476,14 @@ export class AdminController {
     return this.adminService.updateNewArrival(id, mydata, imageobj?.filename);
   }
 
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CONTENT_MANAGE)
   @Patch('discontinue-new-arrival/:id')
   async discontinueNewArrival(@Param('id', ParseIntPipe) id: number) {
     return this.adminService.discontinueNewArrival(id);
   }
 
   //add pop up
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.CONTENT_MANAGE)
   @Post('/add-new-pop-up')
   @UseInterceptors(
     FileInterceptor('filename', {
@@ -1440,8 +1510,7 @@ export class AdminController {
   }
 
   // product pictures add
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequireAnyPermission(P.PRODUCTS_CREATE, P.PRODUCTS_EDIT)
   @Post('/add-product-pictures')
   @UseInterceptors(
     FilesInterceptor('myfiles', 10, {
@@ -1476,8 +1545,7 @@ export class AdminController {
   }
 
   // update product pictures
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequirePermissions(P.PRODUCTS_EDIT)
   @Post('/update-product-pictures')
   @UseInterceptors(
     FilesInterceptor('myfiles', 10, {
@@ -1516,8 +1584,7 @@ export class AdminController {
   // Must only ever update the caller's own admin record - never whatever
   // email happens to be in the request body, or anyone could overwrite
   // another admin's profile (including their password) with no login at all.
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @StaffOnly()
   @Put('/updateProfile')
   @UseInterceptors(
     FileInterceptor('filename', {
@@ -1546,14 +1613,14 @@ export class AdminController {
   }
 
   // check admin
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @StaffOnly()
   @Get('/checkIfAdmin')
   isAdminCheck() {
     return { isAdmin: true };
   }
 
   // get wishlist
+  @Public()
   @Get('get-wish-by-user/:email')
   async getWishByUser(@Param('email') email: string) {
     const res = await this.adminService.getWishByUser(email);
@@ -1561,6 +1628,7 @@ export class AdminController {
   }
 
   // get all images compressed
+  @Public()
   @Get('/get-all-images-compressed')
   async getImagesCompressed() {
     const res = await this.adminService.getImagesCompressed();
@@ -1568,6 +1636,7 @@ export class AdminController {
   }
 
   // get image by name
+  @Public()
   @Get('/getimage/*')
   getImages(@Req() req, @Res() res) {
     const filePath = req.params[0]; // gets the path after /getimage/
@@ -1575,14 +1644,14 @@ export class AdminController {
   }
 
   // fraud check
+  @Public()
   @Post('fraud-check')
   async fraudCheck(@Body('phone') phone: string) {
     return this.adminService.fraudCheck(phone);
   }
 
   // cloudinary images
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @RequireAnyPermission(P.PRODUCTS_CREATE, P.PRODUCTS_EDIT, P.CONTENT_MANAGE, P.CATALOG_MANAGE)
   @Get('cloudinary-signature')
   getCloudinarySignature() {
     const timestamp = Math.round(Date.now() / 1000);

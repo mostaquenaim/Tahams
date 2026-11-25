@@ -129,12 +129,11 @@ async function run() {
     // ---------------------------------------------------------------------
     // Roles
     // ---------------------------------------------------------------------
-    console.log('Seeding roles...');
-    const roleNames = ['admin', 'manager', 'employee', 'customer'];
-    const roles: Record<string, RoleEntity> = {};
-    for (const name of roleNames) {
-      roles[name] = await upsert(roleRepo, { name }, { name });
-    }
+    // Staff roles (Owner, Manager, Order Staff, Content Editor) are created
+    // by RbacService when the app context boots, so nothing to seed here.
+    // (Upserting bare names like 'admin'/'manager' would now create
+    // duplicates next to the built-in roles.)
+    const ownerRole = await roleRepo.findOne({ where: { key: 'owner' } });
 
     // ---------------------------------------------------------------------
     // Admin + employees + customers
@@ -154,6 +153,7 @@ async function run() {
         email: adminEmail,
         password: adminHash,
         role: 'admin',
+        staffRoleId: ownerRole?.id ?? null,
         mbl_no: '01700000000',
       },
     );
