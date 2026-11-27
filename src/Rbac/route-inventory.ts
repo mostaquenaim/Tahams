@@ -9,6 +9,7 @@ import { AdminController } from 'src/Admin/Controllers/admin.controller';
 import { CustomerController } from 'src/Customer/Controllers/customer.controller';
 import { EmployeeController } from 'src/Employee/Controllers/employee.controller';
 import { RbacController } from './rbac.controller';
+import { PaymentMethodsController } from 'src/Admin/payment-methods/payment-methods.controller';
 import { ACCESS_POLICY_KEY, PERMISSIONS_KEY } from './access.decorators';
 
 // Every HTTP route the app serves, read from controller metadata. Used by
@@ -21,6 +22,7 @@ export const CONTROLLERS = [
   CustomerController,
   EmployeeController,
   RbacController,
+  PaymentMethodsController,
 ];
 
 export type RouteInfo = {

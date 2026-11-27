@@ -59,6 +59,8 @@ import { AuditService } from "src/Rbac/audit.service";
 import { AuditInterceptor } from "src/Rbac/audit.interceptor";
 import { StaffService } from "src/Rbac/staff.service";
 import { RbacController } from "src/Rbac/rbac.controller";
+import { PaymentMethodsController } from "../payment-methods/payment-methods.controller";
+import { PaymentMethodsService } from "../payment-methods/payment-methods.service";
 // dotenv.config();
 
 @Module({
@@ -121,6 +123,7 @@ import { RbacController } from "src/Rbac/rbac.controller";
     controllers: [
         AdminController,
         RbacController,
+        PaymentMethodsController,
     ],
     providers: [
         AdminService,
@@ -135,6 +138,7 @@ import { RbacController } from "src/Rbac/rbac.controller";
         AuditService,
         // Global: records every staff write (see src/Rbac/audit.interceptor).
         { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
+        PaymentMethodsService,
     ],
 })
 

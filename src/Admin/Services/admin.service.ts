@@ -70,6 +70,11 @@ import { CourierInfo } from 'src/Global/Entities/courier-info.entity';
 import { ActivityEntity } from 'src/Global/Entities/activity.entity';
 import { CustomerActivityEntity } from 'src/Global/Entities/customer-activity.entity';
 import { expectedDeliveryFee } from '../delivery-fees';
+import {
+  PAY_LATER_METHODS,
+  PayLaterKind,
+  isPayLaterMethod,
+} from '../payment-methods/payment-method-rules';
 import { BUILT_IN_ROLES } from 'src/Rbac/permissions';
 import { RbacService } from 'src/Rbac/rbac.service';
 
@@ -266,8 +271,11 @@ export class AdminService implements OnModuleInit {
     }
     const history = cart[0].history;
 
-    const paymentMethod = await this.getPaymentMethodById(myDto.paymentMethod);
-    history.paymentMethod = paymentMethod;
+    // multipart form fields arrive as strings
+    const methodId = Number(myDto.paymentMethod);
+    const paymentMethod = Number.isInteger(methodId) && methodId > 0
+      ? await this.getPaymentMethodById(methodId)
+      : null;
 
     if (!paymentMethod) {
       throw new BadRequestException('Unknown payment method.');
@@ -275,8 +283,17 @@ export class AdminService implements OnModuleInit {
 
     // Mark the payment as done unless it's 'Cash on Delivery' or 'Pick-Up Point'
     if (this.isPayLaterMethod(paymentMethod)) {
+      history.paymentMethod = paymentMethod;
       history.PaymentDetails = paymentMethod.name;
     } else {
+      // Only methods the storefront offers for paying online - never one
+      // an admin has switched off (it may be an old account number).
+      if (!paymentMethod.isActive || !paymentMethod.payOnline) {
+        throw new BadRequestException(
+          'This payment method is not available. Please choose another one.',
+        );
+      }
+      history.paymentMethod = paymentMethod;
       history.PaymentDone = true;
       history.screenshot = myDto.screenshot;
       history.PaymentDetails = `
@@ -2439,14 +2456,9 @@ export class AdminService implements OnModuleInit {
   // ids depend on insert order (the dev seed puts Cash on Delivery at 4), and
   // a missing row silently saved orders with no payment method, which
   // crashed the order page. Use the id when that row exists, else match by
-  // name.
-  private static readonly PAY_LATER_METHODS = {
-    cod: { id: 1, name: /cash\s*on\s*delivery|^cod$/i },
-    pickup: { id: 8, name: /pick\s*-?\s*up/i },
-  };
-
-  async getPayLaterMethod(kind: 'cod' | 'pickup') {
-    const { id, name } = AdminService.PAY_LATER_METHODS[kind];
+  // name. (Patterns live in payment-methods/payment-method-rules.ts.)
+  async getPayLaterMethod(kind: PayLaterKind) {
+    const { id, name } = PAY_LATER_METHODS[kind];
     const byId = await this.getPaymentMethodById(id);
     if (byId) return byId;
     const all = await this.paymentMethodRepo.find();
@@ -2455,10 +2467,7 @@ export class AdminService implements OnModuleInit {
 
   // True for cash on delivery / pay at pickup: the money hasn't been taken yet.
   isPayLaterMethod(method) {
-    if (!method) return false;
-    const { cod, pickup } = AdminService.PAY_LATER_METHODS;
-    if (method.id === cod.id || method.id === pickup.id) return true;
-    return cod.name.test(method.name || '') || pickup.name.test(method.name || '');
+    return isPayLaterMethod(method);
   }
 
   // get color by id
@@ -3167,9 +3176,21 @@ export class AdminService implements OnModuleInit {
     return this.categoryRepo.save(savedCategory);
   }
 
-  // create new category
+  // create new payment method. Only the name is taken from the request; the
+  // checkout details (instructions, number, online or not) are set on the
+  // Payment methods page, so a new method starts hidden from online payment.
+  // configuredAt is set now so the one-time startup fill of the old
+  // hard-coded details never applies to it (a new "bKash Personal" must not
+  // inherit the merchant number).
   async createPaymentMethod(myDto) {
-    const newPaymentMethod = this.paymentMethodRepo.create({ ...myDto });
+    const name = typeof myDto?.name === 'string' ? myDto.name.trim() : '';
+    if (!name || name.length > 60) {
+      throw new BadRequestException('Payment method name must be 1-60 characters.');
+    }
+    const newPaymentMethod = this.paymentMethodRepo.create({
+      name,
+      configuredAt: new Date(),
+    });
     return this.paymentMethodRepo.save(newPaymentMethod);
   }
 
