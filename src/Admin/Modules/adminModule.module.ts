@@ -59,6 +59,9 @@ import { AuditService } from "src/Rbac/audit.service";
 import { AuditInterceptor } from "src/Rbac/audit.interceptor";
 import { StaffService } from "src/Rbac/staff.service";
 import { RbacController } from "src/Rbac/rbac.controller";
+import { SiteSettingEntity } from "src/Global/Entities/site-setting.entity";
+import { SiteSettingsController } from "../site-settings/site-settings.controller";
+import { SiteSettingsService } from "../site-settings/site-settings.service";
 // dotenv.config();
 
 @Module({
@@ -110,6 +113,7 @@ import { RbacController } from "src/Rbac/rbac.controller";
             RoleEntity,
             RolePermissionEntity,
             AuditLogEntity,
+            SiteSettingEntity,
             SizeEntity,
             SubCategoryEntity,
             SubSubCategoryEntity,
@@ -121,6 +125,7 @@ import { RbacController } from "src/Rbac/rbac.controller";
     controllers: [
         AdminController,
         RbacController,
+        SiteSettingsController,
     ],
     providers: [
         AdminService,
@@ -135,6 +140,7 @@ import { RbacController } from "src/Rbac/rbac.controller";
         AuditService,
         // Global: records every staff write (see src/Rbac/audit.interceptor).
         { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
+        SiteSettingsService,
     ],
 })
 

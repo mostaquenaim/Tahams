@@ -94,6 +94,9 @@ describe('route access policies', () => {
     ['PATCH /admin/roles/:id', P.ROLES_MANAGE],
     ['DELETE /admin/roles/:id', P.ROLES_MANAGE],
     ['GET /admin/audit-logs', P.AUDIT_VIEW],
+    ['GET /admin/site-settings/manage', P.SETTINGS_MANAGE],
+    ['PUT /admin/site-settings/:key', P.SETTINGS_MANAGE],
+    ['DELETE /admin/site-settings/:key', P.SETTINGS_MANAGE],
   ])('%s requires %s', (key, perm) => {
     const r = byKey(key);
     expect(r.policy).toBe('permissions');
@@ -112,6 +115,7 @@ describe('route access policies', () => {
     'POST /admin/signin',
     'POST /admin/firebase-signin',
     'POST /customer/create',
+    'GET /admin/site-settings',
   ])('storefront / guest route %s stays public', (key) => {
     expect(byKey(key).policy).toBe('public');
   });
